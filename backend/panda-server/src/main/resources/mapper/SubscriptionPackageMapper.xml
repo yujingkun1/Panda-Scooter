@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.SubscriptionPackageMapper">
+
+    <resultMap id="subscriptionPackageResultMap" type="com.panda.entity.SubscriptionPackage">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="price" column="price"/>
+        <result property="type" column="type"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="listAll" resultMap="subscriptionPackageResultMap">
+        select id, title, description, price, type, create_time
+        from subscription_package
+        order by id desc
+    </select>
+
+    <select id="getById" resultMap="subscriptionPackageResultMap">
+        select id, title, description, price, type, create_time
+        from subscription_package
+        where id = #{id}
+    </select>
+
+</mapper>

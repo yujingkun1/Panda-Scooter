@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.UserBillMapper">
+
+    <resultMap id="userBillResultMap" type="com.panda.entity.UserBill">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type"/>
+        <result property="amount" column="amount"/>
+        <result property="balanceAfter" column="balance_after"/>
+        <result property="orderId" column="order_id"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.panda.entity.UserBill" useGeneratedKeys="true" keyProperty="id">
+        insert into user_bill (user_id, type, amount, balance_after, order_id, remark, create_time)
+        values (#{userId}, #{type}, #{amount}, #{balanceAfter}, #{orderId}, #{remark}, #{createTime})
+    </insert>
+
+    <select id="listByUserId" resultMap="userBillResultMap">
+        select id, user_id, type, amount, balance_after, order_id, remark, create_time
+        from user_bill
+        where user_id = #{userId}
+        order by id desc
+    </select>
+
+</mapper>

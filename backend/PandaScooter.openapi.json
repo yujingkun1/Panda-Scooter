@@ -1,0 +1,2145 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "PandaScooter",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/user/bill": {
+      "post": {
+        "summary": "用户充值消费",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "description": "流水类型：1-骑行消费，2-充值，3-退款，4-购买套餐",
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                  },
+                  "amount": {
+                    "description": "变动金额（正数为进账，负数为支出）",
+                    "type": "number"
+                  },
+                  "remark": {
+                    "type": "string",
+                    "description": "流水备注（如：购买套餐，账户充值，骑行消费）",
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "type",
+                  "amount",
+                  "remark"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/bills": {
+      "get": {
+        "summary": "查询所有账单",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "bills": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "description": "主键ID",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 2147483647
+                              },
+                              "type": {
+                                "description": "流水类型：1-骑行消费，2-充值，3-退款，4-购买套餐",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647
+                              },
+                              "amount": {
+                                "description": "变动金额（正数为进账，负数为支出）",
+                                "type": "number"
+                              },
+                              "remark": {
+                                "description": "流水备注（如：骑行订单1002扣费）",
+                                "type": "string",
+                                "maxLength": 255,
+                                "nullable": true
+                              },
+                              "createTime": {
+                                "description": "创建时间",
+                                "default": "CURRENT_TIMESTAMP",
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "amount"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "bills"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/signin": {
+      "post": {
+        "summary": "注册",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "verificationCode": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "verificationCode"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/login": {
+      "post": {
+        "summary": "登录",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "邮箱"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "密码"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "主键值"
+                        },
+                        "username": {
+                          "type": "string",
+                          "description": "姓名"
+                        },
+                        "token": {
+                          "type": "string",
+                          "description": "jwt令牌"
+                        },
+                        "email": {
+                          "type": "string",
+                          "description": "邮箱"
+                        }
+                      },
+                      "description": "用户登录返回的数据格式"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/logout": {
+      "post": {
+        "summary": "登出",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/delete": {
+      "delete": {
+        "summary": "注销",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "verificationCode": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password",
+                  "verificationCode"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/verification": {
+      "get": {
+        "summary": "请求验证码",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/password": {
+      "post": {
+        "summary": "忘记密码",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "verificationCode": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "verificationCode",
+                  "newPassword"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/wallet": {
+      "get": {
+        "summary": "查询用户钱包",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "balance": {
+                          "description": "余额",
+                          "default": "0.00",
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "packages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "description": "主键ID",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 2147483647
+                              },
+                              "title": {
+                                "description": "套餐标题",
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "description": {
+                                "description": "套餐描述",
+                                "type": "string",
+                                "maxLength": 65535,
+                                "nullable": true
+                              },
+                              "type": {
+                                "description": "类型：1-月卡，2-季卡，3-年卡",
+                                "default": "1",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647,
+                                "nullable": true
+                              },
+                              "expireDate": {
+                                "description": "到期时间",
+                                "default": "CURRENT_TIMESTAMP",
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "restDay": {
+                                "type": "integer",
+                                "description": "剩余天数"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "restDay"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "packages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/ride-history": {
+      "get": {
+        "summary": "查询所有历史行程",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "history": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "description": "主键RentOrder订单ID",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 2147483647
+                              },
+                              "startTime": {
+                                "description": "开始时间",
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "orderStatus": {
+                                "description": "订单状态：0-骑行中，1-待支付，2-已结束",
+                                "default": "0",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647,
+                                "nullable": true
+                              },
+                              "payStatus": {
+                                "description": "支付状态：0-未支付，1-已支付",
+                                "default": "0",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647,
+                                "nullable": true
+                              },
+                              "amount": {
+                                "description": "金额",
+                                "default": "0.00",
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "totalKilometer": {
+                                "description": "总里程",
+                                "default": "0.00",
+                                "type": "number",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "history"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/user/info": {
+      "get": {
+        "summary": "查询个人信息",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "totalKilometer": {
+                          "type": "string",
+                          "description": "历史里程总和"
+                        },
+                        "totalTime": {
+                          "type": "string",
+                          "description": "历史骑行时间总和"
+                        }
+                      },
+                      "required": [
+                        "username",
+                        "email",
+                        "totalKilometer",
+                        "totalTime"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/map": {
+      "get": {
+        "summary": "查询车辆，禁停区，停放点",
+        "deprecated": false,
+        "description": "查询附近车辆",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "longitude",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "latitude",
+            "in": "query",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "scale",
+            "in": "query",
+            "description": "地图缩放级别 3-20",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "scooters": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "description": "scooter主键ID",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 2147483647
+                              },
+                              "code": {
+                                "description": "车辆编码",
+                                "type": "string",
+                                "maxLength": 32
+                              },
+                              "ride_status": {
+                                "description": "状态：0-空闲，1-使用中",
+                                "default": "0",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647,
+                                "nullable": true
+                              },
+                              "fault_status": {
+                                "type": "integer",
+                                "description": "0-正常 1-故障"
+                              },
+                              "battery": {
+                                "description": "电量",
+                                "default": "100",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647,
+                                "nullable": true
+                              },
+                              "latitude": {
+                                "description": "纬度",
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "longitude": {
+                                "description": "经度",
+                                "type": "number",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code",
+                              "fault_status"
+                            ]
+                          }
+                        },
+                        "noParkingAreas": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "description": "禁停区主键ID",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 2147483647
+                              },
+                              "polygon": {
+                                "description": "禁停多边形范围坐标",
+                                "type": "string",
+                                "maxLength": 65535,
+                                "nullable": true
+                              },
+                              "status": {
+                                "description": "状态：1-启用，0-禁用",
+                                "default": "1",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647,
+                                "nullable": true
+                              },
+                              "center": {
+                                "type": "string",
+                                "description": "禁停多边形中心点坐标"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "center"
+                            ]
+                          }
+                        },
+                        "parkingPoints": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "latitude": {
+                                "type": "number"
+                              },
+                              "longitude": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "latitude",
+                              "longitude"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "scooters",
+                        "noParkingAreas",
+                        "parkingPoints"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/scooter/unlock": {
+      "post": {
+        "summary": "解锁小车开始订单",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "orderId": {
+                          "type": "integer"
+                        },
+                        "scooterId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "orderId",
+                        "scooterId"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/scooter": {
+      "get": {
+        "summary": "扫码获取小车信息",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "description": "主键ID",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 2147483647
+                        },
+                        "code": {
+                          "description": "车辆编码",
+                          "type": "string",
+                          "maxLength": 32
+                        },
+                        "ride_status": {
+                          "description": "状态：0-空闲，1-使用中",
+                          "default": "0",
+                          "type": "integer",
+                          "minimum": -2147483648,
+                          "maximum": 2147483647,
+                          "nullable": true
+                        },
+                        "fault_status": {
+                          "type": "integer",
+                          "description": "0-正常 1-故障"
+                        },
+                        "battery": {
+                          "description": "电量",
+                          "default": "100",
+                          "type": "integer",
+                          "minimum": -2147483648,
+                          "maximum": 2147483647,
+                          "nullable": true
+                        },
+                        "latitude": {
+                          "description": "纬度",
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "longitude": {
+                          "description": "经度",
+                          "type": "number",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "fault_status"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/scooter/lock": {
+      "post": {
+        "summary": "锁上小车结束订单",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "description": "订单ID",
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647
+                  },
+                  "startTime": {
+                    "description": "开始时间",
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true
+                  },
+                  "endTime": {
+                    "type": "string",
+                    "description": "结束时间",
+                    "format": "date-time",
+                    "nullable": true
+                  },
+                  "amount": {
+                    "description": "金额",
+                    "default": "0.00",
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "totalKilometer": {
+                    "description": "总里程",
+                    "default": "0.00",
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "code": {
+                    "description": "车辆主键ID",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483647
+                  },
+                  "battery": {
+                    "description": "电量",
+                    "default": "100",
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "nullable": true
+                  },
+                  "latitude": {
+                    "description": "纬度",
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "longitude": {
+                    "description": "经度",
+                    "type": "number",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "orderId",
+                  "code"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "description": "主键ID",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 2147483647
+                        },
+                        "startTime": {
+                          "description": "开始时间",
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "payStatus": {
+                          "description": "支付状态：0-未支付，1-已支付",
+                          "default": "0",
+                          "type": "integer",
+                          "minimum": -2147483648,
+                          "maximum": 2147483647,
+                          "nullable": true
+                        },
+                        "amount": {
+                          "description": "金额",
+                          "default": "0.00",
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "totalTime": {
+                          "type": "string",
+                          "description": "总时长（00：10：10）十分十秒"
+                        },
+                        "totalKilometer": {
+                          "description": "总里程",
+                          "default": "0.00",
+                          "type": "number",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "totalTime"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/faults": {
+      "get": {
+        "summary": "查询所有故障上报记录",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "faults": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "description": "fault主键ID",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 2147483647
+                              },
+                              "code": {
+                                "description": "车辆Code",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647
+                              },
+                              "description": {
+                                "description": "故障描述",
+                                "type": "string",
+                                "maxLength": 65535,
+                                "nullable": true
+                              },
+                              "createTime": {
+                                "description": "创建时间",
+                                "default": "CURRENT_TIMESTAMP",
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "faults"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/fault": {
+      "post": {
+        "summary": "故障上报",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "image": {
+                  "contentType": "multipart/form-data"
+                },
+                "scooterId": {
+                  "contentType": "application/json"
+                },
+                "description": {
+                  "contentType": "application/json"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "format": "binary",
+                    "type": "string",
+                    "example": ""
+                  },
+                  "scooterId": {
+                    "type": "integer",
+                    "example": 0
+                  },
+                  "description": {
+                    "example": "",
+                    "type": "string"
+                  }
+                }
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "fault_status": {
+                          "type": "integer",
+                          "description": "状态：0-正常，1-故障"
+                        },
+                        "orderId": {
+                          "type": "string",
+                          "description": "如果使用中，传orderId"
+                        }
+                      },
+                      "required": [
+                        "fault_status",
+                        "orderId"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/subscription": {
+      "get": {
+        "summary": "查询所有套餐",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "packages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "description": "主键ID",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 2147483647
+                              },
+                              "title": {
+                                "description": "套餐标题",
+                                "type": "string",
+                                "maxLength": 128
+                              },
+                              "description": {
+                                "description": "套餐描述",
+                                "type": "string",
+                                "maxLength": 65535,
+                                "nullable": true
+                              },
+                              "price": {
+                                "description": "价格",
+                                "type": "number"
+                              },
+                              "type": {
+                                "description": "类型：1-月卡，2-季卡，3-年卡",
+                                "default": "1",
+                                "type": "integer",
+                                "minimum": -2147483648,
+                                "maximum": 2147483647,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "price"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "packages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "data"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Scooter": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "code": {
+            "description": "车辆编码",
+            "type": "string",
+            "maxLength": 32
+          },
+          "ride_status": {
+            "description": "状态：0-空闲，1-使用中，2-维修中，3-调度中",
+            "default": "0",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "fault_status": {
+            "type": "integer",
+            "description": "0-正常 1-故障"
+          },
+          "battery": {
+            "description": "电量",
+            "default": "100",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "latitude": {
+            "description": "纬度",
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "description": "经度",
+            "type": "number",
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "fault_status"
+        ]
+      },
+      "Result": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "data"
+        ]
+      },
+      "FaultReport": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "userId": {
+            "description": "用户ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "scooterId": {
+            "description": "车辆ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "description": {
+            "description": "故障描述",
+            "type": "string",
+            "maxLength": 65535,
+            "nullable": true
+          },
+          "imageUrl": {
+            "description": "图片链接",
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "status": {
+            "description": "处理状态：0-未处理，1-已处理",
+            "default": "0",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "scooterId"
+        ]
+      },
+      "Dispatcher": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "name": {
+            "description": "姓名",
+            "type": "string",
+            "maxLength": 64
+          },
+          "password": {
+            "description": "密码",
+            "type": "string",
+            "maxLength": 128
+          },
+          "email": {
+            "description": "邮箱",
+            "type": "string",
+            "maxLength": 128,
+            "nullable": true
+          },
+          "areaId": {
+            "description": "所属区域ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "password"
+        ]
+      },
+      "PricingRule": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "pricePerMin": {
+            "description": "每分钟单价",
+            "default": "0.00",
+            "type": "number",
+            "nullable": true
+          },
+          "basePrice": {
+            "description": "起步价",
+            "default": "0.00",
+            "type": "number",
+            "nullable": true
+          },
+          "billingInterval": {
+            "description": "计费间隔（分钟）",
+            "default": "30",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ]
+      },
+      "User": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "username": {
+            "description": "用户名",
+            "type": "string",
+            "maxLength": 64
+          },
+          "password": {
+            "description": "密码",
+            "type": "string",
+            "maxLength": 128
+          },
+          "email": {
+            "description": "电子邮箱",
+            "type": "string",
+            "maxLength": 128,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "password"
+        ]
+      },
+      "RentalOrder": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "userId": {
+            "description": "用户ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "scooterId": {
+            "description": "车辆ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "startTime": {
+            "description": "开始时间",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endTime": {
+            "description": "结束时间",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "orderStatus": {
+            "description": "订单状态：0-骑行中，1-待支付，2-已结束",
+            "default": "0",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "payStatus": {
+            "description": "支付状态：0-未支付，1-已支付",
+            "default": "0",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "amount": {
+            "description": "金额",
+            "default": "0.00",
+            "type": "number",
+            "nullable": true
+          },
+          "totalKilometer": {
+            "description": "总里程",
+            "default": "0.00",
+            "type": "number",
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "scooterId"
+        ]
+      },
+      "PackageOrder": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "userId": {
+            "description": "用户ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "packageId": {
+            "description": "套餐ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "price": {
+            "description": "购买价格",
+            "type": "number"
+          },
+          "orderStatus": {
+            "description": "订单状态：0-待支付，1-已结束",
+            "default": "0",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "payStatus": {
+            "description": "支付状态：0-未付，1-已付",
+            "default": "0",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "packageId",
+          "price"
+        ]
+      },
+      "Area": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "name": {
+            "description": "区域名称",
+            "type": "string",
+            "maxLength": 64
+          },
+          "polygon": {
+            "description": "多边形范围坐标",
+            "type": "string",
+            "maxLength": 65535,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "SubscriptionPackage": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "title": {
+            "description": "套餐标题",
+            "type": "string",
+            "maxLength": 128
+          },
+          "description": {
+            "description": "套餐描述",
+            "type": "string",
+            "maxLength": 65535,
+            "nullable": true
+          },
+          "price": {
+            "description": "价格",
+            "type": "number"
+          },
+          "type": {
+            "description": "类型：1-月卡，2-季卡，3-年卡",
+            "default": "1",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "price"
+        ]
+      },
+      "NoParkingArea": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "name": {
+            "description": "禁停区名称",
+            "type": "string",
+            "maxLength": 64,
+            "nullable": true
+          },
+          "polygon": {
+            "description": "禁停多边形范围坐标",
+            "type": "string",
+            "maxLength": 65535,
+            "nullable": true
+          },
+          "status": {
+            "description": "状态：1-启用，0-禁用",
+            "default": "1",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ]
+      },
+      "UserWallet": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "userId": {
+            "description": "用户ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "balance": {
+            "description": "余额",
+            "default": "0.00",
+            "type": "number",
+            "nullable": true
+          },
+          "updateTime": {
+            "description": "更新时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "userId"
+        ]
+      },
+      "UserBill": {
+        "properties": {
+          "id": {
+            "description": "主键ID",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "userId": {
+            "description": "用户ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "type": {
+            "description": "流水类型：1-骑行消费，2-充值，3-退款，4-购买套餐",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "amount": {
+            "description": "变动金额（正数为进账，负数为支出）",
+            "type": "number"
+          },
+          "balanceAfter": {
+            "description": "变动后账户余额（用于对账）",
+            "type": "number"
+          },
+          "orderId": {
+            "description": "业务订单ID",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "remark": {
+            "description": "流水备注（如：骑行订单1002扣费）",
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "createTime": {
+            "description": "创建时间",
+            "default": "CURRENT_TIMESTAMP",
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "type",
+          "amount",
+          "balanceAfter"
+        ]
+      }
+    },
+    "responses": {},
+    "securitySchemes": {}
+  },
+  "servers": [],
+  "security": []
+}

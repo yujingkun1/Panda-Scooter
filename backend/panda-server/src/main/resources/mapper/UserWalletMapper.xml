@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.UserWalletMapper">
+
+    <resultMap id="userWalletResultMap" type="com.panda.entity.UserWallet">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="balance" column="balance"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="getByUserId" resultMap="userWalletResultMap">
+        select id, user_id, balance, update_time
+        from user_wallet
+        where user_id = #{userId}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.panda.entity.UserWallet" useGeneratedKeys="true" keyProperty="id">
+        insert into user_wallet (user_id, balance, update_time)
+        values (#{userId}, #{balance}, #{updateTime})
+    </insert>
+
+    <update id="updateBalanceByUserId">
+        update user_wallet
+        set balance = #{balance}
+        where user_id = #{userId}
+    </update>
+
+</mapper>
