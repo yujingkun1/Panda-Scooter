@@ -1,6 +1,5 @@
 import request from '../request'
 
-// 故障接口
 export const getFaults = () => {
   return request({
     url: '/faults',

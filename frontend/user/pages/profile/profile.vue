@@ -1,31 +1,28 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <image class="avatar" src="/static/avatar.png" mode="aspectFit"></image>
       <view class="user-info">
-        <text class="username">用户名</text>
-        <text class="email">user@example.com</text>
+        <text class="username">{{ userInfo.username }}</text>
+        <text class="email">{{ userInfo.email }}</text>
       </view>
       <view class="account-manage" @click="accountManage">
         <text class="manage-text">账号管理</text>
       </view>
     </view>
 
-    <!-- Stats Section -->
     <view class="stats-section">
       <view class="stat-item">
-        <text class="stat-value">123.45</text>
-        <text class="stat-label">总里程(km)</text>
+        <text class="stat-value">{{ userInfo.totalKilometer }}</text>
+        <text class="stat-label">累计里程(km)</text>
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
-        <text class="stat-value">8.5</text>
+        <text class="stat-value">{{ userInfo.totalTime }}</text>
         <text class="stat-label">骑行时长(h)</text>
       </view>
     </view>
 
-    <!-- Menu Section -->
     <view class="menu-section">
       <view class="menu-item" @click="navigateTo('wallet')">
         <text class="menu-text">我的钱包</text>
@@ -44,49 +41,52 @@
 </template>
 
 <script>
+import { getUserInfo } from '@/api/index'
+
+const DEFAULT_USER_INFO = {
+  username: '游客用户',
+  email: '未登录',
+  totalKilometer: '0.00',
+  totalTime: '0.00'
+}
+
 export default {
   data() {
     return {
-      userInfo: {
-        username: '用户名',
-        email: 'user@example.com',
-        totalKilometer: '123.45',
-        totalTime: '8.5'
-      }
+      userInfo: { ...DEFAULT_USER_INFO }
     }
   },
-  onLoad() {
-    this.getUserInfo();
+  onShow() {
+    this.loadUserInfo()
   },
   methods: {
-    getUserInfo() {
-      // 这里可以调用API获取用户信息
-      console.log('获取用户信息');
+    async loadUserInfo() {
+      try {
+        const res = await getUserInfo()
+        const data = res.data || {}
+        this.userInfo = {
+          username: data.username || DEFAULT_USER_INFO.username,
+          email: data.email || DEFAULT_USER_INFO.email,
+          totalKilometer: this.formatNumber(data.totalKilometer),
+          totalTime: this.formatNumber(data.totalTime)
+        }
+      } catch (error) {
+        this.userInfo = { ...DEFAULT_USER_INFO }
+      }
     },
     accountManage() {
       uni.navigateTo({
         url: '/pages/account/account'
-      });
+      })
     },
     navigateTo(page) {
-      if (page === 'wallet') {
-        uni.navigateTo({
-          url: '/pages/wallet/wallet'
-        });
-      } else if (page === 'history') {
-        uni.navigateTo({
-          url: '/pages/history/history'
-        });
-      } else if (page === 'faults') {
-        uni.navigateTo({
-          url: '/pages/faults/faults'
-        });
-      } else {
-        uni.showToast({
-          title: `跳转到${page}页面`,
-          icon: 'none'
-        });
-      }
+      uni.navigateTo({
+        url: `/pages/${page}/${page}`
+      })
+    },
+    formatNumber(value) {
+      const number = Number(value || 0)
+      return Number.isFinite(number) ? number.toFixed(2) : '0.00'
     }
   }
 }
@@ -100,7 +100,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   display: flex;
   align-items: center;
@@ -159,7 +158,6 @@ export default {
   color: #ffffff;
 }
 
-/* Stats Section */
 .stats-section {
   display: flex;
   margin: 32rpx;
@@ -196,7 +194,6 @@ export default {
   margin: 16rpx 0;
 }
 
-/* Menu Section */
 .menu-section {
   background-color: #ffffff;
   border: 1rpx solid #e5e5e2;
@@ -218,12 +215,6 @@ export default {
 
 .menu-item:hover {
   background-color: #fafaf8;
-}
-
-.menu-icon {
-  font-size: 32rpx;
-  margin-right: 24rpx;
-  font-style: normal;
 }
 
 .menu-text {

@@ -1,28 +1,26 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <text class="title">故障上报记录</text>
     </view>
 
-    <!-- Filter Section -->
     <view class="filter-section">
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'all' }"
         @click="changeFilter('all')"
       >
         <text class="filter-text">全部</text>
       </view>
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'pending' }"
         @click="changeFilter('pending')"
       >
         <text class="filter-text">处理中</text>
       </view>
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'completed' }"
         @click="changeFilter('completed')"
       >
@@ -30,31 +28,30 @@
       </view>
     </view>
 
-    <!-- Fault List -->
     <view class="fault-list">
       <view v-if="filteredFaults.length > 0">
-        <view v-for="(item, index) in filteredFaults" :key="index" class="fault-item">
+        <view v-for="item in filteredFaults" :key="item.id" class="fault-item">
           <view class="fault-header">
             <view class="scooter-info">
-              <text class="scooter-icon">⚠️</text>
+              <text class="scooter-icon">报</text>
               <text class="scooter-code">编号 {{ item.scooterCode }}</text>
             </view>
             <view class="fault-status" :class="item.statusClass">
               <text class="status-text">{{ item.status }}</text>
             </view>
           </view>
-          
+
           <view class="fault-body">
             <view class="info-row">
               <view class="info-label">上报时间</view>
               <view class="info-value">{{ item.reportTime }}</view>
             </view>
-            
+
             <view class="info-row">
               <view class="info-label">故障原因</view>
               <view class="info-value fault-reason">{{ item.reason }}</view>
             </view>
-            
+
             <view v-if="item.remark" class="info-row remark-row">
               <view class="info-label">处理备注</view>
               <view class="info-value remark">{{ item.remark }}</view>
@@ -78,7 +75,7 @@ export default {
       faultsList: [],
       currentFilter: 'all',
       filters: {
-        all: (item) => true,
+        all: () => true,
         pending: (item) => item.status === '处理中',
         completed: (item) => item.status === '已完成'
       }
@@ -86,86 +83,48 @@ export default {
   },
   computed: {
     filteredFaults() {
-      if (this.currentFilter === 'all') {
-        return this.faultsList
-      }
       return this.faultsList.filter(this.filters[this.currentFilter])
     }
   },
-  onLoad() {
+  onShow() {
     this.loadFaults()
   },
   methods: {
     async loadFaults() {
       try {
         const res = await getFaults()
-        if (res.code === 0) {
-          this.faultsList = res.data || []
-        } else {
-          this.loadMockFaults()
-        }
+        const faults = res.data && Array.isArray(res.data.faults) ? res.data.faults : []
+        this.faultsList = faults.map((item, index) => this.normalizeFault(item, index))
       } catch (error) {
-        console.error('加载故障记录失败:', error)
-        // 使用模拟数据
-        this.loadMockFaults()
+        this.faultsList = []
       }
     },
-    loadMockFaults() {
-      // TODO: 调用真实 API 获取故障记录数据
-      // 这里使用模拟数据
-      this.faultsList = [
-        {
-          scooterCode: '8372',
-          reportTime: '2024-01-15 14:30:25',
-          reason: '刹车失灵，存在安全隐患',
-          status: '已完成',
-          statusClass: 'status-completed',
-          remark: '已安排维修人员处理，车辆已回收'
-        },
-        {
-          scooterCode: '5621',
-          reportTime: '2024-01-14 10:20:15',
-          reason: '电量显示异常，实际电量与显示不符',
-          status: '处理中',
-          statusClass: 'status-pending',
-          remark: ''
-        },
-        {
-          scooterCode: '9234',
-          reportTime: '2024-01-13 16:45:30',
-          reason: '车胎漏气，无法正常骑行',
-          status: '已完成',
-          statusClass: 'status-completed',
-          remark: '轮胎已更换，车辆可正常使用'
-        },
-        {
-          scooterCode: '7156',
-          reportTime: '2024-01-12 09:15:00',
-          reason: '无法开锁，扫码后无响应',
-          status: '已完成',
-          statusClass: 'status-completed',
-          remark: '锁具模块故障，已修复'
-        },
-        {
-          scooterCode: '3489',
-          reportTime: '2024-01-10 18:30:45',
-          reason: '脚踏板损坏，骑行困难',
-          status: '处理中',
-          statusClass: 'status-pending',
-          remark: ''
-        },
-        {
-          scooterCode: '6712',
-          reportTime: '2024-01-08 13:20:10',
-          reason: '车灯不亮，夜间骑行不安全',
-          status: '已完成',
-          statusClass: 'status-completed',
-          remark: '车灯线路已检修，恢复正常'
-        }
-      ]
+    normalizeFault(item, index) {
+      const rawStatus = item.status !== undefined ? item.status : item.processStatus
+      const isCompleted =
+        rawStatus === 1 ||
+        rawStatus === 'completed' ||
+        rawStatus === '已完成' ||
+        rawStatus === true
+
+      return {
+        id: item.id || index + 1,
+        scooterCode: item.code || item.scooterCode || '--',
+        reportTime: this.formatDateTime(item.createTime || item.reportTime),
+        reason: item.description || item.reason || '未填写故障原因',
+        status: isCompleted ? '已完成' : '处理中',
+        statusClass: isCompleted ? 'status-completed' : 'status-pending',
+        remark: item.remark || ''
+      }
     },
     changeFilter(filter) {
       this.currentFilter = filter
+    },
+    formatDateTime(value) {
+      if (!value) {
+        return '--'
+      }
+      return String(value).replace('T', ' ').replace('Z', '').slice(0, 19)
     }
   }
 }
@@ -179,7 +138,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   padding: 48rpx 32rpx;
   background-color: #ffffff;
@@ -193,7 +151,6 @@ export default {
   letter-spacing: 4rpx;
 }
 
-/* Filter Section */
 .filter-section {
   display: flex;
   margin: 32rpx;
@@ -231,7 +188,6 @@ export default {
   color: #ffffff;
 }
 
-/* Fault List */
 .fault-list {
   flex: 1;
   margin: 0 32rpx 32rpx;
@@ -266,7 +222,7 @@ export default {
 }
 
 .scooter-icon {
-  font-size: 32rpx;
+  font-size: 28rpx;
   margin-right: 16rpx;
   font-style: normal;
 }
@@ -288,13 +244,11 @@ export default {
 }
 
 .status-pending {
-  background-color: transparent;
   color: #a67c00;
   border-color: #d4d4d1;
 }
 
 .status-completed {
-  background-color: transparent;
   color: #0b0e0d;
   border-color: #0b0e0d;
 }
@@ -326,10 +280,6 @@ export default {
   line-height: 1.6;
   font-weight: 400;
   letter-spacing: 2rpx;
-}
-
-.fault-reason {
-  font-weight: 400;
 }
 
 .remark-row {

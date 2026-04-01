@@ -1,28 +1,26 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <text class="title">骑行历史</text>
     </view>
 
-    <!-- Filter Section -->
     <view class="filter-section">
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'all' }"
         @click="changeFilter('all')"
       >
         <text class="filter-text">全部</text>
       </view>
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'paid' }"
         @click="changeFilter('paid')"
       >
         <text class="filter-text">已支付</text>
       </view>
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'unpaid' }"
         @click="changeFilter('unpaid')"
       >
@@ -30,20 +28,19 @@
       </view>
     </view>
 
-    <!-- History List -->
     <view class="history-list">
       <view v-if="filteredHistory.length > 0">
-        <view v-for="(item, index) in filteredHistory" :key="index" class="history-item">
+        <view v-for="item in filteredHistory" :key="item.id" class="history-item">
           <view class="history-header">
             <view class="scooter-info">
-              <text class="scooter-icon">🛴</text>
-              <text class="scooter-code">编号 {{ item.scooterCode }}</text>
+              <text class="scooter-icon">车</text>
+              <text class="scooter-code">订单 {{ item.orderId }}</text>
             </view>
             <view class="pay-status" :class="item.paidStatusClass">
               <text class="status-text">{{ item.paidStatus }}</text>
             </view>
           </view>
-          
+
           <view class="history-body">
             <view class="info-row">
               <view class="info-item">
@@ -56,7 +53,7 @@
                 <text class="info-value">{{ item.duration }}</text>
               </view>
             </view>
-            
+
             <view class="info-row">
               <view class="info-item">
                 <text class="info-label">骑行里程</text>
@@ -69,7 +66,7 @@
               </view>
             </view>
           </view>
-          
+
           <view v-if="!item.isPaid" class="pay-action">
             <button class="pay-btn" @click="handlePay(item)">立即支付</button>
           </view>
@@ -91,103 +88,43 @@ export default {
       historyList: [],
       currentFilter: 'all',
       filters: {
-        all: (item) => true,
-        paid: (item) => item.isPaid === true,
-        unpaid: (item) => item.isPaid === false
+        all: () => true,
+        paid: (item) => item.isPaid,
+        unpaid: (item) => !item.isPaid
       }
     }
   },
   computed: {
     filteredHistory() {
-      if (this.currentFilter === 'all') {
-        return this.historyList
-      }
       return this.historyList.filter(this.filters[this.currentFilter])
     }
   },
-  onLoad() {
+  onShow() {
     this.loadHistory()
   },
   methods: {
     async loadHistory() {
       try {
         const res = await getRideHistory()
-        if (res.code === 0) {
-          this.historyList = res.data || []
-        } else {
-          this.loadMockHistory()
-        }
+        const history = res.data && Array.isArray(res.data.history) ? res.data.history : []
+        this.historyList = history.map((item, index) => this.normalizeHistory(item, index))
       } catch (error) {
-        console.error('加载骑行历史失败:', error)
-        // 使用模拟数据
-        this.loadMockHistory()
+        this.historyList = []
       }
     },
-    loadMockHistory() {
-      // TODO: 调用真实 API 获取骑行历史数据
-      // 这里使用模拟数据
-      this.historyList = [
-        {
-          scooterCode: '8372',
-          orderTime: '2024-01-15 13:20:10',
-          duration: '25分钟',
-          distance: '3.2',
-          amount: '2.50',
-          isPaid: true,
-          paidStatus: '已支付',
-          paidStatusClass: 'status-paid'
-        },
-        {
-          scooterCode: '5621',
-          orderTime: '2024-01-14 18:45:30',
-          duration: '18分钟',
-          distance: '2.1',
-          amount: '2.50',
-          isPaid: true,
-          paidStatus: '已支付',
-          paidStatusClass: 'status-paid'
-        },
-        {
-          scooterCode: '9234',
-          orderTime: '2024-01-13 09:15:20',
-          duration: '42分钟',
-          distance: '5.8',
-          amount: '3.50',
-          isPaid: false,
-          paidStatus: '未支付',
-          paidStatusClass: 'status-unpaid'
-        },
-        {
-          scooterCode: '7156',
-          orderTime: '2024-01-12 16:30:00',
-          duration: '15分钟',
-          distance: '1.5',
-          amount: '2.50',
-          isPaid: true,
-          paidStatus: '已支付',
-          paidStatusClass: 'status-paid'
-        },
-        {
-          scooterCode: '3489',
-          orderTime: '2024-01-10 08:20:45',
-          duration: '35分钟',
-          distance: '4.3',
-          amount: '3.00',
-          isPaid: false,
-          paidStatus: '未支付',
-          paidStatusClass: 'status-unpaid'
-        },
-        {
-          scooterCode: '6712',
-          orderTime: '2024-01-08 19:10:15',
-          duration: '22分钟',
-          distance: '2.8',
-          amount: '2.50',
-          isPaid: true,
-          paidStatus: '已支付',
-          paidStatusClass: 'status-paid'
-        }
-      ]
+    normalizeHistory(item, index) {
+      const isPaid = Number(item.payStatus) === 1 || item.isPaid === true
+      return {
+        id: item.id || index + 1,
+        orderId: item.id || '--',
+        orderTime: this.formatDateTime(item.startTime),
+        duration: item.totalTime || item.duration || this.mapOrderStatus(item.orderStatus),
+        distance: this.formatAmount(item.totalKilometer),
+        amount: this.formatAmount(item.amount),
+        isPaid,
+        paidStatus: isPaid ? '已支付' : '未支付',
+        paidStatusClass: isPaid ? 'status-paid' : 'status-unpaid'
+      }
     },
     changeFilter(filter) {
       this.currentFilter = filter
@@ -195,50 +132,45 @@ export default {
     handlePay(item) {
       uni.showModal({
         title: '确认支付',
-        content: `订单编号 ${item.scooterCode}，支付金额 ¥${item.amount}`,
+        content: `订单 ${item.orderId}，支付金额 ¥${item.amount}`,
         confirmText: '立即支付',
-        success: (res) => {
-          if (res.confirm) {
-            this.processPayment(item)
+        success: async (res) => {
+          if (!res.confirm) {
+            return
           }
+
+          uni.showLoading({
+            title: '支付中...'
+          })
+          await new Promise((resolve) => setTimeout(resolve, 800))
+          uni.hideLoading()
+          item.isPaid = true
+          item.paidStatus = '已支付'
+          item.paidStatusClass = 'status-paid'
+          uni.showToast({
+            title: '支付成功',
+            icon: 'success'
+          })
         }
       })
     },
-    async processPayment(item) {
-      try {
-        uni.showLoading({
-          title: '支付中...'
-        })
-
-        // TODO: 调用支付 API
-        // const res = await payOrder({
-        //   orderId: item.id,
-        //   amount: parseFloat(item.amount)
-        // })
-
-        // 模拟支付成功
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
-        uni.hideLoading()
-        uni.showToast({
-          title: '支付成功',
-          icon: 'success'
-        })
-
-        // 更新状态
-        item.isPaid = true
-        item.paidStatus = '已支付'
-        item.paidStatusClass = 'status-paid'
-
-        // 重新加载数据
-        this.loadHistory()
-      } catch (error) {
-        uni.hideLoading()
-        uni.showToast({
-          title: '支付失败',
-          icon: 'none'
-        })
+    formatDateTime(value) {
+      if (!value) {
+        return '--'
       }
+      return String(value).replace('T', ' ').replace('Z', '').slice(0, 19)
+    },
+    formatAmount(value) {
+      const amount = Number(value || 0)
+      return Number.isFinite(amount) ? amount.toFixed(2) : '0.00'
+    },
+    mapOrderStatus(status) {
+      const statusMap = {
+        0: '骑行中',
+        1: '待支付',
+        2: '已完成'
+      }
+      return statusMap[status] || '--'
     }
   }
 }
@@ -252,7 +184,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   padding: 48rpx 32rpx;
   background-color: #ffffff;
@@ -266,7 +197,6 @@ export default {
   letter-spacing: 4rpx;
 }
 
-/* Filter Section */
 .filter-section {
   display: flex;
   margin: 32rpx;
@@ -304,7 +234,6 @@ export default {
   color: #ffffff;
 }
 
-/* History List */
 .history-list {
   flex: 1;
   margin: 0 32rpx 32rpx;
@@ -339,7 +268,7 @@ export default {
 }
 
 .scooter-icon {
-  font-size: 32rpx;
+  font-size: 28rpx;
   margin-right: 16rpx;
   font-style: normal;
 }
@@ -361,13 +290,11 @@ export default {
 }
 
 .status-paid {
-  background-color: transparent;
   color: #0b0e0d;
   border-color: #0b0e0d;
 }
 
 .status-unpaid {
-  background-color: transparent;
   color: #737373;
   border-color: #d4d4d1;
 }

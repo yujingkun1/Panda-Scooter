@@ -1,6 +1,5 @@
 import request from '../request'
 
-// 小车接口
 export const unlockScooter = (code) => {
   return request({
     url: '/scooter/unlock',

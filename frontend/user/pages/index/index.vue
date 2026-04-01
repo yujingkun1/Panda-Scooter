@@ -1,17 +1,15 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
       <image class="avatar" src="/static/avatar.png" mode="aspectFit" @click="navigateToProfile"></image>
     </view>
 
-    <!-- Map Area -->
     <view class="map-container">
-      <map 
-        class="map" 
+      <map
+        class="map"
         id="map"
-        :latitude="latitude" 
+        :latitude="latitude"
         :longitude="longitude"
         :scale="scale"
         :markers="markers"
@@ -21,17 +19,15 @@
       ></map>
     </view>
 
-    <!-- Scan Unlock Button -->
     <view class="unlock-section">
       <button class="unlock-btn" @click="scanUnlock">
         <text class="unlock-btn-text">扫码开锁</text>
       </button>
     </view>
 
-    <!-- Function Area -->
     <view class="function-area">
-      <view class="function-item" @click="navigateTo('parking')">
-        <text class="function-text">搜停车点</text>
+      <view class="function-item" @click="showParkingPoints">
+        <text class="function-text">停车点</text>
       </view>
       <text class="function-divider">|</text>
       <view class="function-item" @click="navigateTo('fault')">
@@ -42,187 +38,325 @@
         <text class="function-text">编号开锁</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="navigateTo('notice')">
+      <view class="function-item" @click="showRideNotice">
         <text class="function-text">骑行须知</text>
       </view>
     </view>
 
-    <!-- Subscription Area -->
     <view class="subscription-area">
       <view class="subscription-header">
-        <text class="subscription-title">优惠购卡</text>
-        <text class="subscription-more">查看更多</text>
+        <text class="subscription-title">优惠套餐</text>
+        <text class="subscription-more">{{ subscriptionPackages.length }} 个套餐</text>
       </view>
-      <view class="subscription-list">
-        <view v-for="(pkg, index) in subscriptionPackages" :key="index" class="subscription-item">
+      <view v-if="subscriptionPackages.length" class="subscription-list">
+        <view v-for="pkg in subscriptionPackages" :key="pkg.id" class="subscription-item">
           <view class="subscription-info">
-            <text class="subscription-name">{{pkg.title}}</text>
-            <text class="subscription-desc">{{pkg.description}}</text>
-            <text class="subscription-price">¥{{pkg.price}}</text>
+            <text class="subscription-name">{{ pkg.title }}</text>
+            <text class="subscription-desc">{{ pkg.description || '骑行套餐' }}</text>
+            <text class="subscription-price">¥{{ formatAmount(pkg.price) }}</text>
           </view>
-          <button class="subscription-btn">立即购买</button>
+          <button class="subscription-btn" @click="handleSubscription(pkg)">立即购买</button>
         </view>
+      </view>
+      <view v-else class="empty-state">
+        <text class="empty-text">暂无可用套餐</text>
       </view>
     </view>
   </view>
 </template>
 
 <script>
+import { getMapData, getSubscriptions, unlockScooter } from '@/api/index'
+
+const DEFAULT_LOCATION = {
+  latitude: 39.9042,
+  longitude: 116.4074
+}
+
 export default {
   data() {
     return {
-      // Map data
-      latitude: 39.9042,
-      longitude: 116.4074,
+      latitude: DEFAULT_LOCATION.latitude,
+      longitude: DEFAULT_LOCATION.longitude,
       scale: 16,
       markers: [],
       polygons: [],
-      
-      // Mock data for subscriptions
-      subscriptionPackages: [
-        { id: 1, title: '月卡', description: '30天无限骑行', price: 29.9 },
-        { id: 2, title: '季卡', description: '90天无限骑行', price: 79.9 },
-        { id: 3, title: '年卡', description: '365天无限骑行', price: 299.9 }
-      ]
-    };
+      parkingPoints: [],
+      subscriptionPackages: []
+    }
   },
   onLoad() {
-    this.getLocationPermission();
+    this.initPage()
   },
   methods: {
-    getLocationPermission() {
-      uni.getLocation({
-        type: 'gcj02',
-        success: (res) => {
-          console.log('Location permission granted:', res);
-          this.latitude = res.latitude;
-          this.longitude = res.longitude;
-          this.loadMockMapData();
-        },
-        fail: (err) => {
-          console.log('Location permission denied:', err);
-          uni.showToast({
-            title: '需要位置权限才能使用地图功能',
-            icon: 'none'
-          });
-        }
-      });
+    async initPage() {
+      await Promise.all([this.loadSubscriptions(), this.loadLocationAndMap()])
     },
-    loadMockMapData() {
-      this.markers = [
-        {
-          id: 1,
-          latitude: this.latitude + 0.001,
-          longitude: this.longitude + 0.001,
-          iconPath: '/static/scooter.svg',
-          width: 30,
-          height: 30,
-          callout: {
-            content: '85%',
-            color: '#333',
-            fontSize: 12,
-            borderRadius: 5,
-            bgColor: 'rgba(255,255,255,0.8)',
-            padding: 5
+    async loadSubscriptions() {
+      try {
+        const res = await getSubscriptions()
+        const packages = res.data && Array.isArray(res.data.packages) ? res.data.packages : []
+        this.subscriptionPackages = packages
+      } catch (error) {
+        this.subscriptionPackages = []
+      }
+    },
+    async loadLocationAndMap() {
+      try {
+        const location = await this.getLocation()
+        this.latitude = location.latitude
+        this.longitude = location.longitude
+      } catch (error) {
+        uni.showToast({
+          title: '定位失败，使用默认位置',
+          icon: 'none'
+        })
+      }
+
+      await this.loadMapData()
+    },
+    getLocation() {
+      return new Promise((resolve, reject) => {
+        uni.getLocation({
+          type: 'gcj02',
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    async loadMapData() {
+      try {
+        const res = await getMapData({
+          latitude: this.latitude,
+          longitude: this.longitude,
+          scale: this.scale
+        })
+        const data = res.data || {}
+        this.markers = this.mapScooterMarkers(data.scooters || [])
+        this.polygons = this.mapNoParkingAreas(data.noParkingAreas || [])
+        this.parkingPoints = this.mapParkingPoints(data.parkingPoints || [])
+      } catch (error) {
+        this.markers = []
+        this.polygons = []
+        this.parkingPoints = []
+        uni.showToast({
+          title: '地图数据加载失败',
+          icon: 'none'
+        })
+      }
+    },
+    mapScooterMarkers(list) {
+      return list
+        .map((item) => {
+          if (!this.isValidPoint(item.latitude, item.longitude)) {
+            return null
           }
-        },
-        {
-          id: 2,
-          latitude: this.latitude - 0.001,
-          longitude: this.longitude - 0.001,
-          iconPath: '/static/scooter.svg',
-          width: 30,
-          height: 30,
-          callout: {
-            content: '60%',
-            color: '#333',
-            fontSize: 12,
-            borderRadius: 5,
-            bgColor: 'rgba(255,255,255,0.8)',
-            padding: 5
-          }
-        }
-      ];
-      
-      this.polygons = [
-        {
-          points: [
-            {
-              latitude: this.latitude + 0.002,
-              longitude: this.longitude + 0.002
-            },
-            {
-              latitude: this.latitude + 0.002,
-              longitude: this.longitude - 0.002
-            },
-            {
-              latitude: this.latitude - 0.002,
-              longitude: this.longitude - 0.002
-            },
-            {
-              latitude: this.latitude - 0.002,
-              longitude: this.longitude + 0.002
+
+          return {
+            id: item.id,
+            latitude: Number(item.latitude),
+            longitude: Number(item.longitude),
+            iconPath: '/static/scooter.svg',
+            width: 30,
+            height: 30,
+            callout: {
+              content: `${item.battery || 0}%`,
+              color: '#333',
+              fontSize: 12,
+              borderRadius: 5,
+              bgColor: 'rgba(255,255,255,0.8)',
+              padding: 5,
+              display: 'BYCLICK'
             }
-          ],
-          fillColor: 'rgba(255, 0, 0, 0.3)',
-          strokeColor: 'rgba(255, 0, 0, 0.6)',
-          strokeWidth: 2
-        }
-      ];
+          }
+        })
+        .filter(Boolean)
     },
-    onRegionChange(e) {
-      console.log('Map region changed:', e);
+    mapParkingPoints(list) {
+      return list
+        .map((item) => this.normalizePoint(item))
+        .filter(Boolean)
+    },
+    mapNoParkingAreas(list) {
+      return list
+        .map((item, index) => {
+          const points = this.parsePolygon(item.polygon)
+          if (!points.length) {
+            return null
+          }
+
+          return {
+            id: item.id || index + 1,
+            points,
+            fillColor: 'rgba(255, 0, 0, 0.15)',
+            strokeColor: 'rgba(255, 0, 0, 0.5)',
+            strokeWidth: 2
+          }
+        })
+        .filter(Boolean)
+    },
+    parsePolygon(polygon) {
+      if (!polygon) {
+        return []
+      }
+
+      if (Array.isArray(polygon)) {
+        return polygon.map((item) => this.normalizePoint(item)).filter(Boolean)
+      }
+
+      if (typeof polygon === 'string') {
+        try {
+          const parsed = JSON.parse(polygon)
+          if (Array.isArray(parsed)) {
+            return parsed.map((item) => this.normalizePoint(item)).filter(Boolean)
+          }
+        } catch (error) {
+          const segments = polygon.split(';').map((item) => item.trim()).filter(Boolean)
+          return segments
+            .map((segment) => {
+              const normalized = segment.replace(/^\[|\]$/g, '')
+              const values = normalized.split(',').map((item) => Number(item.trim()))
+              return this.normalizePoint(values)
+            })
+            .filter(Boolean)
+        }
+      }
+
+      return []
+    },
+    normalizePoint(point) {
+      if (!point) {
+        return null
+      }
+
+      if (Array.isArray(point) && point.length >= 2) {
+        const first = Number(point[0])
+        const second = Number(point[1])
+        if (!Number.isFinite(first) || !Number.isFinite(second)) {
+          return null
+        }
+        if (Math.abs(first) <= 90 && Math.abs(second) <= 180) {
+          return { latitude: first, longitude: second }
+        }
+        return { latitude: second, longitude: first }
+      }
+
+      const latitude = Number(point.latitude)
+      const longitude = Number(point.longitude)
+      if (!this.isValidPoint(latitude, longitude)) {
+        return null
+      }
+
+      return { latitude, longitude }
+    },
+    isValidPoint(latitude, longitude) {
+      return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
+    },
+    onRegionChange() {
     },
     scanUnlock() {
       uni.scanCode({
-        success: (res) => {
-          console.log('Scan result:', res);
-          // Here you would call the unlock API with the scanned code
-          uni.showToast({
-            title: '扫码成功，正在开锁...',
-            icon: 'success'
-          });
+        success: async (res) => {
+          const code = this.extractScooterCode(res.result)
+          await this.unlockByCode(code)
         },
-        fail: (err) => {
-          console.log('Scan failed:', err);
+        fail: () => {
           uni.showToast({
             title: '扫码失败，请重试',
             icon: 'none'
-          });
+          })
         }
-      });
+      })
+    },
+    extractScooterCode(rawCode) {
+      const value = String(rawCode || '').trim()
+      if (!value) {
+        return ''
+      }
+
+      if (value.includes('code=')) {
+        const query = value.split('?')[1] || ''
+        const params = {}
+        query.split('&').forEach((item) => {
+          const [key, val] = item.split('=')
+          if (key) {
+            params[decodeURIComponent(key)] = decodeURIComponent(val || '')
+          }
+        })
+        return params.code || value
+      }
+
+      const segments = value.split('/')
+      return segments[segments.length - 1] || value
+    },
+    async unlockByCode(code) {
+      if (!code) {
+        uni.showToast({
+          title: '未识别到车辆编号',
+          icon: 'none'
+        })
+        return
+      }
+
+      try {
+        uni.showLoading({
+          title: '正在开锁...'
+        })
+
+        const res = await unlockScooter(code)
+        uni.hideLoading()
+        uni.setStorageSync('currentRide', res.data || {})
+
+        uni.showModal({
+          title: '开锁成功',
+          content: `车辆 ${code} 已开锁，祝你骑行愉快。`,
+          showCancel: false
+        })
+      } catch (error) {
+        uni.hideLoading()
+      }
+    },
+    showParkingPoints() {
+      const count = this.parkingPoints.length
+      uni.showToast({
+        title: count ? `附近停车点 ${count} 个` : '附近暂无停车点',
+        icon: 'none'
+      })
+    },
+    showRideNotice() {
+      uni.showModal({
+        title: '骑行须知',
+        content: '请佩戴头盔、遵守交通规则，在指定区域规范停车。',
+        showCancel: false
+      })
+    },
+    handleSubscription(pkg) {
+      uni.showToast({
+        title: `${pkg.title} 开发中`,
+        icon: 'none'
+      })
     },
     navigateTo(page) {
       if (page === 'fault') {
         uni.navigateTo({
           url: '/pages/reportFault/reportFault'
-        });
-      } else if (page === 'parking') {
-        uni.showToast({
-          title: '停车点功能暂未开放',
-          icon: 'none'
-        });
-      } else if (page === 'unlock') {
+        })
+        return
+      }
+
+      if (page === 'unlock') {
         uni.navigateTo({
           url: '/pages/unlock/unlock'
-        });
-      } else if (page === 'notice') {
-        uni.showToast({
-          title: '骑行须知功能暂未开放',
-          icon: 'none'
-        });
-      } else {
-        uni.showToast({
-          title: `跳转到${page}页面`,
-          icon: 'none'
-        });
+        })
       }
     },
-
     navigateToProfile() {
       uni.navigateTo({
         url: '/pages/profile/profile'
-      });
+      })
+    },
+    formatAmount(value) {
+      return Number(value || 0).toFixed(2)
     }
   }
 }
@@ -236,7 +370,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   display: flex;
   justify-content: space-between;
@@ -262,7 +395,6 @@ export default {
   opacity: 0.7;
 }
 
-/* Map Area */
 .map-container {
   width: 100%;
   height: 520rpx;
@@ -277,11 +409,9 @@ export default {
   height: 100%;
 }
 
-/* Unlock Section */
 .unlock-section {
   padding-top: 32rpx;
   background-color: #ffffff;
-  margin: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -292,7 +422,7 @@ export default {
   height: 96rpx;
   background-color: #0b0e0d;
   color: #ffffff;
-  border-radius: 5;
+  border-radius: 5rpx;
   font-size: 32rpx;
   font-weight: 300;
   border: none;
@@ -310,14 +440,12 @@ export default {
   color: #ffffff;
 }
 
-/* Function Area */
 .function-area {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 24rpx 0;
   background-color: #ffffff;
-  margin: 0;
 }
 
 .function-item {
@@ -344,10 +472,8 @@ export default {
   margin: 0 16rpx;
 }
 
-/* Subscription Area */
 .subscription-area {
   background-color: #ffffff;
-  margin: 0;
   padding: 64rpx 32rpx;
   flex: 1;
 }
@@ -387,9 +513,7 @@ export default {
   align-items: center;
   padding: 32rpx;
   border: 1rpx solid #e5e5e2;
-  border-radius: 0;
   background-color: #fafaf8;
-  box-shadow: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -444,5 +568,17 @@ export default {
   color: #ffffff;
   border-color: #0b0e0d;
   transform: translateY(-2rpx);
+}
+
+.empty-state {
+  padding: 64rpx 0;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 24rpx;
+  color: #737373;
+  font-weight: 300;
+  letter-spacing: 2rpx;
 }
 </style>

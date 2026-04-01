@@ -1,28 +1,26 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <text class="title">我的账单</text>
     </view>
 
-    <!-- Filter Section -->
     <view class="filter-section">
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'all' }"
         @click="changeFilter('all')"
       >
         <text class="filter-text">全部</text>
       </view>
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'income' }"
         @click="changeFilter('income')"
       >
         <text class="filter-text">收入</text>
       </view>
-      <view 
-        class="filter-item" 
+      <view
+        class="filter-item"
         :class="{ active: currentFilter === 'expense' }"
         @click="changeFilter('expense')"
       >
@@ -30,10 +28,9 @@
       </view>
     </view>
 
-    <!-- Bill List -->
     <view class="bill-list">
       <view v-if="filteredBills.length > 0">
-        <view v-for="(bill, index) in filteredBills" :key="index" class="bill-item">
+        <view v-for="bill in filteredBills" :key="bill.id" class="bill-item">
           <view class="bill-icon" :class="bill.typeClass">
             <text class="icon-text">{{ bill.typeIcon }}</text>
           </view>
@@ -56,13 +53,20 @@
 <script>
 import { getUserBills } from '@/api/index'
 
+const BILL_TYPE_TEXT = {
+  1: '骑行消费',
+  2: '账户充值',
+  3: '退款',
+  4: '购买套餐'
+}
+
 export default {
   data() {
     return {
       bills: [],
       currentFilter: 'all',
       filters: {
-        all: (bill) => true,
+        all: () => true,
         income: (bill) => bill.type === 'income',
         expense: (bill) => bill.type === 'expense'
       }
@@ -70,99 +74,44 @@ export default {
   },
   computed: {
     filteredBills() {
-      if (this.currentFilter === 'all') {
-        return this.bills
-      }
       return this.bills.filter(this.filters[this.currentFilter])
     }
   },
-  onLoad() {
+  onShow() {
     this.loadBills()
   },
   methods: {
     async loadBills() {
       try {
         const res = await getUserBills()
-        if (res.code === 0) {
-          this.bills = res.data || []
-        } else {
-          // 如果 API 返回失败，使用模拟数据
-          this.loadMockBills()
-        }
+        const bills = res.data && Array.isArray(res.data.bills) ? res.data.bills : []
+        this.bills = bills.map((item, index) => this.normalizeBill(item, index))
       } catch (error) {
-        console.error('加载账单失败:', error)
-        // 使用模拟数据
-        this.loadMockBills()
+        this.bills = []
       }
     },
-    loadMockBills() {
-      // TODO: 调用真实 API 获取账单数据
-      // 这里使用模拟数据
-      this.bills = [
-        {
-          title: '骑行充值',
-          time: '2024-01-15 14:30:25',
-          amount: 50.00,
-          type: 'income',
-          typeClass: 'type-income',
-          typeIcon: '+',
-          amountClass: 'amount-income',
-          amountText: '+50.00'
-        },
-        {
-          title: '扫码开锁 - 编号 8372',
-          time: '2024-01-15 13:20:10',
-          amount: -2.50,
-          type: 'expense',
-          typeClass: 'type-expense',
-          typeIcon: '-',
-          amountClass: 'amount-expense',
-          amountText: '-2.50'
-        },
-        {
-          title: '月卡购买',
-          time: '2024-01-10 09:15:00',
-          amount: -29.90,
-          type: 'expense',
-          typeClass: 'type-expense',
-          typeIcon: '-',
-          amountClass: 'amount-expense',
-          amountText: '-29.90'
-        },
-        {
-          title: '扫码开锁 - 编号 5621',
-          time: '2024-01-08 18:45:30',
-          amount: -3.00,
-          type: 'expense',
-          typeClass: 'type-expense',
-          typeIcon: '-',
-          amountClass: 'amount-expense',
-          amountText: '-3.00'
-        },
-        {
-          title: '骑行充值',
-          time: '2024-01-05 10:00:00',
-          amount: 100.00,
-          type: 'income',
-          typeClass: 'type-income',
-          typeIcon: '+',
-          amountClass: 'amount-income',
-          amountText: '+100.00'
-        },
-        {
-          title: '故障上报退款',
-          time: '2024-01-03 16:20:15',
-          amount: 5.00,
-          type: 'income',
-          typeClass: 'type-income',
-          typeIcon: '+',
-          amountClass: 'amount-income',
-          amountText: '+5.00'
-        }
-      ]
+    normalizeBill(item, index) {
+      const amount = Number(item.amount || 0)
+      const isIncome = amount > 0
+      return {
+        id: item.id || index + 1,
+        title: item.remark || BILL_TYPE_TEXT[Number(item.type)] || '账单变动',
+        time: this.formatDateTime(item.createTime),
+        type: isIncome ? 'income' : 'expense',
+        typeClass: isIncome ? 'type-income' : 'type-expense',
+        typeIcon: isIncome ? '+' : '-',
+        amountClass: isIncome ? 'amount-income' : 'amount-expense',
+        amountText: `${isIncome ? '+' : '-'}${Math.abs(amount).toFixed(2)}`
+      }
     },
     changeFilter(filter) {
       this.currentFilter = filter
+    },
+    formatDateTime(value) {
+      if (!value) {
+        return '--'
+      }
+      return String(value).replace('T', ' ').replace('Z', '').slice(0, 19)
     }
   }
 }
@@ -176,7 +125,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   padding: 48rpx 32rpx;
   background-color: #ffffff;
@@ -190,7 +138,6 @@ export default {
   letter-spacing: 4rpx;
 }
 
-/* Filter Section */
 .filter-section {
   display: flex;
   margin: 32rpx;
@@ -227,7 +174,6 @@ export default {
   color: #ffffff;
 }
 
-/* Bill List */
 .bill-list {
   flex: 1;
   margin: 0 32rpx 32rpx;
@@ -264,12 +210,10 @@ export default {
 
 .type-income {
   border-color: #0b0e0d;
-  background-color: transparent;
 }
 
 .type-expense {
   border-color: #e5e5e2;
-  background-color: transparent;
 }
 
 .icon-text {
@@ -277,10 +221,6 @@ export default {
   font-weight: 300;
   color: #0b0e0d;
   font-style: normal;
-}
-
-.type-income .icon-text {
-  color: #0b0e0d;
 }
 
 .type-expense .icon-text {

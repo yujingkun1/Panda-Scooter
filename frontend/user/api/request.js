@@ -1,46 +1,79 @@
-const baseURL = 'http://localhost:8080'
+const baseURL = 'http://127.0.0.1:4523/m1/7776188-7522280-default'
 
-const request = (options) => {
+const isAbsoluteUrl = (url) => /^https?:\/\//.test(url)
+
+const serializeParams = (params = {}) => {
+  return Object.keys(params)
+    .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .join('&')
+}
+
+const buildUrl = (url, params) => {
+  const normalizedUrl = isAbsoluteUrl(url)
+    ? url
+    : `${baseURL}${url.startsWith('/') ? url : `/${url}`}`
+  const queryString = serializeParams(params)
+
+  if (!queryString) {
+    return normalizedUrl
+  }
+
+  return `${normalizedUrl}${normalizedUrl.includes('?') ? '&' : '?'}${queryString}`
+}
+
+const request = (options = {}) => {
   return new Promise((resolve, reject) => {
-    // 合并基础配置
+    const {
+      url,
+      params,
+      header = {},
+      method = 'GET',
+      ...rest
+    } = options
+
     const config = {
-      baseURL,
+      url: buildUrl(url, params),
+      method,
       timeout: 10000,
       header: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...header
       },
-      ...options
+      ...rest
     }
 
-    // 添加 token
     const token = uni.getStorageSync('token')
     if (token) {
       config.header.Authorization = `Bearer ${token}`
     }
 
-    // 发起请求
     uni.request({
       ...config,
       success: (res) => {
-        // uni-app 的 statusCode 在 res.statusCode
-        if (res.statusCode === 200) {
-          const data = res.data
-          if (data.code !== 0) {
+        const { statusCode, data } = res
+
+        if (statusCode >= 200 && statusCode < 300) {
+          if (data && typeof data.code !== 'undefined' && data.code !== 0) {
+            const message = data.msg || '请求失败'
             uni.showToast({
-              title: data.msg || '请求失败',
+              title: message,
               icon: 'none'
             })
-            reject(new Error(data.msg || '请求失败'))
-          } else {
-            resolve(data)
+            reject(new Error(message))
+            return
           }
-        } else {
-          uni.showToast({
-            title: `请求失败：${res.statusCode}`,
-            icon: 'none'
-          })
-          reject(new Error(`HTTP Error: ${res.statusCode}`))
+
+          resolve(data)
+          return
         }
+
+        const message = `请求失败：${statusCode}`
+        uni.showToast({
+          title: message,
+          icon: 'none'
+        })
+        reject(new Error(message))
       },
       fail: (err) => {
         uni.showToast({

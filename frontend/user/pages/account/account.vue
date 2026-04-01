@@ -1,11 +1,9 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <text class="title">账号管理</text>
     </view>
 
-    <!-- Account Info -->
     <view class="info-section">
       <view class="info-item">
         <text class="info-label">用户名</text>
@@ -17,7 +15,6 @@
       </view>
     </view>
 
-    <!-- Action Buttons -->
     <view class="action-section">
       <view class="action-item" @click="changePassword">
         <text class="action-text">修改密码</text>
@@ -34,105 +31,105 @@
 </template>
 
 <script>
+import { getUserInfo, userDelete, userLogout } from '@/api/index'
+
+const DEFAULT_USER_INFO = {
+  username: '游客用户',
+  email: '未登录'
+}
+
 export default {
   data() {
     return {
-      userInfo: {
-        username: '用户名',
-        email: 'user@example.com'
-      }
+      userInfo: { ...DEFAULT_USER_INFO }
     }
   },
-  onLoad() {
-    this.getUserInfo();
+  onShow() {
+    this.loadUserInfo()
   },
   methods: {
-    getUserInfo() {
-      uni.getStorage({
-        key: 'userInfo',
-        success: (res) => {
-          if (res.data) {
-            this.userInfo = res.data;
-          }
+    async loadUserInfo() {
+      try {
+        const res = await getUserInfo()
+        const data = res.data || {}
+        this.userInfo = {
+          username: data.username || DEFAULT_USER_INFO.username,
+          email: data.email || DEFAULT_USER_INFO.email
         }
-      });
+      } catch (error) {
+        this.userInfo = { ...DEFAULT_USER_INFO }
+      }
     },
     changePassword() {
       uni.showModal({
         title: '修改密码',
-        content: '此功能暂未开放',
+        content: '当前版本暂未提供独立修改密码页面。',
         showCancel: false
-      });
+      })
     },
     logout() {
       uni.showModal({
         title: '退出登录',
-        content: '确定要退出登录吗？',
-        success: (res) => {
-          if (res.confirm) {
-            uni.removeStorage({
-              key: 'token',
-              success: () => {
-                uni.showToast({
-                  title: '已退出登录',
-                  icon: 'success'
-                });
-                setTimeout(() => {
-                  uni.reLaunch({
-                    url: '/pages/index/index'
-                  });
-                }, 1500);
-              }
-            });
+        content: '确定要退出当前账号吗？',
+        success: async (res) => {
+          if (!res.confirm) {
+            return
+          }
+
+          try {
+            await userLogout()
+            uni.removeStorageSync('token')
+            uni.removeStorageSync('currentRide')
+            uni.showToast({
+              title: '已退出登录',
+              icon: 'success'
+            })
+            setTimeout(() => {
+              uni.reLaunch({
+                url: '/pages/index/index'
+              })
+            }, 1200)
+          } catch (error) {
           }
         }
-      });
+      })
     },
     deleteAccount() {
       uni.showModal({
         title: '账号注销',
-        content: '注销账号后，您的所有数据将被永久删除，且无法恢复。确定要注销账号吗？',
-        confirmText: '确定注销',
+        content: '开发阶段会调用 mock 注销接口，确定继续吗？',
+        confirmText: '确认注销',
         confirmColor: '#ff4d4f',
-        success: (res) => {
-          if (res.confirm) {
-            uni.showModal({
-              title: '再次确认',
-              content: '账号注销后无法恢复，请再次确认是否注销',
-              confirmText: '确定',
-              confirmColor: '#ff4d4f',
-              success: (confirmRes) => {
-                if (confirmRes.confirm) {
-                  this.performDeleteAccount();
-                }
-              }
-            });
+        success: async (res) => {
+          if (!res.confirm) {
+            return
           }
-        }
-      });
-    },
-    performDeleteAccount() {
-      uni.showLoading({
-        title: '注销中...'
-      });
-      
-      setTimeout(() => {
-        uni.hideLoading();
-        uni.removeStorage({
-          key: 'token',
-          complete: () => {
+
+          try {
+            uni.showLoading({
+              title: '注销中...'
+            })
+            await userDelete({
+              password: '',
+              verificationCode: ''
+            })
+            uni.hideLoading()
+            uni.removeStorageSync('token')
+            uni.removeStorageSync('currentRide')
             uni.showToast({
               title: '账号已注销',
               icon: 'success'
-            });
+            })
             setTimeout(() => {
               uni.reLaunch({
                 url: '/pages/index/index'
-              });
-            }, 1500);
+              })
+            }, 1200)
+          } catch (error) {
+            uni.hideLoading()
           }
-        });
-      }, 1000);
+        }
+      })
     }
   }
 }
@@ -146,7 +143,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   padding: 48rpx 32rpx;
   background-color: #ffffff;
@@ -160,7 +156,6 @@ export default {
   letter-spacing: 4rpx;
 }
 
-/* Info Section */
 .info-section {
   margin: 32rpx;
   background-color: #ffffff;
@@ -195,7 +190,6 @@ export default {
   letter-spacing: 2rpx;
 }
 
-/* Action Section */
 .action-section {
   margin: 32rpx;
   background-color: #ffffff;
@@ -233,13 +227,11 @@ export default {
 .logout-text {
   color: #a67c00;
   text-align: center;
-  font-weight: 400;
 }
 
 .delete-text {
   color: #8b0000;
   text-align: center;
-  font-weight: 400;
 }
 
 .action-arrow {

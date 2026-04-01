@@ -1,64 +1,65 @@
 {
-	"pages": [
-		{
-			"path": "pages/index/index",
-			"style": {
-			}
-		},
-		{
-			"path": "pages/profile/profile",
-			"style": {
-				"navigationBarTitleText": "个人主页"
-			}
-		},
-		{
-			"path": "pages/account/account",
-			"style": {
-				"navigationBarTitleText": "账号管理"
-			}
-		},
-		{
-			"path": "pages/wallet/wallet",
-			"style": {
-				"navigationBarTitleText": "我的钱包"
-			}
-		},
-		{
-			"path": "pages/bill/bill",
-			"style": {
-				"navigationBarTitleText": "我的账单"
-			}
-		},
-		{
-			"path": "pages/history/history",
-			"style": {
-				"navigationBarTitleText": "骑行历史"
-			}
-		},
-		{
-			"path": "pages/faults/faults",
-			"style": {
-				"navigationBarTitleText": "故障上报记录"
-			}
-		},
-		{
-			"path": "pages/reportFault/reportFault",
-			"style": {
-				"navigationBarTitleText": "故障上报"
-			}
-		},
-		{
-			"path": "pages/unlock/unlock",
-			"style": {
-				"navigationBarTitleText": "编号开锁"
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "熊猫出行",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	},
-	"uniIdRouter": {}
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "熊猫出行"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "个人主页"
+      }
+    },
+    {
+      "path": "pages/account/account",
+      "style": {
+        "navigationBarTitleText": "账号管理"
+      }
+    },
+    {
+      "path": "pages/wallet/wallet",
+      "style": {
+        "navigationBarTitleText": "我的钱包"
+      }
+    },
+    {
+      "path": "pages/bill/bill",
+      "style": {
+        "navigationBarTitleText": "我的账单"
+      }
+    },
+    {
+      "path": "pages/history/history",
+      "style": {
+        "navigationBarTitleText": "骑行历史"
+      }
+    },
+    {
+      "path": "pages/faults/faults",
+      "style": {
+        "navigationBarTitleText": "故障上报记录"
+      }
+    },
+    {
+      "path": "pages/reportFault/reportFault",
+      "style": {
+        "navigationBarTitleText": "故障上报"
+      }
+    },
+    {
+      "path": "pages/unlock/unlock",
+      "style": {
+        "navigationBarTitleText": "编号开锁"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "熊猫出行",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "uniIdRouter": {}
 }

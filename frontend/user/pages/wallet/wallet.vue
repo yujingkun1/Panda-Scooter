@@ -1,25 +1,22 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <text class="title">我的钱包</text>
     </view>
 
-    <!-- Balance Section -->
     <view class="balance-section">
       <view class="balance-label">我的余额</view>
       <view class="balance-amount">¥{{ balance }}</view>
       <button class="recharge-btn" @click="showRechargePopup = true">去充值</button>
     </view>
 
-    <!-- Riding Card Section -->
     <view class="card-section">
       <view class="section-title">我的骑行卡</view>
       <view v-if="ridingCards.length > 0" class="card-list">
-        <view v-for="(card, index) in ridingCards" :key="index" class="card-item">
+        <view v-for="card in ridingCards" :key="card.id" class="card-item">
           <view class="card-info">
             <text class="card-name">{{ card.name }}</text>
-            <text class="card-validity">有效期至：{{ card.validity }}</text>
+            <text class="card-validity">{{ card.validity }}</text>
           </view>
           <view class="card-status" :class="card.statusClass">{{ card.status }}</view>
         </view>
@@ -29,7 +26,6 @@
       </view>
     </view>
 
-    <!-- Bill Section -->
     <view class="bill-section">
       <view class="section-title">我的账单</view>
       <view class="bill-item" @click="navigateToBill">
@@ -38,7 +34,6 @@
       </view>
     </view>
 
-    <!-- Recharge Popup -->
     <view v-if="showRechargePopup" class="popup-mask" @click="closeRechargePopup"></view>
     <view v-if="showRechargePopup" class="popup-content">
       <view class="popup-header">
@@ -48,18 +43,18 @@
       <view class="popup-body">
         <view class="input-section">
           <text class="currency-symbol">¥</text>
-          <input 
-            type="digit" 
-            class="amount-input" 
+          <input
+            type="digit"
+            class="amount-input"
             v-model="rechargeAmount"
             placeholder="请输入充值金额"
             :maxlength="10"
           />
         </view>
         <view class="number-keyboard">
-          <view 
-            v-for="num in numberKeys" 
-            :key="num" 
+          <view
+            v-for="num in numberKeys"
+            :key="num"
             class="key-item"
             @click="handleNumberClick(num)"
           >
@@ -88,45 +83,35 @@ export default {
       numberKeys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
     }
   },
-  onLoad() {
+  onShow() {
     this.loadWalletData()
   },
   methods: {
     async loadWalletData() {
       try {
-        // 加载钱包余额
         const walletRes = await getUserWallet()
-        if (walletRes.code === 0) {
-          this.balance = walletRes.data.balance || '0.00'
-        }
-        
-        // 加载骑行卡数据
-        this.loadRidingCards()
+        const data = walletRes.data || {}
+        this.balance = this.formatAmount(data.balance)
+        this.ridingCards = this.mapPackages(data.packages || [])
       } catch (error) {
-        console.error('加载钱包数据失败:', error)
-        uni.showToast({
-          title: '加载失败',
-          icon: 'none'
-        })
+        this.balance = '0.00'
+        this.ridingCards = []
       }
     },
-    loadRidingCards() {
-      // TODO: 调用 API 获取骑行卡数据
-      // 这里使用模拟数据
-      this.ridingCards = [
-        {
-          name: '月卡',
-          validity: '2024-12-31',
-          status: '使用中',
-          statusClass: 'status-active'
-        },
-        {
-          name: '季卡',
-          validity: '2024-06-30',
-          status: '已过期',
-          statusClass: 'status-expired'
+    mapPackages(packages) {
+      return packages.map((item, index) => {
+        const restDay = Number(item.restDay || 0)
+        const isActive = restDay > 0
+        return {
+          id: item.id || index + 1,
+          name: item.title || `骑行卡 ${index + 1}`,
+          validity: item.expireDate
+            ? `有效期至：${String(item.expireDate).slice(0, 10)}`
+            : `剩余天数：${restDay}`,
+          status: isActive ? '使用中' : '已过期',
+          statusClass: isActive ? 'status-active' : 'status-expired'
         }
-      ]
+      })
     },
     handleNumberClick(num) {
       if (this.rechargeAmount.length >= 10) {
@@ -142,7 +127,8 @@ export default {
       this.rechargeAmount = ''
     },
     async confirmRecharge() {
-      if (!this.rechargeAmount || parseFloat(this.rechargeAmount) <= 0) {
+      const amount = parseFloat(this.rechargeAmount)
+      if (!this.rechargeAmount || !Number.isFinite(amount) || amount <= 0) {
         uni.showToast({
           title: '请输入有效金额',
           icon: 'none'
@@ -155,38 +141,31 @@ export default {
           title: '充值中...'
         })
 
-        // TODO: 调用充值 API
-        // const res = await userBill({
-        //   type: 'recharge',
-        //   amount: parseFloat(this.rechargeAmount)
-        // })
+        await userBill({
+          type: 2,
+          amount,
+          remark: '账户充值'
+        })
 
-        // 模拟充值成功
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
         uni.hideLoading()
+        this.balance = this.formatAmount(Number(this.balance) + amount)
         uni.showToast({
           title: '充值成功',
           icon: 'success'
         })
-
-        // 更新余额
-        const newBalance = (parseFloat(this.balance) + parseFloat(this.rechargeAmount)).toFixed(2)
-        this.balance = newBalance
-        
         this.closeRechargePopup()
       } catch (error) {
         uni.hideLoading()
-        uni.showToast({
-          title: '充值失败',
-          icon: 'none'
-        })
       }
     },
     navigateToBill() {
       uni.navigateTo({
         url: '/pages/bill/bill'
       })
+    },
+    formatAmount(value) {
+      const amount = Number(value || 0)
+      return Number.isFinite(amount) ? amount.toFixed(2) : '0.00'
     }
   }
 }
@@ -200,7 +179,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   padding: 48rpx 32rpx;
   background-color: #ffffff;
@@ -214,7 +192,6 @@ export default {
   letter-spacing: 4rpx;
 }
 
-/* Balance Section */
 .balance-section {
   margin: 32rpx;
   padding: 64rpx 48rpx;
@@ -257,7 +234,6 @@ export default {
   border-color: #ffffff;
 }
 
-/* Card Section */
 .card-section {
   margin: 0 32rpx 32rpx;
   background-color: #ffffff;
@@ -349,7 +325,6 @@ export default {
   letter-spacing: 2rpx;
 }
 
-/* Bill Section */
 .bill-section {
   margin: 0 32rpx 32rpx;
   background-color: #ffffff;
@@ -385,7 +360,6 @@ export default {
   font-weight: 300;
 }
 
-/* Popup Styles */
 .popup-mask {
   position: fixed;
   top: 0;
@@ -402,7 +376,6 @@ export default {
   right: 0;
   bottom: 0;
   background-color: #ffffff;
-  border-radius: 0;
   z-index: 1000;
   padding: 48rpx 32rpx 32rpx;
   animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
