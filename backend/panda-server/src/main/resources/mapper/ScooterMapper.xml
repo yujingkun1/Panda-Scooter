@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.ScooterMapper">
+
+    <select id="getByCode" resultType="com.panda.entity.Scooter">
+        select id, code, battery, latitude, longitude, ride_status, fault_status, create_time
+        from scooter
+        where code = #{code}
+        limit 1
+    </select>
+
+    <select id="getById" resultType="com.panda.entity.Scooter">
+        select id, code, battery, latitude, longitude, ride_status, fault_status, create_time
+        from scooter
+        where id = #{id}
+    </select>
+
+    <select id="listNearby" resultType="com.panda.entity.Scooter">
+        select id, code, battery, latitude, longitude, ride_status, fault_status, create_time
+        from scooter
+        where longitude is not null
+          and latitude is not null
+          and longitude between #{minLongitude} and #{maxLongitude}
+          and latitude between #{minLatitude} and #{maxLatitude}
+        order by id desc
+        limit 200
+    </select>
+
+    <update id="updateRideStatus">
+        update scooter
+        set ride_status = #{rideStatus}
+        where id = #{id}
+    </update>
+
+    <update id="updateStatusAndLocation">
+        update scooter
+        set ride_status = #{rideStatus},
+            fault_status = #{faultStatus},
+            battery = #{battery},
+            latitude = #{latitude},
+            longitude = #{longitude}
+        where id = #{id}
+    </update>
+
+</mapper>

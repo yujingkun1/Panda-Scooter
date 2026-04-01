@@ -1,0 +1,14 @@
+package com.panda.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class UserDeleteDTO {
+
+    @NotBlank
+    private String password;
+
+    @NotBlank
+    private String verificationCode;
+}

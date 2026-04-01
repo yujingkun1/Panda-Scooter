@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.UserMapper">
+
+    <select id="getById" resultType="com.panda.entity.User">
+        select id, username, password, email, create_time
+        from `user`
+        where id = #{id}
+    </select>
+
+    <select id="getByEmail" resultType="com.panda.entity.User">
+        select id, username, password, email, create_time
+        from `user`
+        where email = #{email}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.panda.entity.User" useGeneratedKeys="true" keyProperty="id">
+        insert into `user` (username, password, email, create_time)
+        values (#{username}, #{password}, #{email}, #{createTime})
+    </insert>
+
+    <update id="updatePasswordById">
+        update `user`
+        set password = #{password}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from `user` where id = #{id}
+    </delete>
+
+</mapper>
