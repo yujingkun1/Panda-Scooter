@@ -16,36 +16,89 @@
     </view>
 
     <view class="action-section">
-      <view class="action-item" @click="changePassword">
+      <view class="action-item" @click="goToForgotPassword">
         <text class="action-text">修改密码</text>
         <text class="action-arrow">›</text>
       </view>
       <view class="action-item" @click="logout">
         <text class="action-text logout-text">退出登录</text>
       </view>
-      <view class="action-item" @click="deleteAccount">
-        <text class="action-text delete-text">账号注销</text>
+    </view>
+
+    <view class="delete-section">
+      <text class="section-title">注销账号</text>
+      <text class="section-desc">根据接口文档，注销账号需要密码和邮箱验证码。</text>
+
+      <view class="field">
+        <text class="field-label">登录密码</text>
+        <input
+          v-model.trim="deleteForm.password"
+          class="input"
+          password
+          type="text"
+          placeholder="请输入当前密码"
+        />
       </view>
+
+      <view class="field">
+        <text class="field-label">邮箱验证码</text>
+        <view class="code-row">
+          <input
+            v-model.trim="deleteForm.verificationCode"
+            class="input code-input"
+            type="text"
+            placeholder="请输入验证码"
+          />
+          <button class="code-btn" :disabled="countdown > 0" @click="sendDeleteCode">
+            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+          </button>
+        </view>
+      </view>
+
+      <button class="delete-btn" @click="deleteAccount">确认注销</button>
     </view>
   </view>
 </template>
 
 <script>
-import { getUserInfo, userDelete, userLogout } from '@/api/index'
+import {
+  getUserInfo,
+  getVerificationCode,
+  userDelete,
+  userLogout
+} from '@/api/index'
 
 const DEFAULT_USER_INFO = {
   username: '游客用户',
   email: '未登录'
 }
 
+const DEFAULT_DELETE_FORM = () => ({
+  password: '',
+  verificationCode: ''
+})
+
 export default {
   data() {
     return {
-      userInfo: { ...DEFAULT_USER_INFO }
+      userInfo: { ...DEFAULT_USER_INFO },
+      deleteForm: DEFAULT_DELETE_FORM(),
+      countdown: 0,
+      timer: null
     }
   },
   onShow() {
+    const token = uni.getStorageSync('token')
+    if (!token) {
+      uni.redirectTo({
+        url: '/pages/login/login?mode=login'
+      })
+      return
+    }
     this.loadUserInfo()
+  },
+  onUnload() {
+    this.clearTimer()
   },
   methods: {
     async loadUserInfo() {
@@ -57,17 +110,56 @@ export default {
           email: data.email || DEFAULT_USER_INFO.email
         }
       } catch (error) {
-        this.userInfo = { ...DEFAULT_USER_INFO }
+        const cached = uni.getStorageSync('userInfo')
+        this.userInfo = {
+          username: cached.username || DEFAULT_USER_INFO.username,
+          email: cached.email || DEFAULT_USER_INFO.email
+        }
       }
     },
-    changePassword() {
-      uni.showModal({
-        title: '修改密码',
-        content: '当前版本暂未提供独立修改密码页面。',
-        showCancel: false
+    goToForgotPassword() {
+      uni.navigateTo({
+        url: `/pages/login/login?mode=forgot-password&email=${encodeURIComponent(this.userInfo.email)}`
       })
     },
-    logout() {
+    async sendDeleteCode() {
+      if (!this.userInfo.email || this.userInfo.email === DEFAULT_USER_INFO.email) {
+        uni.showToast({
+          title: '当前账号没有可用邮箱',
+          icon: 'none'
+        })
+        return
+      }
+
+      try {
+        await getVerificationCode(this.userInfo.email)
+        uni.showToast({
+          title: '验证码已发送',
+          icon: 'success'
+        })
+        this.startCountdown()
+      } catch (error) {
+      }
+    },
+    startCountdown() {
+      this.clearTimer()
+      this.countdown = 60
+      this.timer = setInterval(() => {
+        if (this.countdown <= 1) {
+          this.clearTimer()
+          this.countdown = 0
+          return
+        }
+        this.countdown -= 1
+      }, 1000)
+    },
+    clearTimer() {
+      if (this.timer) {
+        clearInterval(this.timer)
+        this.timer = null
+      }
+    },
+    async logout() {
       uni.showModal({
         title: '退出登录',
         content: '确定要退出当前账号吗？',
@@ -78,27 +170,36 @@ export default {
 
           try {
             await userLogout()
-            uni.removeStorageSync('token')
-            uni.removeStorageSync('currentRide')
-            uni.showToast({
-              title: '已退出登录',
-              icon: 'success'
-            })
-            setTimeout(() => {
-              uni.reLaunch({
-                url: '/pages/index/index'
-              })
-            }, 1200)
           } catch (error) {
           }
+
+          uni.removeStorageSync('token')
+          uni.removeStorageSync('currentRide')
+          uni.removeStorageSync('userInfo')
+          uni.showToast({
+            title: '已退出登录',
+            icon: 'success'
+          })
+          setTimeout(() => {
+            uni.reLaunch({
+              url: '/pages/index/index'
+            })
+          }, 800)
         }
       })
     },
-    deleteAccount() {
+    async deleteAccount() {
+      if (!this.deleteForm.password || !this.deleteForm.verificationCode) {
+        uni.showToast({
+          title: '请填写密码和验证码',
+          icon: 'none'
+        })
+        return
+      }
+
       uni.showModal({
         title: '账号注销',
-        content: '开发阶段会调用 mock 注销接口，确定继续吗？',
-        confirmText: '确认注销',
+        content: '账号注销后将退出当前登录状态，确认继续吗？',
         confirmColor: '#ff4d4f',
         success: async (res) => {
           if (!res.confirm) {
@@ -110,12 +211,13 @@ export default {
               title: '注销中...'
             })
             await userDelete({
-              password: '',
-              verificationCode: ''
+              password: this.deleteForm.password,
+              verificationCode: this.deleteForm.verificationCode
             })
             uni.hideLoading()
             uni.removeStorageSync('token')
             uni.removeStorageSync('currentRide')
+            uni.removeStorageSync('userInfo')
             uni.showToast({
               title: '账号已注销',
               icon: 'success'
@@ -124,7 +226,7 @@ export default {
               uni.reLaunch({
                 url: '/pages/index/index'
               })
-            }, 1200)
+            }, 800)
           } catch (error) {
             uni.hideLoading()
           }
@@ -156,72 +258,42 @@ export default {
   letter-spacing: 4rpx;
 }
 
-.info-section {
+.info-section,
+.action-section,
+.delete-section {
   margin: 32rpx;
   background-color: #ffffff;
-  border-radius: 0;
-  box-shadow: none;
   border: 1rpx solid #e5e5e2;
 }
 
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 40rpx 32rpx;
-  border-bottom: 1rpx solid #e5e5e2;
-}
-
-.info-item:last-child {
-  border-bottom: none;
-}
-
-.info-label {
-  font-size: 26rpx;
-  color: #737373;
-  font-weight: 300;
-  letter-spacing: 2rpx;
-}
-
-.info-value {
-  font-size: 26rpx;
-  color: #0b0e0d;
-  font-weight: 400;
-  letter-spacing: 2rpx;
-}
-
-.action-section {
-  margin: 32rpx;
-  background-color: #ffffff;
-  border-radius: 0;
-  box-shadow: none;
-  border: 1rpx solid #e5e5e2;
-}
-
+.info-item,
 .action-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 40rpx 32rpx;
   border-bottom: 1rpx solid #e5e5e2;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
 }
 
+.info-item:last-child,
 .action-item:last-child {
   border-bottom: none;
 }
 
-.action-item:hover {
-  background-color: #fafaf8;
+.info-label {
+  font-size: 26rpx;
+  color: #737373;
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: #0b0e0d;
 }
 
 .action-text {
+  flex: 1;
   font-size: 28rpx;
   color: #0b0e0d;
-  font-weight: 400;
-  flex: 1;
-  letter-spacing: 2rpx;
 }
 
 .logout-text {
@@ -229,14 +301,75 @@ export default {
   text-align: center;
 }
 
-.delete-text {
-  color: #8b0000;
-  text-align: center;
-}
-
 .action-arrow {
   font-size: 32rpx;
   color: #d4d4d1;
-  font-weight: 300;
+}
+
+.delete-section {
+  padding: 40rpx 32rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 30rpx;
+  color: #0b0e0d;
+  margin-bottom: 12rpx;
+}
+
+.section-desc {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: #737373;
+  margin-bottom: 28rpx;
+}
+
+.field {
+  margin-bottom: 24rpx;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 24rpx;
+  color: #0b0e0d;
+}
+
+.input {
+  width: 100%;
+  height: 88rpx;
+  border: 1rpx solid #e5e5e2;
+  background-color: #fafaf8;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+}
+
+.code-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.code-input {
+  flex: 1;
+}
+
+.code-btn {
+  width: 220rpx;
+  height: 88rpx;
+  border: 1rpx solid #d4d4d1;
+  background-color: transparent;
+  color: #0b0e0d;
+  font-size: 24rpx;
+}
+
+.delete-btn {
+  margin-top: 16rpx;
+  background-color: #8b0000;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
 }
 </style>

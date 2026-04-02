@@ -15,7 +15,6 @@
         :markers="markers"
         :polygons="polygons"
         :show-location="true"
-        @regionchange="onRegionChange"
       ></map>
     </view>
 
@@ -55,7 +54,7 @@
             <text class="subscription-desc">{{ pkg.description || '骑行套餐' }}</text>
             <text class="subscription-price">¥{{ formatAmount(pkg.price) }}</text>
           </view>
-          <button class="subscription-btn" @click="handleSubscription(pkg)">立即购买</button>
+          <button class="subscription-btn" @click="handleSubscription(pkg)">查看详情</button>
         </view>
       </view>
       <view v-else class="empty-state">
@@ -101,6 +100,15 @@ export default {
         this.subscriptionPackages = []
       }
     },
+    getLocation() {
+      return new Promise((resolve, reject) => {
+        uni.getLocation({
+          type: 'gcj02',
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
     async loadLocationAndMap() {
       try {
         const location = await this.getLocation()
@@ -115,15 +123,6 @@ export default {
 
       await this.loadMapData()
     },
-    getLocation() {
-      return new Promise((resolve, reject) => {
-        uni.getLocation({
-          type: 'gcj02',
-          success: resolve,
-          fail: reject
-        })
-      })
-    },
     async loadMapData() {
       try {
         const res = await getMapData({
@@ -132,26 +131,21 @@ export default {
           scale: this.scale
         })
         const data = res.data || {}
-        this.markers = this.mapScooterMarkers(data.scooters || [])
+        this.markers = this.mapScooters(data.scooters || [])
         this.polygons = this.mapNoParkingAreas(data.noParkingAreas || [])
         this.parkingPoints = this.mapParkingPoints(data.parkingPoints || [])
       } catch (error) {
         this.markers = []
         this.polygons = []
         this.parkingPoints = []
-        uni.showToast({
-          title: '地图数据加载失败',
-          icon: 'none'
-        })
       }
     },
-    mapScooterMarkers(list) {
+    mapScooters(list) {
       return list
         .map((item) => {
           if (!this.isValidPoint(item.latitude, item.longitude)) {
             return null
           }
-
           return {
             id: item.id,
             latitude: Number(item.latitude),
@@ -164,7 +158,7 @@ export default {
               color: '#333',
               fontSize: 12,
               borderRadius: 5,
-              bgColor: 'rgba(255,255,255,0.8)',
+              bgColor: 'rgba(255,255,255,0.85)',
               padding: 5,
               display: 'BYCLICK'
             }
@@ -173,9 +167,7 @@ export default {
         .filter(Boolean)
     },
     mapParkingPoints(list) {
-      return list
-        .map((item) => this.normalizePoint(item))
-        .filter(Boolean)
+      return list.map((item) => this.normalizePoint(item)).filter(Boolean)
     },
     mapNoParkingAreas(list) {
       return list
@@ -184,12 +176,11 @@ export default {
           if (!points.length) {
             return null
           }
-
           return {
             id: item.id || index + 1,
             points,
-            fillColor: 'rgba(255, 0, 0, 0.15)',
-            strokeColor: 'rgba(255, 0, 0, 0.5)',
+            fillColor: 'rgba(255,0,0,0.15)',
+            strokeColor: 'rgba(255,0,0,0.45)',
             strokeWidth: 2
           }
         })
@@ -199,36 +190,36 @@ export default {
       if (!polygon) {
         return []
       }
-
       if (Array.isArray(polygon)) {
         return polygon.map((item) => this.normalizePoint(item)).filter(Boolean)
       }
-
       if (typeof polygon === 'string') {
         try {
           const parsed = JSON.parse(polygon)
-          if (Array.isArray(parsed)) {
-            return parsed.map((item) => this.normalizePoint(item)).filter(Boolean)
-          }
+          return Array.isArray(parsed)
+            ? parsed.map((item) => this.normalizePoint(item)).filter(Boolean)
+            : []
         } catch (error) {
-          const segments = polygon.split(';').map((item) => item.trim()).filter(Boolean)
-          return segments
+          return polygon
+            .split(';')
+            .map((segment) => segment.trim())
+            .filter(Boolean)
             .map((segment) => {
-              const normalized = segment.replace(/^\[|\]$/g, '')
-              const values = normalized.split(',').map((item) => Number(item.trim()))
+              const values = segment
+                .replace(/^\[|\]$/g, '')
+                .split(',')
+                .map((item) => Number(item.trim()))
               return this.normalizePoint(values)
             })
             .filter(Boolean)
         }
       }
-
       return []
     },
     normalizePoint(point) {
       if (!point) {
         return null
       }
-
       if (Array.isArray(point) && point.length >= 2) {
         const first = Number(point[0])
         const second = Number(point[1])
@@ -240,19 +231,15 @@ export default {
         }
         return { latitude: second, longitude: first }
       }
-
       const latitude = Number(point.latitude)
       const longitude = Number(point.longitude)
       if (!this.isValidPoint(latitude, longitude)) {
         return null
       }
-
       return { latitude, longitude }
     },
     isValidPoint(latitude, longitude) {
       return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
-    },
-    onRegionChange() {
     },
     scanUnlock() {
       uni.scanCode({
@@ -273,7 +260,6 @@ export default {
       if (!value) {
         return ''
       }
-
       if (value.includes('code=')) {
         const query = value.split('?')[1] || ''
         const params = {}
@@ -285,7 +271,6 @@ export default {
         })
         return params.code || value
       }
-
       const segments = value.split('/')
       return segments[segments.length - 1] || value
     },
@@ -302,11 +287,12 @@ export default {
         uni.showLoading({
           title: '正在开锁...'
         })
-
         const res = await unlockScooter(code)
         uni.hideLoading()
-        uni.setStorageSync('currentRide', res.data || {})
-
+        uni.setStorageSync('currentRide', {
+          ...(res.data || {}),
+          scooterCode: code
+        })
         uni.showModal({
           title: '开锁成功',
           content: `车辆 ${code} 已开锁，祝你骑行愉快。`,
@@ -326,13 +312,13 @@ export default {
     showRideNotice() {
       uni.showModal({
         title: '骑行须知',
-        content: '请佩戴头盔、遵守交通规则，在指定区域规范停车。',
+        content: '请佩戴头盔、遵守交通规则，并在指定区域规范停车。',
         showCancel: false
       })
     },
     handleSubscription(pkg) {
       uni.showToast({
-        title: `${pkg.title} 开发中`,
+        title: `${pkg.title} 购买功能暂未开放`,
         icon: 'none'
       })
     },
@@ -343,7 +329,6 @@ export default {
         })
         return
       }
-
       if (page === 'unlock') {
         uni.navigateTo({
           url: '/pages/unlock/unlock'
@@ -356,7 +341,8 @@ export default {
       })
     },
     formatAmount(value) {
-      return Number(value || 0).toFixed(2)
+      const amount = Number(value || 0)
+      return Number.isFinite(amount) ? amount.toFixed(2) : '0.00'
     }
   }
 }
@@ -387,20 +373,12 @@ export default {
 .avatar {
   width: 64rpx;
   height: 64rpx;
-  border-radius: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.avatar:hover {
-  opacity: 0.7;
 }
 
 .map-container {
   width: 100%;
   height: 520rpx;
   background-color: #ffffff;
-  position: relative;
-  overflow: hidden;
   border-bottom: 1rpx solid #e5e5e2;
 }
 
@@ -414,7 +392,6 @@ export default {
   background-color: #ffffff;
   display: flex;
   justify-content: center;
-  align-items: center;
 }
 
 .unlock-btn {
@@ -422,18 +399,10 @@ export default {
   height: 96rpx;
   background-color: #0b0e0d;
   color: #ffffff;
-  border-radius: 5rpx;
-  font-size: 32rpx;
-  font-weight: 300;
   border: none;
-  box-shadow: none;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0;
+  font-size: 32rpx;
   letter-spacing: 4rpx;
-}
-
-.unlock-btn:hover {
-  background-color: #222222;
-  transform: translateY(-2rpx);
 }
 
 .unlock-btn-text {
@@ -451,18 +420,11 @@ export default {
 .function-item {
   display: flex;
   align-items: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-}
-
-.function-item:hover {
-  color: #0b0e0d;
 }
 
 .function-text {
   font-size: 26rpx;
   color: #525252;
-  font-weight: 300;
   letter-spacing: 2rpx;
 }
 
@@ -489,7 +451,6 @@ export default {
 
 .subscription-title {
   font-size: 30rpx;
-  font-weight: 400;
   color: #0b0e0d;
   letter-spacing: 4rpx;
 }
@@ -497,8 +458,6 @@ export default {
 .subscription-more {
   font-size: 24rpx;
   color: #737373;
-  font-weight: 300;
-  letter-spacing: 2rpx;
 }
 
 .subscription-list {
@@ -514,13 +473,6 @@ export default {
   padding: 32rpx;
   border: 1rpx solid #e5e5e2;
   background-color: #fafaf8;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.subscription-item:hover {
-  transform: translateY(-4rpx);
-  border-color: #d4d4d1;
-  background-color: #ffffff;
 }
 
 .subscription-info {
@@ -528,46 +480,33 @@ export default {
 }
 
 .subscription-name {
+  display: block;
   font-size: 28rpx;
-  font-weight: 400;
   color: #0b0e0d;
   margin-bottom: 12rpx;
-  letter-spacing: 2rpx;
 }
 
 .subscription-desc {
+  display: block;
   font-size: 22rpx;
   color: #737373;
   margin-bottom: 16rpx;
   line-height: 1.6;
-  font-weight: 300;
 }
 
 .subscription-price {
+  display: block;
   font-size: 32rpx;
-  font-weight: 400;
   color: #0b0e0d;
-  letter-spacing: 2rpx;
 }
 
 .subscription-btn {
   background-color: transparent;
   color: #0b0e0d;
   border: 1rpx solid #d4d4d1;
-  padding: 20rpx 48rpx;
   border-radius: 0;
+  padding: 20rpx 40rpx;
   font-size: 24rpx;
-  font-weight: 300;
-  box-shadow: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: 2rpx;
-}
-
-.subscription-btn:hover {
-  background-color: #0b0e0d;
-  color: #ffffff;
-  border-color: #0b0e0d;
-  transform: translateY(-2rpx);
 }
 
 .empty-state {
@@ -578,7 +517,5 @@ export default {
 .empty-text {
   font-size: 24rpx;
   color: #737373;
-  font-weight: 300;
-  letter-spacing: 2rpx;
 }
 </style>

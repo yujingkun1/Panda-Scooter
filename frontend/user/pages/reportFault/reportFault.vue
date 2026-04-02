@@ -4,27 +4,30 @@
       <text class="title">故障上报</text>
     </view>
 
-    <view class="form-section">
+    <view v-if="!hasToken" class="guest-card">
+      <text class="guest-title">登录后可提交故障上报</text>
+      <button class="login-btn" @click="goLogin">去登录</button>
+    </view>
+
+    <view v-else class="form-section">
       <view class="form-item">
         <text class="form-label">车辆编号 *</text>
         <view class="input-wrapper">
           <input
-            class="input"
             v-model="scooterCode"
+            class="input"
             placeholder="请输入或扫码获取车辆编号"
             :maxlength="10"
           />
-          <button class="scan-btn" @click="scanScooterCode">
-            <text class="scan-text">扫码</text>
-          </button>
+          <button class="scan-btn" @click="scanScooterCode">扫码</button>
         </view>
       </view>
 
       <view class="form-item">
         <text class="form-label">故障原因 *</text>
         <textarea
-          class="textarea"
           v-model="faultReason"
+          class="textarea"
           placeholder="请描述故障情况，例如：刹车失灵、轮胎漏气等"
           :maxlength="200"
           :auto-height="true"
@@ -41,7 +44,6 @@
               <text class="delete-icon">×</text>
             </view>
           </view>
-
           <view v-if="photos.length < maxPhotos" class="upload-btn" @click="chooseImage">
             <text class="upload-text">添加图片</text>
           </view>
@@ -66,13 +68,22 @@ import { getScooterInfo, reportFault } from '@/api/index'
 export default {
   data() {
     return {
+      hasToken: false,
       scooterCode: '',
       faultReason: '',
       photos: [],
       maxPhotos: 3
     }
   },
+  onShow() {
+    this.hasToken = Boolean(uni.getStorageSync('token'))
+  },
   methods: {
+    goLogin() {
+      uni.navigateTo({
+        url: '/pages/login/login?mode=login'
+      })
+    },
     scanScooterCode() {
       uni.scanCode({
         success: (res) => {
@@ -95,7 +106,6 @@ export default {
       if (!value) {
         return ''
       }
-
       const segments = value.split('/')
       return segments[segments.length - 1] || value
     },
@@ -106,12 +116,6 @@ export default {
         sourceType: ['camera', 'album'],
         success: (res) => {
           this.photos = [...this.photos, ...res.tempFilePaths]
-        },
-        fail: () => {
-          uni.showToast({
-            title: '选择图片失败',
-            icon: 'none'
-          })
         }
       })
     },
@@ -126,7 +130,6 @@ export default {
         })
         return
       }
-
       if (!this.faultReason.trim()) {
         uni.showToast({
           title: '请填写故障原因',
@@ -139,20 +142,17 @@ export default {
         uni.showLoading({
           title: '提交中...'
         })
-
         let scooterId = Number(this.scooterCode.trim())
         if (!Number.isFinite(scooterId)) {
           const scooterRes = await getScooterInfo(this.scooterCode.trim())
           scooterId = Number(scooterRes.data && scooterRes.data.id) || 0
         }
-
         await reportFault({
           scooterId,
           scooterCode: this.scooterCode.trim(),
           description: this.faultReason.trim(),
           image: ''
         })
-
         uni.hideLoading()
         uni.showModal({
           title: '提交成功',
@@ -178,191 +178,30 @@ export default {
 </script>
 
 <style>
-.page {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: #fafaf8;
-}
-
-.header {
-  padding: 48rpx 32rpx;
-  background-color: #ffffff;
-  border-bottom: 1rpx solid #e5e5e2;
-}
-
-.title {
-  font-size: 36rpx;
-  font-weight: 400;
-  color: #0b0e0d;
-  letter-spacing: 4rpx;
-}
-
-.form-section {
-  padding: 32rpx;
-}
-
-.form-item {
-  margin-bottom: 32rpx;
-  background-color: #ffffff;
-  padding: 40rpx 32rpx;
-  border: 1rpx solid #e5e5e2;
-}
-
-.form-label {
-  font-size: 26rpx;
-  color: #0b0e0d;
-  font-weight: 400;
-  display: block;
-  margin-bottom: 24rpx;
-  letter-spacing: 2rpx;
-}
-
-.input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-}
-
-.input {
-  flex: 1;
-  height: 88rpx;
-  background-color: #fafaf8;
-  border-radius: 0;
-  padding: 0 28rpx;
-  font-size: 28rpx;
-  border: 1rpx solid #e5e5e2;
-  color: #0b0e0d;
-  font-weight: 400;
-}
-
-.scan-btn {
-  background-color: transparent;
-  color: #0b0e0d;
-  border: 1rpx solid #d4d4d1;
-  border-radius: 0;
-  padding: 0 40rpx;
-  height: 88rpx;
-  display: flex;
-  align-items: center;
-  font-size: 26rpx;
-  font-weight: 300;
-  box-shadow: none;
-  letter-spacing: 2rpx;
-}
-
-.textarea {
-  width: 100%;
-  min-height: 240rpx;
-  background-color: #fafaf8;
-  border-radius: 0;
-  padding: 24rpx 28rpx;
-  font-size: 28rpx;
-  line-height: 1.8;
-  border: 1rpx solid #e5e5e2;
-  color: #0b0e0d;
-  font-weight: 400;
-}
-
-.char-count {
-  display: block;
-  text-align: right;
-  font-size: 22rpx;
-  color: #737373;
-  margin-top: 12rpx;
-  font-weight: 300;
-}
-
-.upload-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20rpx;
-}
-
-.photo-item {
-  position: relative;
-  width: 200rpx;
-  height: 200rpx;
-  overflow: hidden;
-  border: 1rpx solid #e5e5e2;
-}
-
-.photo-image {
-  width: 100%;
-  height: 100%;
-}
-
-.photo-delete {
-  position: absolute;
-  top: 8rpx;
-  right: 8rpx;
-  width: 48rpx;
-  height: 48rpx;
-  background-color: rgba(11, 14, 13, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.delete-icon {
-  color: #ffffff;
-  font-size: 32rpx;
-  font-weight: 300;
-}
-
-.upload-btn {
-  width: 200rpx;
-  height: 200rpx;
-  background-color: #fafaf8;
-  border: 1rpx dashed #d4d4d1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.upload-text {
-  font-size: 24rpx;
-  color: #737373;
-  font-weight: 300;
-  letter-spacing: 2rpx;
-}
-
-.upload-tip {
-  display: block;
-  font-size: 22rpx;
-  color: #737373;
-  margin-top: 16rpx;
-  font-weight: 300;
-}
-
-.submit-section {
-  margin-top: 64rpx;
-}
-
-.submit-btn {
-  background-color: #0b0e0d;
-  color: #ffffff;
-  border: none;
-  border-radius: 0;
-  padding: 36rpx 0;
-  font-size: 32rpx;
-  font-weight: 300;
-  box-shadow: none;
-  letter-spacing: 4rpx;
-}
-
-.history-link {
-  margin-top: 40rpx;
-  padding: 40rpx 32rpx;
-  text-align: center;
-  background-color: #ffffff;
-  border: 1rpx solid #e5e5e2;
-}
-
-.link-text {
-  font-size: 28rpx;
-  color: #737373;
-  font-weight: 300;
-  letter-spacing: 2rpx;
-}
+.page { min-height: 100vh; background-color: #fafaf8; }
+.header { padding: 48rpx 32rpx; background-color: #fff; border-bottom: 1rpx solid #e5e5e2; }
+.title { font-size: 36rpx; color: #0b0e0d; letter-spacing: 4rpx; }
+.guest-card { margin: 32rpx; padding: 40rpx 32rpx; background: #fff; border: 1rpx solid #e5e5e2; }
+.guest-title { display: block; margin-bottom: 24rpx; font-size: 28rpx; color: #0b0e0d; }
+.login-btn { background-color: #0b0e0d; color: #fff; border: none; border-radius: 0; }
+.form-section { padding: 32rpx; }
+.form-item { margin-bottom: 32rpx; background-color: #fff; padding: 40rpx 32rpx; border: 1rpx solid #e5e5e2; }
+.form-label { display: block; margin-bottom: 24rpx; font-size: 26rpx; color: #0b0e0d; }
+.input-wrapper { display: flex; align-items: center; gap: 20rpx; }
+.input { flex: 1; height: 88rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 0 28rpx; font-size: 28rpx; }
+.scan-btn { height: 88rpx; padding: 0 40rpx; background-color: transparent; border: 1rpx solid #d4d4d1; border-radius: 0; color: #0b0e0d; }
+.textarea { width: 100%; min-height: 240rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 24rpx 28rpx; font-size: 28rpx; }
+.char-count { display: block; text-align: right; margin-top: 12rpx; font-size: 22rpx; color: #737373; }
+.upload-section { display: flex; flex-wrap: wrap; gap: 20rpx; }
+.photo-item { position: relative; width: 200rpx; height: 200rpx; border: 1rpx solid #e5e5e2; overflow: hidden; }
+.photo-image { width: 100%; height: 100%; }
+.photo-delete { position: absolute; top: 8rpx; right: 8rpx; width: 48rpx; height: 48rpx; display: flex; align-items: center; justify-content: center; background-color: rgba(11, 14, 13, 0.8); }
+.delete-icon { color: #fff; font-size: 32rpx; }
+.upload-btn { width: 200rpx; height: 200rpx; display: flex; align-items: center; justify-content: center; background-color: #fafaf8; border: 1rpx dashed #d4d4d1; }
+.upload-text { font-size: 24rpx; color: #737373; }
+.upload-tip { display: block; margin-top: 16rpx; font-size: 22rpx; color: #737373; }
+.submit-section { margin-top: 64rpx; }
+.submit-btn { background-color: #0b0e0d; color: #fff; border: none; border-radius: 0; font-size: 32rpx; letter-spacing: 4rpx; }
+.history-link { margin-top: 40rpx; padding: 40rpx 32rpx; text-align: center; background-color: #fff; border: 1rpx solid #e5e5e2; }
+.link-text { font-size: 28rpx; color: #737373; }
 </style>

@@ -20,7 +20,7 @@
       </view>
 
       <view class="flashlight-section">
-        <button class="flashlight-btn" @click="toggleFlashlight" :class="{ active: isFlashlightOn }">
+        <button class="flashlight-btn" :class="{ active: isFlashlightOn }" @click="toggleFlashlight">
           <text class="flashlight-text">{{ isFlashlightOn ? '关闭补光' : '打开补光' }}</text>
         </button>
       </view>
@@ -42,9 +42,7 @@
       </view>
 
       <view class="confirm-section">
-        <button class="unlock-btn" @click="confirmUnlock" :disabled="!canUnlock">
-          确认开锁
-        </button>
+        <button class="unlock-btn" :disabled="!canUnlock" @click="confirmUnlock">确认开锁</button>
       </view>
     </view>
   </view>
@@ -132,7 +130,6 @@ export default {
         uni.showLoading({
           title: '正在开锁...'
         })
-
         const res = await unlockScooter(this.scooterCode)
         uni.hideLoading()
         uni.setStorageSync('currentRide', {
@@ -195,13 +192,12 @@ export default {
 }
 
 .display-label {
+  display: block;
   font-size: 24rpx;
   color: #737373;
-  display: block;
   margin-bottom: 40rpx;
   text-align: center;
   letter-spacing: 2rpx;
-  font-weight: 300;
 }
 
 .display-value {
@@ -244,10 +240,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26rpx;
-  font-weight: 300;
   margin: 0 auto;
-  letter-spacing: 2rpx;
 }
 
 .flashlight-btn.active {
@@ -257,7 +250,7 @@ export default {
 }
 
 .flashlight-text {
-  font-weight: 300;
+  font-size: 26rpx;
   letter-spacing: 2rpx;
 }
 
@@ -287,19 +280,16 @@ export default {
 .key-item:active {
   background-color: #fafaf8;
   transform: scale(0.98);
-  border-color: #d4d4d1;
 }
 
 .key-text {
   font-size: 40rpx;
   font-weight: 300;
   color: #0b0e0d;
-  letter-spacing: 2rpx;
 }
 
 .delete-key {
   background-color: #fafaf8;
-  border-color: #e5e5e2;
 }
 
 .delete-key .key-text {

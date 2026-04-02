@@ -6,7 +6,7 @@
         <text class="username">{{ userInfo.username }}</text>
         <text class="email">{{ userInfo.email }}</text>
       </view>
-      <view class="account-manage" @click="accountManage">
+      <view class="account-manage" @click="openAccount">
         <text class="manage-text">账号管理</text>
       </view>
     </view>
@@ -21,6 +21,12 @@
         <text class="stat-value">{{ userInfo.totalTime }}</text>
         <text class="stat-label">骑行时长(h)</text>
       </view>
+    </view>
+
+    <view v-if="!hasToken" class="guest-card">
+      <text class="guest-title">当前为游客模式</text>
+      <text class="guest-desc">登录后可同步个人资料、账单和骑行记录。</text>
+      <button class="login-btn" @click="goLogin('login')">去登录</button>
     </view>
 
     <view class="menu-section">
@@ -53,14 +59,21 @@ const DEFAULT_USER_INFO = {
 export default {
   data() {
     return {
+      hasToken: false,
       userInfo: { ...DEFAULT_USER_INFO }
     }
   },
   onShow() {
+    this.hasToken = Boolean(uni.getStorageSync('token'))
     this.loadUserInfo()
   },
   methods: {
     async loadUserInfo() {
+      if (!this.hasToken) {
+        this.userInfo = { ...DEFAULT_USER_INFO }
+        return
+      }
+
       try {
         const res = await getUserInfo()
         const data = res.data || {}
@@ -71,15 +84,36 @@ export default {
           totalTime: this.formatNumber(data.totalTime)
         }
       } catch (error) {
-        this.userInfo = { ...DEFAULT_USER_INFO }
+        const cached = uni.getStorageSync('userInfo')
+        this.userInfo = {
+          username: cached.username || DEFAULT_USER_INFO.username,
+          email: cached.email || DEFAULT_USER_INFO.email,
+          totalKilometer: DEFAULT_USER_INFO.totalKilometer,
+          totalTime: DEFAULT_USER_INFO.totalTime
+        }
       }
     },
-    accountManage() {
+    openAccount() {
+      if (!this.hasToken) {
+        this.goLogin('login')
+        return
+      }
+
       uni.navigateTo({
         url: '/pages/account/account'
       })
     },
+    goLogin(mode) {
+      uni.navigateTo({
+        url: `/pages/login/login?mode=${mode}`
+      })
+    },
     navigateTo(page) {
+      if (!this.hasToken) {
+        this.goLogin('login')
+        return
+      }
+
       uni.navigateTo({
         url: `/pages/${page}/${page}`
       })
@@ -120,31 +154,24 @@ export default {
 }
 
 .username {
+  display: block;
   font-size: 32rpx;
   font-weight: 400;
   color: #0b0e0d;
   margin-bottom: 12rpx;
-  display: block;
   letter-spacing: 2rpx;
 }
 
 .email {
+  display: block;
   font-size: 24rpx;
   color: #737373;
-  display: block;
   font-weight: 300;
 }
 
 .account-manage {
   padding: 16rpx 32rpx;
   border: 1rpx solid #d4d4d1;
-  border-radius: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.account-manage:hover {
-  border-color: #0b0e0d;
-  background-color: #0b0e0d;
 }
 
 .manage-text {
@@ -152,10 +179,6 @@ export default {
   color: #525252;
   font-weight: 300;
   letter-spacing: 2rpx;
-}
-
-.account-manage:hover .manage-text {
-  color: #ffffff;
 }
 
 .stats-section {
@@ -194,6 +217,37 @@ export default {
   margin: 16rpx 0;
 }
 
+.guest-card {
+  margin: 0 32rpx 32rpx;
+  padding: 40rpx 32rpx;
+  background-color: #ffffff;
+  border: 1rpx solid #e5e5e2;
+}
+
+.guest-title {
+  display: block;
+  font-size: 30rpx;
+  color: #0b0e0d;
+  margin-bottom: 12rpx;
+}
+
+.guest-desc {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #737373;
+  margin-bottom: 28rpx;
+}
+
+.login-btn {
+  background-color: #0b0e0d;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
+}
+
 .menu-section {
   background-color: #ffffff;
   border: 1rpx solid #e5e5e2;
@@ -205,16 +259,10 @@ export default {
   align-items: center;
   padding: 40rpx 32rpx;
   border-bottom: 1rpx solid #e5e5e2;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
 }
 
 .menu-item:last-child {
   border-bottom: none;
-}
-
-.menu-item:hover {
-  background-color: #fafaf8;
 }
 
 .menu-text {
@@ -228,6 +276,5 @@ export default {
 .menu-arrow {
   font-size: 32rpx;
   color: #d4d4d1;
-  font-weight: 300;
 }
 </style>

@@ -55,7 +55,7 @@ const request = (options = {}) => {
 
         if (statusCode >= 200 && statusCode < 300) {
           if (data && typeof data.code !== 'undefined' && data.code !== 0) {
-            const message = data.msg || '请求失败'
+            const message = data.msg || 'Request failed'
             uni.showToast({
               title: message,
               icon: 'none'
@@ -68,7 +68,7 @@ const request = (options = {}) => {
           return
         }
 
-        const message = `请求失败：${statusCode}`
+        const message = `Request failed: ${statusCode}`
         uni.showToast({
           title: message,
           icon: 'none'
@@ -77,7 +77,7 @@ const request = (options = {}) => {
       },
       fail: (err) => {
         uni.showToast({
-          title: '网络错误',
+          title: 'Network error',
           icon: 'none'
         })
         reject(err)
