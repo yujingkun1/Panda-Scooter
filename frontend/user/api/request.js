@@ -1,4 +1,4 @@
-const baseURL = 'http://127.0.0.1:4523/m1/7776188-7522280-default'
+import { getApiBaseURL, getApiConfig } from './env'
 
 const isAbsoluteUrl = (url) => /^https?:\/\//.test(url)
 
@@ -9,7 +9,7 @@ const serializeParams = (params = {}) => {
     .join('&')
 }
 
-const buildUrl = (url, params) => {
+const buildUrl = (url, params, baseURL) => {
   const normalizedUrl = isAbsoluteUrl(url)
     ? url
     : `${baseURL}${url.startsWith('/') ? url : `/${url}`}`
@@ -27,13 +27,28 @@ const request = (options = {}) => {
     const {
       url,
       params,
+      baseURL: customBaseURL,
+      env,
       header = {},
       method = 'GET',
       ...rest
     } = options
 
+    const resolvedBaseURL = customBaseURL || getApiBaseURL(env)
+
+    if (!isAbsoluteUrl(url) && !resolvedBaseURL) {
+      const apiConfig = getApiConfig(env)
+      const message = `${apiConfig.label} API 地址未配置`
+      uni.showToast({
+        title: message,
+        icon: 'none'
+      })
+      reject(new Error(message))
+      return
+    }
+
     const config = {
-      url: buildUrl(url, params),
+      url: buildUrl(url, params, resolvedBaseURL),
       method,
       timeout: 10000,
       header: {
