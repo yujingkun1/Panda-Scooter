@@ -72,6 +72,12 @@ const DEFAULT_LOCATION = {
   longitude: 116.4074
 }
 
+const MARKER_ICONS = {
+  scooter: '/static/scooter.svg',
+  parking: '/static/parking.svg',
+  noParking: '/static/no-parking.svg'
+}
+
 export default {
   data() {
     return {
@@ -131,9 +137,19 @@ export default {
           scale: this.scale
         })
         const data = res.data || {}
-        this.markers = this.mapScooters(data.scooters || [])
-        this.polygons = this.mapNoParkingAreas(data.noParkingAreas || [])
-        this.parkingPoints = this.mapParkingPoints(data.parkingPoints || [])
+        const scooters = this.mapScooters(data.scooters || [])
+        const parkingPoints = this.mapParkingPoints(data.parkingPoints || [])
+        const noParkingAreas = this.mapNoParkingAreas(data.noParkingAreas || [])
+        const noParkingAreaMarkers = this.mapNoParkingAreaMarkers(data.noParkingAreas || [], noParkingAreas)
+
+        this.parkingPoints = parkingPoints
+        this.polygons = noParkingAreas
+        this.markers = [
+          ...scooters,
+          ...this.mapParkingPointMarkers(parkingPoints),
+          ...noParkingAreaMarkers
+        ]
+        this.syncMapCenter(data, parkingPoints, noParkingAreaMarkers)
       } catch (error) {
         this.markers = []
         this.polygons = []
@@ -142,32 +158,33 @@ export default {
     },
     mapScooters(list) {
       return list
-        .map((item) => {
+        .map((item, index) => {
           if (!this.isValidPoint(item.latitude, item.longitude)) {
             return null
           }
           return {
-            id: item.id,
+            id: Number(item.id) || index + 1,
             latitude: Number(item.latitude),
             longitude: Number(item.longitude),
-            iconPath: '/static/scooter.svg',
-            width: 30,
-            height: 30,
-            callout: {
-              content: `${item.battery || 0}%`,
-              color: '#333',
-              fontSize: 12,
-              borderRadius: 5,
-              bgColor: 'rgba(255,255,255,0.85)',
-              padding: 5,
-              display: 'BYCLICK'
-            }
+            iconPath: MARKER_ICONS.scooter,
+            width: 34,
+            height: 34
           }
         })
         .filter(Boolean)
     },
     mapParkingPoints(list) {
       return list.map((item) => this.normalizePoint(item)).filter(Boolean)
+    },
+    mapParkingPointMarkers(list) {
+      return list.map((item, index) => ({
+        id: 10000 + index + 1,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        iconPath: MARKER_ICONS.parking,
+        width: 28,
+        height: 28
+      }))
     },
     mapNoParkingAreas(list) {
       return list
@@ -182,6 +199,25 @@ export default {
             fillColor: 'rgba(255,0,0,0.15)',
             strokeColor: 'rgba(255,0,0,0.45)',
             strokeWidth: 2
+          }
+        })
+        .filter(Boolean)
+    },
+    mapNoParkingAreaMarkers(sourceAreas, polygons) {
+      return polygons
+        .map((polygon, index) => {
+          const center = this.resolveAreaCenter(sourceAreas[index], polygon.points)
+          if (!center) {
+            return null
+          }
+
+          return {
+            id: 20000 + Number(polygon.id || index + 1),
+            latitude: center.latitude,
+            longitude: center.longitude,
+            iconPath: MARKER_ICONS.noParking,
+            width: 30,
+            height: 30
           }
         })
         .filter(Boolean)
@@ -237,6 +273,63 @@ export default {
         return null
       }
       return { latitude, longitude }
+    },
+    resolveAreaCenter(area, points = []) {
+      if (area && area.center) {
+        const center = this.parseCenter(area.center)
+        if (center) {
+          return center
+        }
+      }
+
+      return this.computePolygonCenter(points)
+    },
+    parseCenter(center) {
+      if (!center) {
+        return null
+      }
+
+      if (Array.isArray(center)) {
+        return this.normalizePoint(center)
+      }
+
+      if (typeof center === 'string') {
+        const values = center
+          .split(',')
+          .map((item) => Number(item.trim()))
+        return this.normalizePoint(values)
+      }
+
+      return this.normalizePoint(center)
+    },
+    computePolygonCenter(points) {
+      if (!Array.isArray(points) || !points.length) {
+        return null
+      }
+
+      const total = points.reduce((result, point) => {
+        return {
+          latitude: result.latitude + Number(point.latitude || 0),
+          longitude: result.longitude + Number(point.longitude || 0)
+        }
+      }, { latitude: 0, longitude: 0 })
+
+      return {
+        latitude: total.latitude / points.length,
+        longitude: total.longitude / points.length
+      }
+    },
+    syncMapCenter(data, parkingPoints, noParkingAreaMarkers) {
+      const firstScooter = Array.isArray(data.scooters) ? data.scooters[0] : null
+      const firstPoint =
+        this.normalizePoint(firstScooter) ||
+        parkingPoints[0] ||
+        (noParkingAreaMarkers[0] && this.normalizePoint(noParkingAreaMarkers[0]))
+
+      if (firstPoint) {
+        this.latitude = firstPoint.latitude
+        this.longitude = firstPoint.longitude
+      }
     },
     isValidPoint(latitude, longitude) {
       return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))

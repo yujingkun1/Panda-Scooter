@@ -5,7 +5,7 @@ export const API_ENVS = Object.freeze({
   mock: {
     key: 'mock',
     label: 'Mock开发环境',
-    baseURL: 'http://127.0.0.1:4523/m1/7776188-7522280-default'
+    baseURL: 'https://m1.apifoxmock.com/m1/7776188-7522280-default'
   },
   test: {
     key: 'test',
@@ -21,7 +21,7 @@ export const API_ENVS = Object.freeze({
 
 const hasStorage = () => typeof uni !== 'undefined' && typeof uni.getStorageSync === 'function'
 
-const isValidApiEnv = (env) => Boolean(API_ENVS[env])
+const isValidApiEnv = (env) => {console.log(env);return Boolean(API_ENVS[env]);}
 
 const normalizeApiEnv = (env) => (isValidApiEnv(env) ? env : DEFAULT_API_ENV)
 
