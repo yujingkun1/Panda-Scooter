@@ -1,7 +1,13 @@
 <template>
   <view class="page">
     <view class="header">
-      <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
+      <view class="brand">
+        <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
+        <view class="brand-text">
+          <text class="brand-title">熊猫出行</text>
+          <text class="brand-subtitle">{{ headerUsername }}</text>
+        </view>
+      </view>
       <image class="avatar" src="/static/avatar.png" mode="aspectFit" @click="navigateToProfile"></image>
     </view>
 
@@ -26,7 +32,7 @@
 
     <view class="function-area">
       <view class="function-item" @click="showParkingPoints">
-        <text class="function-text">停车点</text>
+        <text class="function-text">搜停车点</text>
       </view>
       <text class="function-divider">|</text>
       <view class="function-item" @click="navigateTo('fault')">
@@ -65,7 +71,9 @@
 </template>
 
 <script>
-import { getMapData, getSubscriptions, unlockScooter } from '@/api/index'
+import { getMapData, getScooterInfo, getSubscriptions, unlockScooter } from '@/api/index'
+
+const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 
 const DEFAULT_LOCATION = {
   latitude: 39.9042,
@@ -87,13 +95,33 @@ export default {
       markers: [],
       polygons: [],
       parkingPoints: [],
-      subscriptionPackages: []
+      subscriptionPackages: [],
+      headerUsername: '游客用户'
     }
   },
   onLoad() {
     this.initPage()
   },
+  onShow() {
+    this.syncHeaderUser()
+    this.resumeCurrentRide()
+  },
   methods: {
+    syncHeaderUser() {
+      const cachedUser = uni.getStorageSync('userInfo') || {}
+      const hasToken = Boolean(uni.getStorageSync('token'))
+      this.headerUsername = hasToken
+        ? (cachedUser.username || cachedUser.email || '已登录用户')
+        : '游客用户'
+    },
+    resumeCurrentRide() {
+      const currentRide = uni.getStorageSync(CURRENT_RIDE_STORAGE_KEY)
+      if (currentRide && currentRide.orderId && currentRide.active) {
+        uni.navigateTo({
+          url: '/pages/riding/riding'
+        })
+      }
+    },
     async initPage() {
       await Promise.all([this.loadSubscriptions(), this.loadLocationAndMap()])
     },
@@ -353,6 +381,10 @@ export default {
       if (!value) {
         return ''
       }
+      const matchedCode = value.match(/PDSC\d+/i)
+      if (matchedCode && matchedCode[0]) {
+        return matchedCode[0].toUpperCase()
+      }
       if (value.includes('code=')) {
         const query = value.split('?')[1] || ''
         const params = {}
@@ -367,6 +399,17 @@ export default {
       const segments = value.split('/')
       return segments[segments.length - 1] || value
     },
+    normalizeScooterCode(rawCode) {
+      const value = String(rawCode || '').trim().toUpperCase()
+      if (!value) {
+        return ''
+      }
+      if (value.startsWith('PDSC')) {
+        return value
+      }
+      const numericPart = value.replace(/\D/g, '')
+      return numericPart ? `PDSC${numericPart.padStart(6, '0')}` : value
+    },
     async unlockByCode(code) {
       if (!code) {
         uni.showToast({
@@ -380,26 +423,36 @@ export default {
         uni.showLoading({
           title: '正在开锁...'
         })
-        const res = await unlockScooter(code)
+        const normalizedCode = this.normalizeScooterCode(code)
+        const scooterRes = await getScooterInfo(normalizedCode)
+        const scooterInfo = scooterRes.data || {}
+        const res = await unlockScooter(normalizedCode)
         uni.hideLoading()
-        uni.setStorageSync('currentRide', {
+        uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
           ...(res.data || {}),
-          scooterCode: code
+          scooterCode: normalizedCode,
+          scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
+          battery: Number(scooterInfo.battery || 0),
+          rideStatus: scooterInfo.ride_status || 1,
+          faultStatus: scooterInfo.fault_status || 0,
+          currentLatitude: Number(scooterInfo.latitude || this.latitude),
+          currentLongitude: Number(scooterInfo.longitude || this.longitude),
+          routePoints: [],
+          startTime: new Date().toISOString(),
+          totalKilometer: 0,
+          amount: 0,
+          active: true
         })
-        uni.showModal({
-          title: '开锁成功',
-          content: `车辆 ${code} 已开锁，祝你骑行愉快。`,
-          showCancel: false
+        uni.navigateTo({
+          url: '/pages/riding/riding'
         })
       } catch (error) {
         uni.hideLoading()
       }
     },
     showParkingPoints() {
-      const count = this.parkingPoints.length
-      uni.showToast({
-        title: count ? `附近停车点 ${count} 个` : '附近暂无停车点',
-        icon: 'none'
+      uni.navigateTo({
+        url: '/pages/parking/parking'
       })
     },
     showRideNotice() {
@@ -458,9 +511,32 @@ export default {
   border-bottom: 1rpx solid #e5e5e2;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+}
+
 .logo {
   width: 80rpx;
   height: 80rpx;
+  margin-right: 20rpx;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 30rpx;
+  color: #0b0e0d;
+  letter-spacing: 4rpx;
+}
+
+.brand-subtitle {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #737373;
 }
 
 .avatar {

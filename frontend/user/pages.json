@@ -59,6 +59,18 @@
       "style": {
         "navigationBarTitleText": "\u7f16\u53f7\u5f00\u9501"
       }
+    },
+    {
+      "path": "pages/riding/riding",
+      "style": {
+        "navigationBarTitleText": "\u9a91\u884c\u4e2d"
+      }
+    },
+    {
+      "path": "pages/parking/parking",
+      "style": {
+        "navigationBarTitleText": "\u641c\u505c\u8f66\u70b9"
+      }
     }
   ],
   "globalStyle": {

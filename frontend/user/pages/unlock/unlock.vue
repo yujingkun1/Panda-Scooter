@@ -8,13 +8,14 @@
       <view class="input-display">
         <text class="display-label">请输入车辆二维码编号</text>
         <view class="display-value">
+          <text class="prefix-tag">PDSC</text>
           <text
             v-for="(char, index) in displayChars"
             :key="index"
-            class="char-box"
+            class="char-slot"
             :class="{ active: index === scooterCode.length && scooterCode.length < maxLength }"
           >
-            {{ char }}
+            <text class="char-text">{{ char }}</text>
           </text>
         </view>
       </view>
@@ -49,13 +50,15 @@
 </template>
 
 <script>
-import { unlockScooter } from '@/api/index'
+import { getScooterInfo, unlockScooter } from '@/api/index'
+
+const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 
 export default {
   data() {
     return {
       scooterCode: '',
-      maxLength: 10,
+      maxLength: 6,
       numberKeys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
       isFlashlightOn: false
     }
@@ -65,7 +68,12 @@ export default {
       return Array.from({ length: this.maxLength }, (_, index) => this.scooterCode[index] || '')
     },
     canUnlock() {
-      return this.scooterCode.length >= 4 && this.scooterCode.length <= this.maxLength
+      return /^\d{6}$/.test(this.scooterCode)
+    }
+  },
+  onLoad(options) {
+    if (options && options.code) {
+      this.scooterCode = this.extractDigits(options.code)
     }
   },
   onUnload() {
@@ -74,6 +82,13 @@ export default {
     }
   },
   methods: {
+    extractDigits(rawCode) {
+      return String(rawCode || '').replace(/\D/g, '').slice(-6)
+    },
+    normalizeScooterCode(rawCode) {
+      const digits = this.extractDigits(rawCode)
+      return digits.length === 6 ? `PDSC${digits}` : ''
+    },
     handleNumberClick(num) {
       if (this.scooterCode.length >= this.maxLength) {
         uni.showToast({
@@ -130,26 +145,41 @@ export default {
         uni.showLoading({
           title: '正在开锁...'
         })
-        const res = await unlockScooter(this.scooterCode)
+        const normalizedCode = this.normalizeScooterCode(this.scooterCode)
+        if (!normalizedCode) {
+          uni.hideLoading()
+          uni.showToast({
+            title: '请输入6位编号',
+            icon: 'none'
+          })
+          return
+        }
+        const scooterRes = await getScooterInfo(normalizedCode)
+        const scooterInfo = scooterRes.data || {}
+        const res = await unlockScooter(normalizedCode)
         uni.hideLoading()
-        uni.setStorageSync('currentRide', {
+        uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
           ...(res.data || {}),
-          scooterCode: this.scooterCode
+          scooterCode: normalizedCode,
+          scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
+          battery: Number(scooterInfo.battery || 0),
+          rideStatus: scooterInfo.ride_status || 1,
+          faultStatus: scooterInfo.fault_status || 0,
+          currentLatitude: Number(scooterInfo.latitude || 0),
+          currentLongitude: Number(scooterInfo.longitude || 0),
+          routePoints: [],
+          startTime: new Date().toISOString(),
+          totalKilometer: 0,
+          amount: 0,
+          active: true
         })
 
         if (this.isFlashlightOn) {
           this.turnOffFlashlight()
         }
 
-        uni.showModal({
-          title: '开锁成功',
-          content: `车辆 ${this.scooterCode} 已解锁，祝你骑行愉快。`,
-          showCancel: false,
-          success: () => {
-            uni.reLaunch({
-              url: '/pages/index/index'
-            })
-          }
+        uni.navigateTo({
+          url: '/pages/riding/riding'
         })
       } catch (error) {
         uni.hideLoading()
@@ -193,7 +223,7 @@ export default {
 
 .display-label {
   display: block;
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #737373;
   margin-bottom: 40rpx;
   text-align: center;
@@ -203,28 +233,42 @@ export default {
 .display-value {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
   gap: 16rpx;
   min-height: 80rpx;
   flex-wrap: wrap;
 }
 
-.char-box {
-  width: 64rpx;
-  height: 96rpx;
-  background-color: #fafaf8;
-  border: 1rpx solid #d4d4d1;
+.prefix-tag {
+  min-width: 132rpx;
+  height: 72rpx;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  font-size: 40rpx;
+  padding-bottom: 10rpx;
+  font-size: 26rpx;
+  color: #0b0e0d;
+  letter-spacing: 3rpx;
+}
+
+.char-slot {
+  width: 64rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10rpx;
+  border-bottom: 2rpx solid #d4d4d1;
+}
+
+.char-text {
+  font-size: 34rpx;
   font-weight: 300;
   color: #0b0e0d;
 }
 
-.char-box.active {
-  border-color: #0b0e0d;
-  background-color: #ffffff;
+.char-slot.active {
+  border-bottom-color: #0b0e0d;
 }
 
 .flashlight-section {
