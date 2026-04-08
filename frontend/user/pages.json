@@ -1,64 +1,83 @@
 {
-	"pages": [
-		{
-			"path": "pages/index/index",
-			"style": {
-			}
-		},
-		{
-			"path": "pages/profile/profile",
-			"style": {
-				"navigationBarTitleText": "个人主页"
-			}
-		},
-		{
-			"path": "pages/account/account",
-			"style": {
-				"navigationBarTitleText": "账号管理"
-			}
-		},
-		{
-			"path": "pages/wallet/wallet",
-			"style": {
-				"navigationBarTitleText": "我的钱包"
-			}
-		},
-		{
-			"path": "pages/bill/bill",
-			"style": {
-				"navigationBarTitleText": "我的账单"
-			}
-		},
-		{
-			"path": "pages/history/history",
-			"style": {
-				"navigationBarTitleText": "骑行历史"
-			}
-		},
-		{
-			"path": "pages/faults/faults",
-			"style": {
-				"navigationBarTitleText": "故障上报记录"
-			}
-		},
-		{
-			"path": "pages/reportFault/reportFault",
-			"style": {
-				"navigationBarTitleText": "故障上报"
-			}
-		},
-		{
-			"path": "pages/unlock/unlock",
-			"style": {
-				"navigationBarTitleText": "编号开锁"
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "熊猫出行",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	},
-	"uniIdRouter": {}
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "\u718a\u732b\u51fa\u884c"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "\u8d26\u53f7\u8ba4\u8bc1"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "\u4e2a\u4eba\u4e3b\u9875"
+      }
+    },
+    {
+      "path": "pages/account/account",
+      "style": {
+        "navigationBarTitleText": "\u8d26\u53f7\u7ba1\u7406"
+      }
+    },
+    {
+      "path": "pages/wallet/wallet",
+      "style": {
+        "navigationBarTitleText": "\u6211\u7684\u94b1\u5305"
+      }
+    },
+    {
+      "path": "pages/bill/bill",
+      "style": {
+        "navigationBarTitleText": "\u6211\u7684\u8d26\u5355"
+      }
+    },
+    {
+      "path": "pages/history/history",
+      "style": {
+        "navigationBarTitleText": "\u9a91\u884c\u5386\u53f2"
+      }
+    },
+    {
+      "path": "pages/faults/faults",
+      "style": {
+        "navigationBarTitleText": "\u6545\u969c\u4e0a\u62a5\u8bb0\u5f55"
+      }
+    },
+    {
+      "path": "pages/reportFault/reportFault",
+      "style": {
+        "navigationBarTitleText": "\u6545\u969c\u4e0a\u62a5"
+      }
+    },
+    {
+      "path": "pages/unlock/unlock",
+      "style": {
+        "navigationBarTitleText": "\u7f16\u53f7\u5f00\u9501"
+      }
+    },
+    {
+      "path": "pages/riding/riding",
+      "style": {
+        "navigationBarTitleText": "\u9a91\u884c\u4e2d"
+      }
+    },
+    {
+      "path": "pages/parking/parking",
+      "style": {
+        "navigationBarTitleText": "\u641c\u505c\u8f66\u70b9"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "\u718a\u732b\u51fa\u884c",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "uniIdRouter": {}
 }

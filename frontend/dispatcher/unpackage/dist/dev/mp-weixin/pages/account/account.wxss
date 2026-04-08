@@ -1,0 +1,43 @@
+
+.page { display: flex; flex-direction: column; min-height: 100vh; background-color: #fafaf8;
+}
+.header { padding: 48rpx 32rpx; background-color: #ffffff; border-bottom: 1rpx solid #e5e5e2;
+}
+.title { font-size: 36rpx; color: #0b0e0d; letter-spacing: 4rpx;
+}
+.info-section, .action-section, .delete-section { margin: 32rpx; background-color: #ffffff; border: 1rpx solid #e5e5e2;
+}
+.info-item, .action-item { display: flex; justify-content: space-between; align-items: center; padding: 40rpx 32rpx; border-bottom: 1rpx solid #e5e5e2;
+}
+.info-item:last-child, .action-item:last-child { border-bottom: none;
+}
+.info-label { font-size: 26rpx; color: #737373;
+}
+.info-value { font-size: 26rpx; color: #0b0e0d;
+}
+.action-text { flex: 1; font-size: 28rpx; color: #0b0e0d;
+}
+.logout-text { color: #a67c00; text-align: center;
+}
+.action-arrow { font-size: 32rpx; color: #d4d4d1;
+}
+.delete-section { padding: 40rpx 32rpx;
+}
+.section-title { display: block; font-size: 30rpx; color: #0b0e0d; margin-bottom: 12rpx;
+}
+.section-desc { display: block; font-size: 22rpx; line-height: 1.7; color: #737373; margin-bottom: 28rpx;
+}
+.field { margin-bottom: 24rpx;
+}
+.field-label { display: block; margin-bottom: 12rpx; font-size: 24rpx; color: #0b0e0d;
+}
+.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx;
+}
+.code-row { display: flex; gap: 16rpx;
+}
+.code-input { flex: 1;
+}
+.code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx;
+}
+.delete-btn { margin-top: 16rpx; background-color: #8b0000; color: #ffffff; border: none; border-radius: 0; font-size: 30rpx; letter-spacing: 4rpx;
+}

@@ -1,36 +1,37 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
-      <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
+      <view class="brand">
+        <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
+        <view class="brand-text">
+          <text class="brand-title">熊猫出行</text>
+          <text class="brand-subtitle">{{ headerUsername }}</text>
+        </view>
+      </view>
       <image class="avatar" src="/static/avatar.png" mode="aspectFit" @click="navigateToProfile"></image>
     </view>
 
-    <!-- Map Area -->
     <view class="map-container">
-      <map 
-        class="map" 
+      <map
+        class="map"
         id="map"
-        :latitude="latitude" 
+        :latitude="latitude"
         :longitude="longitude"
         :scale="scale"
         :markers="markers"
         :polygons="polygons"
         :show-location="true"
-        @regionchange="onRegionChange"
       ></map>
     </view>
 
-    <!-- Scan Unlock Button -->
     <view class="unlock-section">
       <button class="unlock-btn" @click="scanUnlock">
         <text class="unlock-btn-text">扫码开锁</text>
       </button>
     </view>
 
-    <!-- Function Area -->
     <view class="function-area">
-      <view class="function-item" @click="navigateTo('parking')">
+      <view class="function-item" @click="showParkingPoints">
         <text class="function-text">搜停车点</text>
       </view>
       <text class="function-divider">|</text>
@@ -42,187 +43,452 @@
         <text class="function-text">编号开锁</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="navigateTo('notice')">
+      <view class="function-item" @click="showRideNotice">
         <text class="function-text">骑行须知</text>
       </view>
     </view>
 
-    <!-- Subscription Area -->
     <view class="subscription-area">
       <view class="subscription-header">
-        <text class="subscription-title">优惠购卡</text>
-        <text class="subscription-more">查看更多</text>
+        <text class="subscription-title">优惠套餐</text>
+        <text class="subscription-more">{{ subscriptionPackages.length }} 个套餐</text>
       </view>
-      <view class="subscription-list">
-        <view v-for="(pkg, index) in subscriptionPackages" :key="index" class="subscription-item">
+      <view v-if="subscriptionPackages.length" class="subscription-list">
+        <view v-for="pkg in subscriptionPackages" :key="pkg.id" class="subscription-item">
           <view class="subscription-info">
-            <text class="subscription-name">{{pkg.title}}</text>
-            <text class="subscription-desc">{{pkg.description}}</text>
-            <text class="subscription-price">¥{{pkg.price}}</text>
+            <text class="subscription-name">{{ pkg.title }}</text>
+            <text class="subscription-desc">{{ pkg.description || '骑行套餐' }}</text>
+            <text class="subscription-price">¥{{ formatAmount(pkg.price) }}</text>
           </view>
-          <button class="subscription-btn">立即购买</button>
+          <button class="subscription-btn" @click="handleSubscription(pkg)">查看详情</button>
         </view>
+      </view>
+      <view v-else class="empty-state">
+        <text class="empty-text">暂无可用套餐</text>
       </view>
     </view>
   </view>
 </template>
 
 <script>
+import { getMapData, getScooterInfo, getSubscriptions, unlockScooter } from '@/api/index'
+
+const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
+
+const DEFAULT_LOCATION = {
+  latitude: 39.9042,
+  longitude: 116.4074
+}
+
+const MARKER_ICONS = {
+  scooter: '/static/scooter.svg',
+  parking: '/static/parking.svg',
+  noParking: '/static/no-parking.svg'
+}
+
 export default {
   data() {
     return {
-      // Map data
-      latitude: 39.9042,
-      longitude: 116.4074,
+      latitude: DEFAULT_LOCATION.latitude,
+      longitude: DEFAULT_LOCATION.longitude,
       scale: 16,
       markers: [],
       polygons: [],
-      
-      // Mock data for subscriptions
-      subscriptionPackages: [
-        { id: 1, title: '月卡', description: '30天无限骑行', price: 29.9 },
-        { id: 2, title: '季卡', description: '90天无限骑行', price: 79.9 },
-        { id: 3, title: '年卡', description: '365天无限骑行', price: 299.9 }
-      ]
-    };
+      parkingPoints: [],
+      subscriptionPackages: [],
+      headerUsername: '游客用户'
+    }
   },
   onLoad() {
-    this.getLocationPermission();
+    this.initPage()
+  },
+  onShow() {
+    this.syncHeaderUser()
+    this.resumeCurrentRide()
   },
   methods: {
-    getLocationPermission() {
-      uni.getLocation({
-        type: 'gcj02',
-        success: (res) => {
-          console.log('Location permission granted:', res);
-          this.latitude = res.latitude;
-          this.longitude = res.longitude;
-          this.loadMockMapData();
-        },
-        fail: (err) => {
-          console.log('Location permission denied:', err);
-          uni.showToast({
-            title: '需要位置权限才能使用地图功能',
-            icon: 'none'
-          });
-        }
-      });
+    syncHeaderUser() {
+      const cachedUser = uni.getStorageSync('userInfo') || {}
+      const hasToken = Boolean(uni.getStorageSync('token'))
+      this.headerUsername = hasToken
+        ? (cachedUser.username || cachedUser.email || '已登录用户')
+        : '游客用户'
     },
-    loadMockMapData() {
-      this.markers = [
-        {
-          id: 1,
-          latitude: this.latitude + 0.001,
-          longitude: this.longitude + 0.001,
-          iconPath: '/static/scooter.svg',
-          width: 30,
-          height: 30,
-          callout: {
-            content: '85%',
-            color: '#333',
-            fontSize: 12,
-            borderRadius: 5,
-            bgColor: 'rgba(255,255,255,0.8)',
-            padding: 5
-          }
-        },
-        {
-          id: 2,
-          latitude: this.latitude - 0.001,
-          longitude: this.longitude - 0.001,
-          iconPath: '/static/scooter.svg',
-          width: 30,
-          height: 30,
-          callout: {
-            content: '60%',
-            color: '#333',
-            fontSize: 12,
-            borderRadius: 5,
-            bgColor: 'rgba(255,255,255,0.8)',
-            padding: 5
-          }
-        }
-      ];
-      
-      this.polygons = [
-        {
-          points: [
-            {
-              latitude: this.latitude + 0.002,
-              longitude: this.longitude + 0.002
-            },
-            {
-              latitude: this.latitude + 0.002,
-              longitude: this.longitude - 0.002
-            },
-            {
-              latitude: this.latitude - 0.002,
-              longitude: this.longitude - 0.002
-            },
-            {
-              latitude: this.latitude - 0.002,
-              longitude: this.longitude + 0.002
-            }
-          ],
-          fillColor: 'rgba(255, 0, 0, 0.3)',
-          strokeColor: 'rgba(255, 0, 0, 0.6)',
-          strokeWidth: 2
-        }
-      ];
+    resumeCurrentRide() {
+      const currentRide = uni.getStorageSync(CURRENT_RIDE_STORAGE_KEY)
+      if (currentRide && currentRide.orderId && currentRide.active) {
+        uni.navigateTo({
+          url: '/pages/riding/riding'
+        })
+      }
     },
-    onRegionChange(e) {
-      console.log('Map region changed:', e);
+    async initPage() {
+      await Promise.all([this.loadSubscriptions(), this.loadLocationAndMap()])
+    },
+    async loadSubscriptions() {
+      try {
+        const res = await getSubscriptions()
+        const packages = res.data && Array.isArray(res.data.packages) ? res.data.packages : []
+        this.subscriptionPackages = packages
+      } catch (error) {
+        this.subscriptionPackages = []
+      }
+    },
+    getLocation() {
+      return new Promise((resolve, reject) => {
+        uni.getLocation({
+          type: 'gcj02',
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    async loadLocationAndMap() {
+      try {
+        const location = await this.getLocation()
+        this.latitude = location.latitude
+        this.longitude = location.longitude
+      } catch (error) {
+        uni.showToast({
+          title: '定位失败，使用默认位置',
+          icon: 'none'
+        })
+      }
+
+      await this.loadMapData()
+    },
+    async loadMapData() {
+      try {
+        const res = await getMapData({
+          latitude: this.latitude,
+          longitude: this.longitude,
+          scale: this.scale
+        })
+        const data = res.data || {}
+        const scooters = this.mapScooters(data.scooters || [])
+        const parkingPoints = this.mapParkingPoints(data.parkingPoints || [])
+        const noParkingAreas = this.mapNoParkingAreas(data.noParkingAreas || [])
+        const noParkingAreaMarkers = this.mapNoParkingAreaMarkers(data.noParkingAreas || [], noParkingAreas)
+
+        this.parkingPoints = parkingPoints
+        this.polygons = noParkingAreas
+        this.markers = [
+          ...scooters,
+          ...this.mapParkingPointMarkers(parkingPoints),
+          ...noParkingAreaMarkers
+        ]
+        this.syncMapCenter(data, parkingPoints, noParkingAreaMarkers)
+      } catch (error) {
+        this.markers = []
+        this.polygons = []
+        this.parkingPoints = []
+      }
+    },
+    mapScooters(list) {
+      return list
+        .map((item, index) => {
+          if (!this.isValidPoint(item.latitude, item.longitude)) {
+            return null
+          }
+          return {
+            id: Number(item.id) || index + 1,
+            latitude: Number(item.latitude),
+            longitude: Number(item.longitude),
+            iconPath: MARKER_ICONS.scooter,
+            width: 34,
+            height: 34
+          }
+        })
+        .filter(Boolean)
+    },
+    mapParkingPoints(list) {
+      return list.map((item) => this.normalizePoint(item)).filter(Boolean)
+    },
+    mapParkingPointMarkers(list) {
+      return list.map((item, index) => ({
+        id: 10000 + index + 1,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        iconPath: MARKER_ICONS.parking,
+        width: 28,
+        height: 28
+      }))
+    },
+    mapNoParkingAreas(list) {
+      return list
+        .map((item, index) => {
+          const points = this.parsePolygon(item.polygon)
+          if (!points.length) {
+            return null
+          }
+          return {
+            id: item.id || index + 1,
+            points,
+            fillColor: 'rgba(255,0,0,0.15)',
+            strokeColor: 'rgba(255,0,0,0.45)',
+            strokeWidth: 2
+          }
+        })
+        .filter(Boolean)
+    },
+    mapNoParkingAreaMarkers(sourceAreas, polygons) {
+      return polygons
+        .map((polygon, index) => {
+          const center = this.resolveAreaCenter(sourceAreas[index], polygon.points)
+          if (!center) {
+            return null
+          }
+
+          return {
+            id: 20000 + Number(polygon.id || index + 1),
+            latitude: center.latitude,
+            longitude: center.longitude,
+            iconPath: MARKER_ICONS.noParking,
+            width: 30,
+            height: 30
+          }
+        })
+        .filter(Boolean)
+    },
+    parsePolygon(polygon) {
+      if (!polygon) {
+        return []
+      }
+      if (Array.isArray(polygon)) {
+        return polygon.map((item) => this.normalizePoint(item)).filter(Boolean)
+      }
+      if (typeof polygon === 'string') {
+        try {
+          const parsed = JSON.parse(polygon)
+          return Array.isArray(parsed)
+            ? parsed.map((item) => this.normalizePoint(item)).filter(Boolean)
+            : []
+        } catch (error) {
+          return polygon
+            .split(';')
+            .map((segment) => segment.trim())
+            .filter(Boolean)
+            .map((segment) => {
+              const values = segment
+                .replace(/^\[|\]$/g, '')
+                .split(',')
+                .map((item) => Number(item.trim()))
+              return this.normalizePoint(values)
+            })
+            .filter(Boolean)
+        }
+      }
+      return []
+    },
+    normalizePoint(point) {
+      if (!point) {
+        return null
+      }
+      if (Array.isArray(point) && point.length >= 2) {
+        const first = Number(point[0])
+        const second = Number(point[1])
+        if (!Number.isFinite(first) || !Number.isFinite(second)) {
+          return null
+        }
+        if (Math.abs(first) <= 90 && Math.abs(second) <= 180) {
+          return { latitude: first, longitude: second }
+        }
+        return { latitude: second, longitude: first }
+      }
+      const latitude = Number(point.latitude)
+      const longitude = Number(point.longitude)
+      if (!this.isValidPoint(latitude, longitude)) {
+        return null
+      }
+      return { latitude, longitude }
+    },
+    resolveAreaCenter(area, points = []) {
+      if (area && area.center) {
+        const center = this.parseCenter(area.center)
+        if (center) {
+          return center
+        }
+      }
+
+      return this.computePolygonCenter(points)
+    },
+    parseCenter(center) {
+      if (!center) {
+        return null
+      }
+
+      if (Array.isArray(center)) {
+        return this.normalizePoint(center)
+      }
+
+      if (typeof center === 'string') {
+        const values = center
+          .split(',')
+          .map((item) => Number(item.trim()))
+        return this.normalizePoint(values)
+      }
+
+      return this.normalizePoint(center)
+    },
+    computePolygonCenter(points) {
+      if (!Array.isArray(points) || !points.length) {
+        return null
+      }
+
+      const total = points.reduce((result, point) => {
+        return {
+          latitude: result.latitude + Number(point.latitude || 0),
+          longitude: result.longitude + Number(point.longitude || 0)
+        }
+      }, { latitude: 0, longitude: 0 })
+
+      return {
+        latitude: total.latitude / points.length,
+        longitude: total.longitude / points.length
+      }
+    },
+    syncMapCenter(data, parkingPoints, noParkingAreaMarkers) {
+      const firstScooter = Array.isArray(data.scooters) ? data.scooters[0] : null
+      const firstPoint =
+        this.normalizePoint(firstScooter) ||
+        parkingPoints[0] ||
+        (noParkingAreaMarkers[0] && this.normalizePoint(noParkingAreaMarkers[0]))
+
+      if (firstPoint) {
+        this.latitude = firstPoint.latitude
+        this.longitude = firstPoint.longitude
+      }
+    },
+    isValidPoint(latitude, longitude) {
+      return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
     },
     scanUnlock() {
       uni.scanCode({
-        success: (res) => {
-          console.log('Scan result:', res);
-          // Here you would call the unlock API with the scanned code
-          uni.showToast({
-            title: '扫码成功，正在开锁...',
-            icon: 'success'
-          });
+        success: async (res) => {
+          const code = this.extractScooterCode(res.result)
+          await this.unlockByCode(code)
         },
-        fail: (err) => {
-          console.log('Scan failed:', err);
+        fail: () => {
           uni.showToast({
             title: '扫码失败，请重试',
             icon: 'none'
-          });
+          })
         }
-      });
+      })
+    },
+    extractScooterCode(rawCode) {
+      const value = String(rawCode || '').trim()
+      if (!value) {
+        return ''
+      }
+      const matchedCode = value.match(/PDSC\d+/i)
+      if (matchedCode && matchedCode[0]) {
+        return matchedCode[0].toUpperCase()
+      }
+      if (value.includes('code=')) {
+        const query = value.split('?')[1] || ''
+        const params = {}
+        query.split('&').forEach((item) => {
+          const [key, val] = item.split('=')
+          if (key) {
+            params[decodeURIComponent(key)] = decodeURIComponent(val || '')
+          }
+        })
+        return params.code || value
+      }
+      const segments = value.split('/')
+      return segments[segments.length - 1] || value
+    },
+    normalizeScooterCode(rawCode) {
+      const value = String(rawCode || '').trim().toUpperCase()
+      if (!value) {
+        return ''
+      }
+      if (value.startsWith('PDSC')) {
+        return value
+      }
+      const numericPart = value.replace(/\D/g, '')
+      return numericPart ? `PDSC${numericPart.padStart(6, '0')}` : value
+    },
+    async unlockByCode(code) {
+      if (!code) {
+        uni.showToast({
+          title: '未识别到车辆编号',
+          icon: 'none'
+        })
+        return
+      }
+
+      try {
+        uni.showLoading({
+          title: '正在开锁...'
+        })
+        const normalizedCode = this.normalizeScooterCode(code)
+        const scooterRes = await getScooterInfo(normalizedCode)
+        const scooterInfo = scooterRes.data || {}
+        const res = await unlockScooter(normalizedCode)
+        uni.hideLoading()
+        uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
+          ...(res.data || {}),
+          scooterCode: normalizedCode,
+          scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
+          battery: Number(scooterInfo.battery || 0),
+          rideStatus: scooterInfo.ride_status || 1,
+          faultStatus: scooterInfo.fault_status || 0,
+          currentLatitude: Number(scooterInfo.latitude || this.latitude),
+          currentLongitude: Number(scooterInfo.longitude || this.longitude),
+          routePoints: [],
+          startTime: new Date().toISOString(),
+          totalKilometer: 0,
+          amount: 0,
+          active: true
+        })
+        uni.navigateTo({
+          url: '/pages/riding/riding'
+        })
+      } catch (error) {
+        uni.hideLoading()
+      }
+    },
+    showParkingPoints() {
+      uni.navigateTo({
+        url: '/pages/parking/parking'
+      })
+    },
+    showRideNotice() {
+      uni.showModal({
+        title: '骑行须知',
+        content: '请佩戴头盔、遵守交通规则，并在指定区域规范停车。',
+        showCancel: false
+      })
+    },
+    handleSubscription(pkg) {
+      uni.showToast({
+        title: `${pkg.title} 购买功能暂未开放`,
+        icon: 'none'
+      })
     },
     navigateTo(page) {
       if (page === 'fault') {
         uni.navigateTo({
           url: '/pages/reportFault/reportFault'
-        });
-      } else if (page === 'parking') {
-        uni.showToast({
-          title: '停车点功能暂未开放',
-          icon: 'none'
-        });
-      } else if (page === 'unlock') {
+        })
+        return
+      }
+      if (page === 'unlock') {
         uni.navigateTo({
           url: '/pages/unlock/unlock'
-        });
-      } else if (page === 'notice') {
-        uni.showToast({
-          title: '骑行须知功能暂未开放',
-          icon: 'none'
-        });
-      } else {
-        uni.showToast({
-          title: `跳转到${page}页面`,
-          icon: 'none'
-        });
+        })
       }
     },
-
     navigateToProfile() {
       uni.navigateTo({
         url: '/pages/profile/profile'
-      });
+      })
+    },
+    formatAmount(value) {
+      const amount = Number(value || 0)
+      return Number.isFinite(amount) ? amount.toFixed(2) : '0.00'
     }
   }
 }
@@ -236,7 +502,6 @@ export default {
   background-color: #fafaf8;
 }
 
-/* Header */
 .header {
   display: flex;
   justify-content: space-between;
@@ -246,29 +511,43 @@ export default {
   border-bottom: 1rpx solid #e5e5e2;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+}
+
 .logo {
   width: 80rpx;
   height: 80rpx;
+  margin-right: 20rpx;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 30rpx;
+  color: #0b0e0d;
+  letter-spacing: 4rpx;
+}
+
+.brand-subtitle {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #737373;
 }
 
 .avatar {
   width: 64rpx;
   height: 64rpx;
-  border-radius: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.avatar:hover {
-  opacity: 0.7;
-}
-
-/* Map Area */
 .map-container {
   width: 100%;
   height: 520rpx;
   background-color: #ffffff;
-  position: relative;
-  overflow: hidden;
   border-bottom: 1rpx solid #e5e5e2;
 }
 
@@ -277,14 +556,11 @@ export default {
   height: 100%;
 }
 
-/* Unlock Section */
 .unlock-section {
   padding-top: 32rpx;
   background-color: #ffffff;
-  margin: 0;
   display: flex;
   justify-content: center;
-  align-items: center;
 }
 
 .unlock-btn {
@@ -292,49 +568,32 @@ export default {
   height: 96rpx;
   background-color: #0b0e0d;
   color: #ffffff;
-  border-radius: 5;
-  font-size: 32rpx;
-  font-weight: 300;
   border: none;
-  box-shadow: none;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0;
+  font-size: 32rpx;
   letter-spacing: 4rpx;
-}
-
-.unlock-btn:hover {
-  background-color: #222222;
-  transform: translateY(-2rpx);
 }
 
 .unlock-btn-text {
   color: #ffffff;
 }
 
-/* Function Area */
 .function-area {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 24rpx 0;
   background-color: #ffffff;
-  margin: 0;
 }
 
 .function-item {
   display: flex;
   align-items: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-}
-
-.function-item:hover {
-  color: #0b0e0d;
 }
 
 .function-text {
   font-size: 26rpx;
   color: #525252;
-  font-weight: 300;
   letter-spacing: 2rpx;
 }
 
@@ -344,10 +603,8 @@ export default {
   margin: 0 16rpx;
 }
 
-/* Subscription Area */
 .subscription-area {
   background-color: #ffffff;
-  margin: 0;
   padding: 64rpx 32rpx;
   flex: 1;
 }
@@ -363,7 +620,6 @@ export default {
 
 .subscription-title {
   font-size: 30rpx;
-  font-weight: 400;
   color: #0b0e0d;
   letter-spacing: 4rpx;
 }
@@ -371,8 +627,6 @@ export default {
 .subscription-more {
   font-size: 24rpx;
   color: #737373;
-  font-weight: 300;
-  letter-spacing: 2rpx;
 }
 
 .subscription-list {
@@ -387,16 +641,7 @@ export default {
   align-items: center;
   padding: 32rpx;
   border: 1rpx solid #e5e5e2;
-  border-radius: 0;
   background-color: #fafaf8;
-  box-shadow: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.subscription-item:hover {
-  transform: translateY(-4rpx);
-  border-color: #d4d4d1;
-  background-color: #ffffff;
 }
 
 .subscription-info {
@@ -404,45 +649,42 @@ export default {
 }
 
 .subscription-name {
+  display: block;
   font-size: 28rpx;
-  font-weight: 400;
   color: #0b0e0d;
   margin-bottom: 12rpx;
-  letter-spacing: 2rpx;
 }
 
 .subscription-desc {
+  display: block;
   font-size: 22rpx;
   color: #737373;
   margin-bottom: 16rpx;
   line-height: 1.6;
-  font-weight: 300;
 }
 
 .subscription-price {
+  display: block;
   font-size: 32rpx;
-  font-weight: 400;
   color: #0b0e0d;
-  letter-spacing: 2rpx;
 }
 
 .subscription-btn {
   background-color: transparent;
   color: #0b0e0d;
   border: 1rpx solid #d4d4d1;
-  padding: 20rpx 48rpx;
   border-radius: 0;
+  padding: 20rpx 40rpx;
   font-size: 24rpx;
-  font-weight: 300;
-  box-shadow: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: 2rpx;
 }
 
-.subscription-btn:hover {
-  background-color: #0b0e0d;
-  color: #ffffff;
-  border-color: #0b0e0d;
-  transform: translateY(-2rpx);
+.empty-state {
+  padding: 64rpx 0;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 24rpx;
+  color: #737373;
 }
 </style>
