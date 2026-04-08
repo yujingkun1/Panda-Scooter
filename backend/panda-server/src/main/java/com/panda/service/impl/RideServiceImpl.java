@@ -163,14 +163,17 @@ public class RideServiceImpl implements RideService {
     @Override
     public Map<String, Object> mapData(BigDecimal longitude, BigDecimal latitude, Integer scale) {
         int mapScale = scale == null ? 16 : Math.max(3, Math.min(20, scale));
-        BigDecimal offset = resolveOffsetByScale(mapScale);
-        BigDecimal minLongitude = longitude.subtract(offset);
-        BigDecimal maxLongitude = longitude.add(offset);
-        BigDecimal minLatitude = latitude.subtract(offset);
-        BigDecimal maxLatitude = latitude.add(offset);
+        int radiusInMeters = resolveRadiusByScale(mapScale);
 
-        log.info("地图查车，longitude={}, latitude={}, scale={}, minLongitude={}, maxLongitude={}, minLatitude={}, maxLatitude={}",
-                longitude, latitude, mapScale, minLongitude, maxLongitude, minLatitude, maxLatitude);
+        BigDecimal latitudeOffset = metersToLatitudeDegrees(radiusInMeters);
+        BigDecimal longitudeOffset = metersToLongitudeDegrees(radiusInMeters, latitude);
+        BigDecimal minLongitude = longitude.subtract(longitudeOffset);
+        BigDecimal maxLongitude = longitude.add(longitudeOffset);
+        BigDecimal minLatitude = latitude.subtract(latitudeOffset);
+        BigDecimal maxLatitude = latitude.add(latitudeOffset);
+
+        log.info("地图查车，longitude={}, latitude={}, scale={}, radiusInMeters={}, minLongitude={}, maxLongitude={}, minLatitude={}, maxLatitude={}",
+                longitude, latitude, mapScale, radiusInMeters, minLongitude, maxLongitude, minLatitude, maxLatitude);
 
         Map<String, Object> data = new HashMap<>();
         data.put("scooters", scooterMapper.listNearby(minLongitude, maxLongitude, minLatitude, maxLatitude));
@@ -179,29 +182,46 @@ public class RideServiceImpl implements RideService {
         return data;
     }
 
-    private BigDecimal resolveOffsetByScale(int scale) {
+    private int resolveRadiusByScale(int scale) {
+        if (scale >= 20) {
+            return 50;
+        }
         if (scale >= 18) {
-            return new BigDecimal("0.002");
+            return 100;
         }
         if (scale >= 16) {
-            return new BigDecimal("0.005");
+            return 200;
         }
         if (scale >= 14) {
-            return new BigDecimal("0.02");
+            return 500;
         }
         if (scale >= 12) {
-            return new BigDecimal("0.05");
+            return 1000;
         }
-        if (scale >= 10) {
-            return new BigDecimal("0.10");
+        return 0;
+    }
+
+    private BigDecimal metersToLatitudeDegrees(int meters) {
+        if (meters <= 0) {
+            return BigDecimal.ZERO;
         }
-        if (scale >= 8) {
-            return new BigDecimal("0.20");
+        return BigDecimal.valueOf(meters)
+                .divide(new BigDecimal("111320"), 10, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal metersToLongitudeDegrees(int meters, BigDecimal latitude) {
+        if (meters <= 0) {
+            return BigDecimal.ZERO;
         }
-        if (scale >= 6) {
-            return new BigDecimal("0.50");
+
+        double latitudeRadians = Math.toRadians(latitude.doubleValue());
+        double metersPerDegree = 111320D * Math.cos(latitudeRadians);
+        if (Math.abs(metersPerDegree) < 1e-6) {
+            return BigDecimal.ZERO;
         }
-        return new BigDecimal("1.00");
+
+        return BigDecimal.valueOf(meters)
+                .divide(BigDecimal.valueOf(metersPerDegree), 10, RoundingMode.HALF_UP);
     }
 
     private Long currentUserId() {
