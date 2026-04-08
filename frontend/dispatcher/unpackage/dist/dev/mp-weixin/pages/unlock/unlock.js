@@ -7,6 +7,13 @@ const _sfc_main = {
       scooterCode: ""
     };
   },
+  onShow() {
+    if (!common_vendor.index.getStorageSync("dispatcherToken")) {
+      common_vendor.index.redirectTo({
+        url: "/pages/login/login?mode=login"
+      });
+    }
+  },
   computed: {
     canSubmit() {
       return Boolean(this.scooterCode.trim());
@@ -21,14 +28,14 @@ const _sfc_main = {
     async confirmUnlock() {
       if (!this.canSubmit) {
         common_vendor.index.showToast({
-          title: "Enter scooter code",
+          title: "请输入车辆编号",
           icon: "none"
         });
         return;
       }
       try {
         common_vendor.index.showLoading({
-          title: "Unlocking..."
+          title: "开锁中..."
         });
         const code = this.scooterCode.trim();
         const res = await api_modules_scooter.unlockScooter(code);
@@ -39,8 +46,8 @@ const _sfc_main = {
           taskType: "unlock"
         });
         common_vendor.index.showModal({
-          title: "Dispatch unlock created",
-          content: `Scooter ${code} is now in the dispatch flow.`,
+          title: "开锁调度成功",
+          content: `车辆 ${code} 已进入调度流程。`,
           showCancel: false,
           success: () => {
             common_vendor.index.navigateBack({
@@ -59,9 +66,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     a: $data.scooterCode,
     b: common_vendor.o(common_vendor.m(($event) => $data.scooterCode = $event.detail.value, {
       trim: true
-    }), "95"),
+    }), "49"),
     c: !$options.canSubmit,
-    d: common_vendor.o((...args) => $options.confirmUnlock && $options.confirmUnlock(...args), "b3")
+    d: common_vendor.o((...args) => $options.confirmUnlock && $options.confirmUnlock(...args), "ca")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

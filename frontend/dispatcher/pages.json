@@ -3,49 +3,49 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "Panda Dispatch"
+        "navigationBarTitleText": "熊猫调度"
       }
     },
     {
       "path": "pages/login/login",
       "style": {
-        "navigationBarTitleText": "Auth"
+        "navigationBarTitleText": "账号认证"
       }
     },
     {
       "path": "pages/profile/profile",
       "style": {
-        "navigationBarTitleText": "Profile"
+        "navigationBarTitleText": "个人主页"
       }
     },
     {
       "path": "pages/account/account",
       "style": {
-        "navigationBarTitleText": "Account"
+        "navigationBarTitleText": "账号管理"
       }
     },
     {
       "path": "pages/history/history",
       "style": {
-        "navigationBarTitleText": "Dispatch History"
+        "navigationBarTitleText": "调度历史"
       }
     },
     {
       "path": "pages/unlock/unlock",
       "style": {
-        "navigationBarTitleText": "Dispatch Unlock"
+        "navigationBarTitleText": "开锁调度"
       }
     },
     {
       "path": "pages/lock/lock",
       "style": {
-        "navigationBarTitleText": "Lock Placement"
+        "navigationBarTitleText": "关锁投放"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Panda Dispatch",
+    "navigationBarTitleText": "熊猫调度",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F8F8F8"
   },

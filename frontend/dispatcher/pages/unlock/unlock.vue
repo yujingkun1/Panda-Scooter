@@ -1,19 +1,19 @@
 <template>
   <view class="page">
     <view class="header">
-      <text class="title">Dispatch Unlock</text>
+      <text class="title">开锁调度</text>
     </view>
 
     <view class="form-card">
-      <text class="card-title">Enter scooter code manually</text>
-      <text class="card-desc">Scan-based flow is intentionally skipped. Use the scooter code to start a dispatch unlock task.</text>
+      <text class="card-title">手动输入车辆编号</text>
+      <text class="card-desc">扫码功能已跳过，本页直接按车辆编码执行开锁调度。</text>
 
       <view class="field">
-        <text class="field-label">Scooter Code</text>
-        <input v-model.trim="scooterCode" class="input" type="text" maxlength="20" placeholder="Example: SC0001" />
+        <text class="field-label">车辆编号</text>
+        <input v-model.trim="scooterCode" class="input" type="text" maxlength="20" placeholder="例如：SC0001" />
       </view>
 
-      <button class="submit-btn" :disabled="!canSubmit" @click="confirmUnlock">Start Dispatch Unlock</button>
+      <button class="submit-btn" :disabled="!canSubmit" @click="confirmUnlock">确认开锁调度</button>
     </view>
   </view>
 </template>
@@ -25,6 +25,13 @@ export default {
   data() {
     return {
       scooterCode: ''
+    }
+  },
+  onShow() {
+    if (!uni.getStorageSync('dispatcherToken')) {
+      uni.redirectTo({
+        url: '/pages/login/login?mode=login'
+      })
     }
   },
   computed: {
@@ -41,7 +48,7 @@ export default {
     async confirmUnlock() {
       if (!this.canSubmit) {
         uni.showToast({
-          title: 'Enter scooter code',
+          title: '请输入车辆编号',
           icon: 'none'
         })
         return
@@ -49,7 +56,7 @@ export default {
 
       try {
         uni.showLoading({
-          title: 'Unlocking...'
+          title: '开锁中...'
         })
         const code = this.scooterCode.trim()
         const res = await unlockScooter(code)
@@ -60,8 +67,8 @@ export default {
           taskType: 'unlock'
         })
         uni.showModal({
-          title: 'Dispatch unlock created',
-          content: `Scooter ${code} is now in the dispatch flow.`,
+          title: '开锁调度成功',
+          content: `车辆 ${code} 已进入调度流程。`,
           showCancel: false,
           success: () => {
             uni.navigateBack({

@@ -37,16 +37,16 @@ const _sfc_main = {
     },
     normalizeHistory(item, index) {
       const rawType = String(item.type || item.dispatchType || item.action || "").toLowerCase();
-      const isLock = rawType.includes("lock") || rawType === "2";
+      const isLock = rawType.includes("lock") || rawType.includes("placement") || rawType.includes("投放") || rawType.includes("关锁") || rawType === "2";
       const position = this.formatPosition(item.latitude, item.longitude);
       const battery = item.battery !== void 0 && item.battery !== null ? `${item.battery}%` : "--";
-      const statusText = item.statusText || item.status || item.result || "Completed";
+      const statusText = item.statusText || item.status || item.result || "已完成";
       return {
         id: item.id || item.dispatchId || index + 1,
-        code: item.code || item.scooterCode || item.vehicleCode || `Scooter ${index + 1}`,
+        code: item.code || item.scooterCode || item.vehicleCode || `车辆 ${index + 1}`,
         time: this.formatDateTime(item.createTime || item.dispatchTime || item.updateTime),
         type: isLock ? "lock" : "unlock",
-        typeText: isLock ? "Lock Placement" : "Dispatch Unlock",
+        typeText: isLock ? "关锁投放" : "开锁调度",
         tagClass: isLock ? "tag-lock" : "tag-unlock",
         statusText,
         battery,
@@ -80,14 +80,14 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: !$data.hasToken
   }, !$data.hasToken ? {
-    b: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "a2")
+    b: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "d1")
   } : common_vendor.e({
     c: $data.currentFilter === "all" ? 1 : "",
-    d: common_vendor.o(($event) => $options.changeFilter("all"), "c0"),
+    d: common_vendor.o(($event) => $options.changeFilter("all"), "0f"),
     e: $data.currentFilter === "unlock" ? 1 : "",
-    f: common_vendor.o(($event) => $options.changeFilter("unlock"), "bf"),
+    f: common_vendor.o(($event) => $options.changeFilter("unlock"), "4d"),
     g: $data.currentFilter === "lock" ? 1 : "",
-    h: common_vendor.o(($event) => $options.changeFilter("lock"), "95"),
+    h: common_vendor.o(($event) => $options.changeFilter("lock"), "8f"),
     i: $options.filteredHistory.length > 0
   }, $options.filteredHistory.length > 0 ? {
     j: common_vendor.f($options.filteredHistory, (item, k0, i0) => {

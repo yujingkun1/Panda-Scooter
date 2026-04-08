@@ -4,17 +4,17 @@ export const DEFAULT_API_ENV = 'mock'
 export const API_ENVS = Object.freeze({
   mock: {
     key: 'mock',
-    label: 'Mock',
+    label: 'Mock开发环境',
     baseURL: 'http://127.0.0.1:4523/m1/7776188-7522280-7128400'
   },
   test: {
     key: 'test',
-    label: 'Test',
+    label: '前后端联调测试环境',
     baseURL: ''
   },
   prod: {
     key: 'prod',
-    label: 'Production',
+    label: '生产环境',
     baseURL: ''
   }
 })

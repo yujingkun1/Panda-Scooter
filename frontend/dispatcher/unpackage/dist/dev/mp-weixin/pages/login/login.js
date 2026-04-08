@@ -4,19 +4,19 @@ const api_modules_user = require("../../api/modules/user.js");
 const common_assets = require("../../common/assets.js");
 const MODE_META = {
   login: {
-    title: "Dispatcher Sign In",
-    subtitle: "Access the dispatch console",
-    submitText: "Sign In"
+    title: "登录调度账号",
+    subtitle: "进入调度控制台执行车辆调度",
+    submitText: "立即登录"
   },
   signup: {
-    title: "Create Dispatcher Account",
-    subtitle: "Register a new dispatcher identity",
-    submitText: "Register"
+    title: "注册调度账号",
+    subtitle: "使用邮箱创建新的调度员账号",
+    submitText: "完成注册"
   },
   "forgot-password": {
-    title: "Reset Password",
-    subtitle: "Reset account password by email code",
-    submitText: "Confirm Reset"
+    title: "重置密码",
+    subtitle: "通过邮箱验证码重置调度账号密码",
+    submitText: "确认重置"
   }
 };
 const DEFAULT_FORM = () => ({
@@ -34,9 +34,9 @@ const _sfc_main = {
       countdown: 0,
       timer: null,
       tabs: [
-        { mode: "login", label: "Login" },
-        { mode: "signup", label: "Signup" },
-        { mode: "forgot-password", label: "Reset" }
+        { mode: "login", label: "登录" },
+        { mode: "signup", label: "注册" },
+        { mode: "forgot-password", label: "重置密码" }
       ]
     };
   },
@@ -75,7 +75,7 @@ const _sfc_main = {
     async sendCode() {
       if (!this.form.email) {
         common_vendor.index.showToast({
-          title: "Enter email first",
+          title: "请先输入邮箱",
           icon: "none"
         });
         return;
@@ -83,7 +83,7 @@ const _sfc_main = {
       try {
         await api_modules_user.getVerificationCode(this.form.email);
         common_vendor.index.showToast({
-          title: "Code sent",
+          title: "验证码已发送",
           icon: "success"
         });
         this.startCountdown();
@@ -111,35 +111,35 @@ const _sfc_main = {
     async submit() {
       if (!this.form.email) {
         common_vendor.index.showToast({
-          title: "Email is required",
+          title: "请输入邮箱",
           icon: "none"
         });
         return;
       }
       if (this.mode === "login" && !this.form.password) {
         common_vendor.index.showToast({
-          title: "Password is required",
+          title: "请输入密码",
           icon: "none"
         });
         return;
       }
       if (this.mode === "signup" && (!this.form.name || !this.form.password || !this.form.verificationCode)) {
         common_vendor.index.showToast({
-          title: "Complete the signup form",
+          title: "请填写完整注册信息",
           icon: "none"
         });
         return;
       }
       if (this.mode === "forgot-password" && (!this.form.verificationCode || !this.form.newPassword)) {
         common_vendor.index.showToast({
-          title: "Complete the reset form",
+          title: "请填写完整重置信息",
           icon: "none"
         });
         return;
       }
       try {
         common_vendor.index.showLoading({
-          title: "Submitting..."
+          title: "提交中..."
         });
         if (this.mode === "login") {
           const res = await api_modules_user.dispatcherLogin({
@@ -152,12 +152,12 @@ const _sfc_main = {
           }
           common_vendor.index.setStorageSync("dispatcherUserInfo", {
             id: data.id || "",
-            name: data.name || "Dispatcher",
+            name: data.name || "调度员",
             email: data.email || this.form.email
           });
           common_vendor.index.hideLoading();
           common_vendor.index.showToast({
-            title: "Signed in",
+            title: "登录成功",
             icon: "success"
           });
           setTimeout(() => {
@@ -177,7 +177,7 @@ const _sfc_main = {
           });
           common_vendor.index.hideLoading();
           common_vendor.index.showToast({
-            title: "Registered",
+            title: "注册成功，请登录",
             icon: "success"
           });
           this.switchMode("login");
@@ -190,7 +190,7 @@ const _sfc_main = {
         });
         common_vendor.index.hideLoading();
         common_vendor.index.showToast({
-          title: "Password updated",
+          title: "密码已重置",
           icon: "success"
         });
         const email = this.form.email;
@@ -220,51 +220,51 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     f: $data.form.name,
     g: common_vendor.o(common_vendor.m(($event) => $data.form.name = $event.detail.value, {
       trim: true
-    }), "e6")
+    }), "d6")
   } : {}, {
     h: $data.form.email,
     i: common_vendor.o(common_vendor.m(($event) => $data.form.email = $event.detail.value, {
       trim: true
-    }), "fe"),
+    }), "06"),
     j: $data.mode !== "forgot-password"
   }, $data.mode !== "forgot-password" ? {
     k: $data.form.password,
     l: common_vendor.o(common_vendor.m(($event) => $data.form.password = $event.detail.value, {
       trim: true
-    }), "2e")
+    }), "20")
   } : {}, {
     m: $data.mode === "forgot-password"
   }, $data.mode === "forgot-password" ? {
     n: $data.form.newPassword,
     o: common_vendor.o(common_vendor.m(($event) => $data.form.newPassword = $event.detail.value, {
       trim: true
-    }), "77")
+    }), "1a")
   } : {}, {
     p: $data.mode !== "login"
   }, $data.mode !== "login" ? {
     q: $data.form.verificationCode,
     r: common_vendor.o(common_vendor.m(($event) => $data.form.verificationCode = $event.detail.value, {
       trim: true
-    }), "cc"),
-    s: common_vendor.t($data.countdown > 0 ? `${$data.countdown}s` : "Get Code"),
+    }), "6a"),
+    s: common_vendor.t($data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
     t: $data.countdown > 0,
-    v: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "72")
+    v: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "b4")
   } : {}, {
     w: common_vendor.t($options.submitText),
-    x: common_vendor.o((...args) => $options.submit && $options.submit(...args), "0a"),
+    x: common_vendor.o((...args) => $options.submit && $options.submit(...args), "16"),
     y: $data.mode === "login"
   }, $data.mode === "login" ? {
-    z: common_vendor.o(($event) => $options.switchMode("signup"), "ea")
+    z: common_vendor.o(($event) => $options.switchMode("signup"), "d2")
   } : {}, {
     A: $data.mode === "login"
   }, $data.mode === "login" ? {} : {}, {
     B: $data.mode === "login"
   }, $data.mode === "login" ? {
-    C: common_vendor.o(($event) => $options.switchMode("forgot-password"), "ad")
+    C: common_vendor.o(($event) => $options.switchMode("forgot-password"), "99")
   } : {}, {
     D: $data.mode !== "login"
   }, $data.mode !== "login" ? {
-    E: common_vendor.o(($event) => $options.switchMode("login"), "be")
+    E: common_vendor.o(($event) => $options.switchMode("login"), "e1")
   } : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

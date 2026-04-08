@@ -20,31 +20,31 @@
       </view>
 
       <view v-if="mode === 'signup'" class="field">
-        <text class="label">Name</text>
-        <input v-model.trim="form.name" class="input" type="text" placeholder="Enter real name" />
+        <text class="label">姓名</text>
+        <input v-model.trim="form.name" class="input" type="text" placeholder="请输入真实姓名" />
       </view>
 
       <view class="field">
-        <text class="label">Email</text>
-        <input v-model.trim="form.email" class="input" type="text" placeholder="Enter email" />
+        <text class="label">邮箱</text>
+        <input v-model.trim="form.email" class="input" type="text" placeholder="请输入邮箱" />
       </view>
 
       <view v-if="mode !== 'forgot-password'" class="field">
-        <text class="label">Password</text>
-        <input v-model.trim="form.password" class="input" password type="text" placeholder="Enter password" />
+        <text class="label">密码</text>
+        <input v-model.trim="form.password" class="input" password type="text" placeholder="请输入密码" />
       </view>
 
       <view v-if="mode === 'forgot-password'" class="field">
-        <text class="label">New Password</text>
-        <input v-model.trim="form.newPassword" class="input" password type="text" placeholder="Enter new password" />
+        <text class="label">新密码</text>
+        <input v-model.trim="form.newPassword" class="input" password type="text" placeholder="请输入新密码" />
       </view>
 
       <view v-if="mode !== 'login'" class="field">
-        <text class="label">Verification Code</text>
+        <text class="label">验证码</text>
         <view class="inline-field">
-          <input v-model.trim="form.verificationCode" class="input inline-input" type="text" placeholder="Enter code" />
+          <input v-model.trim="form.verificationCode" class="input inline-input" type="text" placeholder="请输入验证码" />
           <button class="code-btn" :disabled="countdown > 0" @click="sendCode">
-            {{ countdown > 0 ? `${countdown}s` : 'Get Code' }}
+            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
           </button>
         </view>
       </view>
@@ -52,10 +52,10 @@
       <button class="submit-btn" @click="submit">{{ submitText }}</button>
 
       <view class="footer-links">
-        <text v-if="mode === 'login'" class="link" @click="switchMode('signup')">Create Account</text>
+        <text v-if="mode === 'login'" class="link" @click="switchMode('signup')">去注册</text>
         <text v-if="mode === 'login'" class="divider">|</text>
-        <text v-if="mode === 'login'" class="link" @click="switchMode('forgot-password')">Reset Password</text>
-        <text v-if="mode !== 'login'" class="link" @click="switchMode('login')">Back to Login</text>
+        <text v-if="mode === 'login'" class="link" @click="switchMode('forgot-password')">忘记密码</text>
+        <text v-if="mode !== 'login'" class="link" @click="switchMode('login')">返回登录</text>
       </view>
     </view>
   </view>
@@ -71,19 +71,19 @@ import {
 
 const MODE_META = {
   login: {
-    title: 'Dispatcher Sign In',
-    subtitle: 'Access the dispatch console',
-    submitText: 'Sign In'
+    title: '登录调度账号',
+    subtitle: '进入调度控制台执行车辆调度',
+    submitText: '立即登录'
   },
   signup: {
-    title: 'Create Dispatcher Account',
-    subtitle: 'Register a new dispatcher identity',
-    submitText: 'Register'
+    title: '注册调度账号',
+    subtitle: '使用邮箱创建新的调度员账号',
+    submitText: '完成注册'
   },
   'forgot-password': {
-    title: 'Reset Password',
-    subtitle: 'Reset account password by email code',
-    submitText: 'Confirm Reset'
+    title: '重置密码',
+    subtitle: '通过邮箱验证码重置调度账号密码',
+    submitText: '确认重置'
   }
 }
 
@@ -103,9 +103,9 @@ export default {
       countdown: 0,
       timer: null,
       tabs: [
-        { mode: 'login', label: 'Login' },
-        { mode: 'signup', label: 'Signup' },
-        { mode: 'forgot-password', label: 'Reset' }
+        { mode: 'login', label: '登录' },
+        { mode: 'signup', label: '注册' },
+        { mode: 'forgot-password', label: '重置密码' }
       ]
     }
   },
@@ -144,7 +144,7 @@ export default {
     async sendCode() {
       if (!this.form.email) {
         uni.showToast({
-          title: 'Enter email first',
+          title: '请先输入邮箱',
           icon: 'none'
         })
         return
@@ -153,7 +153,7 @@ export default {
       try {
         await getVerificationCode(this.form.email)
         uni.showToast({
-          title: 'Code sent',
+          title: '验证码已发送',
           icon: 'success'
         })
         this.startCountdown()
@@ -181,7 +181,7 @@ export default {
     async submit() {
       if (!this.form.email) {
         uni.showToast({
-          title: 'Email is required',
+          title: '请输入邮箱',
           icon: 'none'
         })
         return
@@ -189,7 +189,7 @@ export default {
 
       if (this.mode === 'login' && !this.form.password) {
         uni.showToast({
-          title: 'Password is required',
+          title: '请输入密码',
           icon: 'none'
         })
         return
@@ -197,7 +197,7 @@ export default {
 
       if (this.mode === 'signup' && (!this.form.name || !this.form.password || !this.form.verificationCode)) {
         uni.showToast({
-          title: 'Complete the signup form',
+          title: '请填写完整注册信息',
           icon: 'none'
         })
         return
@@ -205,7 +205,7 @@ export default {
 
       if (this.mode === 'forgot-password' && (!this.form.verificationCode || !this.form.newPassword)) {
         uni.showToast({
-          title: 'Complete the reset form',
+          title: '请填写完整重置信息',
           icon: 'none'
         })
         return
@@ -213,7 +213,7 @@ export default {
 
       try {
         uni.showLoading({
-          title: 'Submitting...'
+          title: '提交中...'
         })
 
         if (this.mode === 'login') {
@@ -227,12 +227,12 @@ export default {
           }
           uni.setStorageSync('dispatcherUserInfo', {
             id: data.id || '',
-            name: data.name || 'Dispatcher',
+            name: data.name || '调度员',
             email: data.email || this.form.email
           })
           uni.hideLoading()
           uni.showToast({
-            title: 'Signed in',
+            title: '登录成功',
             icon: 'success'
           })
           setTimeout(() => {
@@ -253,7 +253,7 @@ export default {
           })
           uni.hideLoading()
           uni.showToast({
-            title: 'Registered',
+            title: '注册成功，请登录',
             icon: 'success'
           })
           this.switchMode('login')
@@ -267,7 +267,7 @@ export default {
         })
         uni.hideLoading()
         uni.showToast({
-          title: 'Password updated',
+          title: '密码已重置',
           icon: 'success'
         })
         const email = this.form.email

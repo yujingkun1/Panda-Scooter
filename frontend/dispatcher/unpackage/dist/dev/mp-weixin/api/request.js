@@ -28,7 +28,7 @@ const request = (options = {}) => {
     const resolvedBaseURL = customBaseURL || api_env.getApiBaseURL(env);
     if (!isAbsoluteUrl(url) && !resolvedBaseURL) {
       const apiConfig = api_env.getApiConfig(env);
-      const message = `${apiConfig.label} API URL is not configured`;
+      const message = `${apiConfig.label} API 地址未配置`;
       common_vendor.index.showToast({
         title: message,
         icon: "none"

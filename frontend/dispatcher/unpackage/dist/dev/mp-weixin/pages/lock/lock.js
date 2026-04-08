@@ -13,6 +13,13 @@ const _sfc_main = {
       form: DEFAULT_FORM()
     };
   },
+  onShow() {
+    if (!common_vendor.index.getStorageSync("dispatcherToken")) {
+      common_vendor.index.redirectTo({
+        url: "/pages/login/login?mode=login"
+      });
+    }
+  },
   onLoad(options) {
     if (options && options.code) {
       this.form.code = options.code;
@@ -26,13 +33,13 @@ const _sfc_main = {
           this.form.latitude = String(res.latitude);
           this.form.longitude = String(res.longitude);
           common_vendor.index.showToast({
-            title: "Location applied",
+            title: "已填入当前位置",
             icon: "success"
           });
         },
         fail: () => {
           common_vendor.index.showToast({
-            title: "Location failed",
+            title: "获取位置失败",
             icon: "none"
           });
         }
@@ -47,21 +54,21 @@ const _sfc_main = {
       };
       if (!payload.code) {
         common_vendor.index.showToast({
-          title: "Enter scooter code",
+          title: "请输入车辆编号",
           icon: "none"
         });
         return;
       }
       if (!Number.isFinite(payload.battery) || !Number.isFinite(payload.latitude) || !Number.isFinite(payload.longitude)) {
         common_vendor.index.showToast({
-          title: "Complete all fields",
+          title: "请填写完整投放信息",
           icon: "none"
         });
         return;
       }
       try {
         common_vendor.index.showLoading({
-          title: "Submitting..."
+          title: "提交中..."
         });
         await api_modules_scooter.lockScooter(payload);
         common_vendor.index.hideLoading();
@@ -70,8 +77,8 @@ const _sfc_main = {
           taskType: "lock"
         });
         common_vendor.index.showModal({
-          title: "Lock placement saved",
-          content: `Scooter ${payload.code} has been placed successfully.`,
+          title: "关锁投放成功",
+          content: `车辆 ${payload.code} 已完成投放。`,
           showCancel: false,
           success: () => {
             this.form = DEFAULT_FORM();
@@ -91,21 +98,21 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     a: $data.form.code,
     b: common_vendor.o(common_vendor.m(($event) => $data.form.code = $event.detail.value, {
       trim: true
-    }), "ed"),
+    }), "a3"),
     c: $data.form.battery,
     d: common_vendor.o(common_vendor.m(($event) => $data.form.battery = $event.detail.value, {
       trim: true
-    }), "88"),
-    e: common_vendor.o((...args) => $options.fillCurrentLocation && $options.fillCurrentLocation(...args), "2b"),
+    }), "1d"),
+    e: common_vendor.o((...args) => $options.fillCurrentLocation && $options.fillCurrentLocation(...args), "54"),
     f: $data.form.latitude,
     g: common_vendor.o(common_vendor.m(($event) => $data.form.latitude = $event.detail.value, {
       trim: true
-    }), "0a"),
+    }), "21"),
     h: $data.form.longitude,
     i: common_vendor.o(common_vendor.m(($event) => $data.form.longitude = $event.detail.value, {
       trim: true
-    }), "4a"),
-    j: common_vendor.o((...args) => $options.confirmLock && $options.confirmLock(...args), "bd")
+    }), "46"),
+    j: common_vendor.o((...args) => $options.confirmLock && $options.confirmLock(...args), "c7")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

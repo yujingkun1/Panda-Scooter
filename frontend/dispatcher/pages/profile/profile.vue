@@ -7,39 +7,39 @@
         <text class="email">{{ userInfo.email }}</text>
       </view>
       <view class="account-manage" @click="openAccount">
-        <text class="manage-text">Account</text>
+        <text class="manage-text">账号管理</text>
       </view>
     </view>
 
     <view class="stats-section">
       <view class="stat-item">
         <text class="stat-value">{{ userInfo.areaName }}</text>
-        <text class="stat-label">Assigned Area</text>
+        <text class="stat-label">负责辖区</text>
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
         <text class="stat-value">{{ userInfo.todayDispatchedNum }}</text>
-        <text class="stat-label">Today Count</text>
+        <text class="stat-label">今日调度数量</text>
       </view>
     </view>
 
     <view v-if="!hasToken" class="guest-card">
-      <text class="guest-title">Guest mode is active</text>
-      <text class="guest-desc">Sign in to access dispatch actions, history and account details.</text>
-      <button class="login-btn" @click="goLogin('login')">Sign In</button>
+      <text class="guest-title">当前为访客模式</text>
+      <text class="guest-desc">登录后可进入调度流程、查看调度历史与个人辖区信息。</text>
+      <button class="login-btn" @click="goLogin('login')">去登录</button>
     </view>
 
     <view class="menu-section">
       <view class="menu-item" @click="navigateTo('unlock')">
-        <text class="menu-text">Dispatch Unlock</text>
+        <text class="menu-text">开锁调度</text>
         <text class="menu-arrow">></text>
       </view>
       <view class="menu-item" @click="navigateTo('lock')">
-        <text class="menu-text">Lock Placement</text>
+        <text class="menu-text">关锁投放</text>
         <text class="menu-arrow">></text>
       </view>
       <view class="menu-item" @click="navigateTo('history')">
-        <text class="menu-text">Dispatch History</text>
+        <text class="menu-text">调度历史</text>
         <text class="menu-arrow">></text>
       </view>
     </view>
@@ -50,9 +50,9 @@
 import { getDispatcherInfo } from '@/api/index'
 
 const DEFAULT_USER_INFO = {
-  name: 'Guest Dispatcher',
-  email: 'Not signed in',
-  areaName: 'No area assigned',
+  name: '访客调度员',
+  email: '未登录',
+  areaName: '未分配辖区',
   todayDispatchedNum: '0'
 }
 

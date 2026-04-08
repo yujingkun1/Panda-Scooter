@@ -40,7 +40,7 @@ const request = (options = {}) => {
 
     if (!isAbsoluteUrl(url) && !resolvedBaseURL) {
       const apiConfig = getApiConfig(env)
-      const message = `${apiConfig.label} API URL is not configured`
+      const message = `${apiConfig.label} API 地址未配置`
       uni.showToast({
         title: message,
         icon: 'none'

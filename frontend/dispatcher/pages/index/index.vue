@@ -4,8 +4,8 @@
       <view class="brand">
         <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
         <view class="brand-text">
-          <text class="brand-title">Panda Dispatch</text>
-          <text class="brand-subtitle">{{ dispatcherInfo.areaName || 'Dispatch Console' }}</text>
+          <text class="brand-title">熊猫调度</text>
+          <text class="brand-subtitle">{{ dispatcherInfo.areaName || '调度控制台' }}</text>
         </view>
       </view>
       <image class="avatar" src="/static/avatar.png" mode="aspectFit" @click="navigateToProfile"></image>
@@ -25,45 +25,45 @@
     </view>
 
     <view v-if="!hasToken" class="guest-card">
-      <text class="guest-title">Sign in to view your dispatch area and perform unlock or lock tasks.</text>
-      <button class="login-btn" @click="goLogin">Sign In</button>
+      <text class="guest-title">登录后可查看个人辖区并执行开锁调度、关锁投放等任务。</text>
+      <button class="login-btn" @click="goLogin">去登录</button>
     </view>
 
     <template v-else>
       <view class="summary-card">
         <view class="summary-item">
-          <text class="summary-label">Dispatcher</text>
+          <text class="summary-label">调度员</text>
           <text class="summary-value">{{ dispatcherInfo.name }}</text>
         </view>
         <view class="summary-divider"></view>
         <view class="summary-item">
-          <text class="summary-label">Today</text>
+          <text class="summary-label">今日调度</text>
           <text class="summary-value">{{ dispatcherInfo.todayDispatchedNum }}</text>
         </view>
         <view class="summary-divider"></view>
         <view class="summary-item">
-          <text class="summary-label">Scooters</text>
+          <text class="summary-label">可用车辆</text>
           <text class="summary-value">{{ availableScooterCount }}</text>
         </view>
       </view>
 
       <view class="function-area">
         <view class="function-item" @click="navigateTo('unlock')">
-          <text class="function-text">Dispatch Unlock</text>
+          <text class="function-text">开锁调度</text>
         </view>
         <text class="function-divider">|</text>
         <view class="function-item" @click="navigateTo('lock')">
-          <text class="function-text">Lock Placement</text>
+          <text class="function-text">关锁投放</text>
         </view>
         <text class="function-divider">|</text>
         <view class="function-item" @click="navigateTo('history')">
-          <text class="function-text">History</text>
+          <text class="function-text">调度历史</text>
         </view>
       </view>
 
       <view class="tip-card">
-        <text class="tip-title">Map Guide</text>
-        <text class="tip-desc">Blue polygon is the dispatch area. Red transparent polygons are no-parking zones. Markers show scooters, parking points and no-parking centers.</text>
+        <text class="tip-title">地图说明</text>
+        <text class="tip-desc">蓝色范围为调度辖区，红色透明区域为禁停区，图标用于标示车辆、停车点与禁停区中心。</text>
       </view>
     </template>
   </view>
@@ -84,9 +84,9 @@ const MARKER_ICONS = {
 }
 
 const DEFAULT_DISPATCHER = {
-  name: 'Dispatcher',
-  email: 'Not signed in',
-  areaName: 'No area assigned',
+  name: '调度员',
+  email: '未登录',
+  areaName: '未分配辖区',
   todayDispatchedNum: '0'
 }
 
@@ -375,17 +375,17 @@ export default {
       }
 
       uni.showModal({
-        title: `Scooter ${marker.code}`,
-        content: `Battery ${marker.battery}%\nStatus ${this.mapRideStatus(marker.rideStatus)}\nFault ${Number(marker.faultStatus) === 1 ? 'Yes' : 'No'}`,
+        title: `车辆 ${marker.code}`,
+        content: `电量 ${marker.battery}%\n状态 ${this.mapRideStatus(marker.rideStatus)}\n故障 ${Number(marker.faultStatus) === 1 ? '是' : '否'}`,
         showCancel: false
       })
     },
     mapRideStatus(status) {
       const statusMap = {
-        0: 'Idle',
-        1: 'In Use',
-        2: 'Repair',
-        3: 'Dispatching'
+        0: '空闲',
+        1: '使用中',
+        2: '维修中',
+        3: '调度中'
       }
       return statusMap[Number(status)] || '--'
     },

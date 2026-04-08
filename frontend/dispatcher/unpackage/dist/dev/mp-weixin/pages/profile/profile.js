@@ -3,9 +3,9 @@ const common_vendor = require("../../common/vendor.js");
 const api_modules_user = require("../../api/modules/user.js");
 const common_assets = require("../../common/assets.js");
 const DEFAULT_USER_INFO = {
-  name: "Guest Dispatcher",
-  email: "Not signed in",
-  areaName: "No area assigned",
+  name: "访客调度员",
+  email: "未登录",
+  areaName: "未分配辖区",
   todayDispatchedNum: "0"
 };
 const _sfc_main = {
@@ -78,11 +78,11 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     f: common_vendor.t($data.userInfo.todayDispatchedNum),
     g: !$data.hasToken
   }, !$data.hasToken ? {
-    h: common_vendor.o(($event) => $options.goLogin("login"), "3a")
+    h: common_vendor.o(($event) => $options.goLogin("login"), "b4")
   } : {}, {
-    i: common_vendor.o(($event) => $options.navigateTo("unlock"), "2a"),
-    j: common_vendor.o(($event) => $options.navigateTo("lock"), "62"),
-    k: common_vendor.o(($event) => $options.navigateTo("history"), "ca")
+    i: common_vendor.o(($event) => $options.navigateTo("unlock"), "11"),
+    j: common_vendor.o(($event) => $options.navigateTo("lock"), "90"),
+    k: common_vendor.o(($event) => $options.navigateTo("history"), "a0")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

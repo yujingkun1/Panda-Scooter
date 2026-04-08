@@ -1,37 +1,37 @@
 <template>
   <view class="page">
     <view class="header">
-      <text class="title">Lock Placement</text>
+      <text class="title">关锁投放</text>
     </view>
 
     <view class="form-card">
-      <text class="card-title">Submit placement details manually</text>
-      <text class="card-desc">Fill scooter code, battery and placement coordinates to complete the lock placement task.</text>
+      <text class="card-title">手动提交投放信息</text>
+      <text class="card-desc">填写车辆编号、电量和投放位置，完成关锁投放。</text>
 
       <view class="field">
-        <text class="field-label">Scooter Code</text>
-        <input v-model.trim="form.code" class="input" type="text" maxlength="20" placeholder="Example: SC0001" />
+        <text class="field-label">车辆编号</text>
+        <input v-model.trim="form.code" class="input" type="text" maxlength="20" placeholder="例如：SC0001" />
       </view>
 
       <view class="field">
-        <text class="field-label">Battery (%)</text>
-        <input v-model.trim="form.battery" class="input" type="number" placeholder="Enter battery" />
+        <text class="field-label">当前电量(%)</text>
+        <input v-model.trim="form.battery" class="input" type="number" placeholder="请输入电量" />
       </view>
 
       <view class="field">
         <view class="field-header">
-          <text class="field-label">Latitude</text>
-          <text class="field-action" @click="fillCurrentLocation">Use current location</text>
+          <text class="field-label">投放纬度</text>
+          <text class="field-action" @click="fillCurrentLocation">获取当前位置</text>
         </view>
-        <input v-model.trim="form.latitude" class="input" type="digit" placeholder="Enter latitude" />
+        <input v-model.trim="form.latitude" class="input" type="digit" placeholder="请输入纬度" />
       </view>
 
       <view class="field">
-        <text class="field-label">Longitude</text>
-        <input v-model.trim="form.longitude" class="input" type="digit" placeholder="Enter longitude" />
+        <text class="field-label">投放经度</text>
+        <input v-model.trim="form.longitude" class="input" type="digit" placeholder="请输入经度" />
       </view>
 
-      <button class="submit-btn" @click="confirmLock">Submit Lock Placement</button>
+      <button class="submit-btn" @click="confirmLock">确认关锁投放</button>
     </view>
   </view>
 </template>
@@ -52,6 +52,13 @@ export default {
       form: DEFAULT_FORM()
     }
   },
+  onShow() {
+    if (!uni.getStorageSync('dispatcherToken')) {
+      uni.redirectTo({
+        url: '/pages/login/login?mode=login'
+      })
+    }
+  },
   onLoad(options) {
     if (options && options.code) {
       this.form.code = options.code
@@ -65,13 +72,13 @@ export default {
           this.form.latitude = String(res.latitude)
           this.form.longitude = String(res.longitude)
           uni.showToast({
-            title: 'Location applied',
+            title: '已填入当前位置',
             icon: 'success'
           })
         },
         fail: () => {
           uni.showToast({
-            title: 'Location failed',
+            title: '获取位置失败',
             icon: 'none'
           })
         }
@@ -87,7 +94,7 @@ export default {
 
       if (!payload.code) {
         uni.showToast({
-          title: 'Enter scooter code',
+          title: '请输入车辆编号',
           icon: 'none'
         })
         return
@@ -95,7 +102,7 @@ export default {
 
       if (!Number.isFinite(payload.battery) || !Number.isFinite(payload.latitude) || !Number.isFinite(payload.longitude)) {
         uni.showToast({
-          title: 'Complete all fields',
+          title: '请填写完整投放信息',
           icon: 'none'
         })
         return
@@ -103,7 +110,7 @@ export default {
 
       try {
         uni.showLoading({
-          title: 'Submitting...'
+          title: '提交中...'
         })
         await lockScooter(payload)
         uni.hideLoading()
@@ -112,8 +119,8 @@ export default {
           taskType: 'lock'
         })
         uni.showModal({
-          title: 'Lock placement saved',
-          content: `Scooter ${payload.code} has been placed successfully.`,
+          title: '关锁投放成功',
+          content: `车辆 ${payload.code} 已完成投放。`,
           showCancel: false,
           success: () => {
             this.form = DEFAULT_FORM()

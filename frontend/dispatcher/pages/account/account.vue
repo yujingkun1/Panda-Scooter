@@ -1,50 +1,50 @@
 <template>
   <view class="page">
     <view class="header">
-      <text class="title">Account</text>
+      <text class="title">账号管理</text>
     </view>
 
     <view class="info-section">
       <view class="info-item">
-        <text class="info-label">Name</text>
+        <text class="info-label">姓名</text>
         <text class="info-value">{{ userInfo.name }}</text>
       </view>
       <view class="info-item">
-        <text class="info-label">Email</text>
+        <text class="info-label">邮箱</text>
         <text class="info-value">{{ userInfo.email }}</text>
       </view>
     </view>
 
     <view class="action-section">
       <view class="action-item" @click="goToForgotPassword">
-        <text class="action-text">Change Password</text>
+        <text class="action-text">修改密码</text>
         <text class="action-arrow">></text>
       </view>
       <view class="action-item" @click="logout">
-        <text class="action-text logout-text">Sign Out</text>
+        <text class="action-text logout-text">退出登录</text>
       </view>
     </view>
 
     <view class="delete-section">
-      <text class="section-title">Delete Account</text>
-      <text class="section-desc">Enter current password and email verification code before deleting the dispatcher account.</text>
+      <text class="section-title">注销账号</text>
+      <text class="section-desc">注销前需要输入当前登录密码与邮箱验证码。</text>
 
       <view class="field">
-        <text class="field-label">Current Password</text>
-        <input v-model.trim="deleteForm.password" class="input" password type="text" placeholder="Enter current password" />
+        <text class="field-label">登录密码</text>
+        <input v-model.trim="deleteForm.password" class="input" password type="text" placeholder="请输入当前密码" />
       </view>
 
       <view class="field">
-        <text class="field-label">Verification Code</text>
+        <text class="field-label">邮箱验证码</text>
         <view class="code-row">
-          <input v-model.trim="deleteForm.verificationCode" class="input code-input" type="text" placeholder="Enter code" />
+          <input v-model.trim="deleteForm.verificationCode" class="input code-input" type="text" placeholder="请输入验证码" />
           <button class="code-btn" :disabled="countdown > 0" @click="sendDeleteCode">
-            {{ countdown > 0 ? `${countdown}s` : 'Get Code' }}
+            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
           </button>
         </view>
       </view>
 
-      <button class="delete-btn" @click="deleteAccount">Delete Account</button>
+      <button class="delete-btn" @click="deleteAccount">确认注销</button>
     </view>
   </view>
 </template>
@@ -58,8 +58,8 @@ import {
 } from '@/api/index'
 
 const DEFAULT_USER_INFO = {
-  name: 'Guest Dispatcher',
-  email: 'Not signed in'
+  name: '访客调度员',
+  email: '未登录'
 }
 
 const DEFAULT_DELETE_FORM = () => ({
@@ -114,7 +114,7 @@ export default {
     async sendDeleteCode() {
       if (!this.userInfo.email || this.userInfo.email === DEFAULT_USER_INFO.email) {
         uni.showToast({
-          title: 'No email is available',
+          title: '当前账号没有可用邮箱',
           icon: 'none'
         })
         return
@@ -123,7 +123,7 @@ export default {
       try {
         await getVerificationCode(this.userInfo.email)
         uni.showToast({
-          title: 'Code sent',
+          title: '验证码已发送',
           icon: 'success'
         })
         this.startCountdown()
@@ -150,8 +150,8 @@ export default {
     },
     async logout() {
       uni.showModal({
-        title: 'Sign Out',
-        content: 'Do you want to sign out of the dispatcher account?',
+        title: '退出登录',
+        content: '确定退出当前调度账号吗？',
         success: async (res) => {
           if (!res.confirm) {
             return
@@ -164,8 +164,9 @@ export default {
 
           uni.removeStorageSync('dispatcherToken')
           uni.removeStorageSync('dispatcherUserInfo')
+          uni.removeStorageSync('dispatcherCurrentTask')
           uni.showToast({
-            title: 'Signed out',
+            title: '已退出登录',
             icon: 'success'
           })
           setTimeout(() => {
@@ -179,15 +180,15 @@ export default {
     async deleteAccount() {
       if (!this.deleteForm.password || !this.deleteForm.verificationCode) {
         uni.showToast({
-          title: 'Fill password and code',
+          title: '请填写密码和验证码',
           icon: 'none'
         })
         return
       }
 
       uni.showModal({
-        title: 'Delete Account',
-        content: 'Deleting the account will also clear the current sign-in state. Continue?',
+        title: '账号注销',
+        content: '注销后将退出当前登录状态，确认继续吗？',
         confirmColor: '#ff4d4f',
         success: async (res) => {
           if (!res.confirm) {
@@ -196,7 +197,7 @@ export default {
 
           try {
             uni.showLoading({
-              title: 'Deleting...'
+              title: '注销中...'
             })
             await dispatcherDelete({
               password: this.deleteForm.password,
@@ -205,8 +206,9 @@ export default {
             uni.hideLoading()
             uni.removeStorageSync('dispatcherToken')
             uni.removeStorageSync('dispatcherUserInfo')
+            uni.removeStorageSync('dispatcherCurrentTask')
             uni.showToast({
-              title: 'Account deleted',
+              title: '账号已注销',
               icon: 'success'
             })
             setTimeout(() => {

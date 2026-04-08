@@ -13,9 +13,9 @@ const MARKER_ICONS = {
   noParking: "/static/no-parking.svg"
 };
 const DEFAULT_DISPATCHER = {
-  name: "Dispatcher",
-  email: "Not signed in",
-  areaName: "No area assigned",
+  name: "调度员",
+  email: "未登录",
+  areaName: "未分配辖区",
   todayDispatchedNum: "0"
 };
 const _sfc_main = {
@@ -262,19 +262,19 @@ const _sfc_main = {
         return;
       }
       common_vendor.index.showModal({
-        title: `Scooter ${marker.code}`,
-        content: `Battery ${marker.battery}%
-Status ${this.mapRideStatus(marker.rideStatus)}
-Fault ${Number(marker.faultStatus) === 1 ? "Yes" : "No"}`,
+        title: `车辆 ${marker.code}`,
+        content: `电量 ${marker.battery}%
+状态 ${this.mapRideStatus(marker.rideStatus)}
+故障 ${Number(marker.faultStatus) === 1 ? "是" : "否"}`,
         showCancel: false
       });
     },
     mapRideStatus(status) {
       const statusMap = {
-        0: "Idle",
-        1: "In Use",
-        2: "Repair",
-        3: "Dispatching"
+        0: "空闲",
+        1: "使用中",
+        2: "维修中",
+        3: "调度中"
       };
       return statusMap[Number(status)] || "--";
     },
@@ -302,25 +302,25 @@ Fault ${Number(marker.faultStatus) === 1 ? "Yes" : "No"}`,
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: common_assets._imports_0,
-    b: common_vendor.t($data.dispatcherInfo.areaName || "Dispatch Console"),
+    b: common_vendor.t($data.dispatcherInfo.areaName || "调度控制台"),
     c: common_assets._imports_0$1,
-    d: common_vendor.o((...args) => $options.navigateToProfile && $options.navigateToProfile(...args), "cc"),
+    d: common_vendor.o((...args) => $options.navigateToProfile && $options.navigateToProfile(...args), "eb"),
     e: $data.latitude,
     f: $data.longitude,
     g: $data.scale,
     h: $data.markers,
     i: $data.polygons,
-    j: common_vendor.o((...args) => $options.handleMarkerTap && $options.handleMarkerTap(...args), "a9"),
+    j: common_vendor.o((...args) => $options.handleMarkerTap && $options.handleMarkerTap(...args), "97"),
     k: !$data.hasToken
   }, !$data.hasToken ? {
-    l: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "36")
+    l: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "a3")
   } : {
     m: common_vendor.t($data.dispatcherInfo.name),
     n: common_vendor.t($data.dispatcherInfo.todayDispatchedNum),
     o: common_vendor.t($data.availableScooterCount),
-    p: common_vendor.o(($event) => $options.navigateTo("unlock"), "c5"),
-    q: common_vendor.o(($event) => $options.navigateTo("lock"), "02"),
-    r: common_vendor.o(($event) => $options.navigateTo("history"), "6f")
+    p: common_vendor.o(($event) => $options.navigateTo("unlock"), "ef"),
+    q: common_vendor.o(($event) => $options.navigateTo("lock"), "4f"),
+    r: common_vendor.o(($event) => $options.navigateTo("history"), "f0")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

@@ -1,24 +1,24 @@
 <template>
   <view class="page">
     <view class="header">
-      <text class="title">Dispatch History</text>
+      <text class="title">调度历史</text>
     </view>
 
     <view v-if="!hasToken" class="guest-card">
-      <text class="guest-title">Sign in to view dispatch history.</text>
-      <button class="login-btn" @click="goLogin">Sign In</button>
+      <text class="guest-title">登录后可查看调度历史记录。</text>
+      <button class="login-btn" @click="goLogin">去登录</button>
     </view>
 
     <template v-else>
       <view class="filter-section">
         <view class="filter-item" :class="{ active: currentFilter === 'all' }" @click="changeFilter('all')">
-          <text class="filter-text">All</text>
+          <text class="filter-text">全部</text>
         </view>
         <view class="filter-item" :class="{ active: currentFilter === 'unlock' }" @click="changeFilter('unlock')">
-          <text class="filter-text">Unlock</text>
+          <text class="filter-text">开锁调度</text>
         </view>
         <view class="filter-item" :class="{ active: currentFilter === 'lock' }" @click="changeFilter('lock')">
-          <text class="filter-text">Lock</text>
+          <text class="filter-text">关锁投放</text>
         </view>
       </view>
 
@@ -37,26 +37,26 @@
 
             <view class="history-body">
               <view class="info-row">
-                <text class="info-label">Status</text>
+                <text class="info-label">状态</text>
                 <text class="info-value">{{ item.statusText }}</text>
               </view>
               <view class="info-row">
-                <text class="info-label">Battery</text>
+                <text class="info-label">电量</text>
                 <text class="info-value">{{ item.battery }}</text>
               </view>
               <view class="info-row">
-                <text class="info-label">Position</text>
+                <text class="info-label">位置</text>
                 <text class="info-value">{{ item.position }}</text>
               </view>
               <view v-if="item.remark" class="info-row">
-                <text class="info-label">Remark</text>
+                <text class="info-label">备注</text>
                 <text class="info-value">{{ item.remark }}</text>
               </view>
             </view>
           </view>
         </view>
         <view v-else class="empty-history">
-          <text class="empty-text">No dispatch record yet.</text>
+          <text class="empty-text">暂无调度记录。</text>
         </view>
       </view>
     </template>
@@ -108,17 +108,22 @@ export default {
     },
     normalizeHistory(item, index) {
       const rawType = String(item.type || item.dispatchType || item.action || '').toLowerCase()
-      const isLock = rawType.includes('lock') || rawType === '2'
+      const isLock =
+        rawType.includes('lock') ||
+        rawType.includes('placement') ||
+        rawType.includes('投放') ||
+        rawType.includes('关锁') ||
+        rawType === '2'
       const position = this.formatPosition(item.latitude, item.longitude)
       const battery = item.battery !== undefined && item.battery !== null ? `${item.battery}%` : '--'
-      const statusText = item.statusText || item.status || item.result || 'Completed'
+      const statusText = item.statusText || item.status || item.result || '已完成'
 
       return {
         id: item.id || item.dispatchId || index + 1,
-        code: item.code || item.scooterCode || item.vehicleCode || `Scooter ${index + 1}`,
+        code: item.code || item.scooterCode || item.vehicleCode || `车辆 ${index + 1}`,
         time: this.formatDateTime(item.createTime || item.dispatchTime || item.updateTime),
         type: isLock ? 'lock' : 'unlock',
-        typeText: isLock ? 'Lock Placement' : 'Dispatch Unlock',
+        typeText: isLock ? '关锁投放' : '开锁调度',
         tagClass: isLock ? 'tag-lock' : 'tag-unlock',
         statusText,
         battery,
