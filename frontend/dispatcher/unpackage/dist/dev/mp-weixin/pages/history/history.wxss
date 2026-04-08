@@ -1,0 +1,55 @@
+
+.page { min-height: 100vh; background-color: #fafaf8;
+}
+.header { padding: 48rpx 32rpx; background-color: #fff; border-bottom: 1rpx solid #e5e5e2;
+}
+.title { font-size: 36rpx; color: #0b0e0d; letter-spacing: 4rpx;
+}
+.guest-card { margin: 32rpx; padding: 40rpx 32rpx; background: #fff; border: 1rpx solid #e5e5e2;
+}
+.guest-title { display: block; margin-bottom: 24rpx; font-size: 28rpx; color: #0b0e0d;
+}
+.login-btn { background-color: #0b0e0d; color: #fff; border: none; border-radius: 0;
+}
+.filter-section { display: flex; margin: 32rpx; background-color: #fff; padding: 20rpx; border: 1rpx solid #e5e5e2;
+}
+.filter-item { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20rpx 0;
+}
+.filter-item.active { background-color: #0b0e0d;
+}
+.filter-text { font-size: 24rpx; color: #737373;
+}
+.filter-item.active .filter-text { color: #fff;
+}
+.history-list { margin: 0 32rpx 32rpx;
+}
+.history-item { margin-bottom: 20rpx; background-color: #fff; border: 1rpx solid #e5e5e2;
+}
+.history-header { display: flex; justify-content: space-between; align-items: center; padding: 32rpx; border-bottom: 1rpx solid #e5e5e2;
+}
+.history-code { display: block; margin-bottom: 10rpx; font-size: 28rpx; color: #0b0e0d;
+}
+.history-time { display: block; font-size: 22rpx; color: #737373;
+}
+.history-tag { padding: 10rpx 24rpx; border: 1rpx solid transparent;
+}
+.tag-unlock { border-color: #0b0e0d; color: #0b0e0d;
+}
+.tag-lock { border-color: #d4d4d1; color: #737373;
+}
+.tag-text { font-size: 22rpx;
+}
+.history-body { padding: 32rpx;
+}
+.info-row { display: flex; justify-content: space-between; gap: 20rpx; margin-bottom: 18rpx;
+}
+.info-row:last-child { margin-bottom: 0;
+}
+.info-label { font-size: 22rpx; color: #737373;
+}
+.info-value { flex: 1; text-align: right; font-size: 26rpx; color: #0b0e0d; word-break: break-all;
+}
+.empty-history { padding: 128rpx 32rpx; text-align: center;
+}
+.empty-text { font-size: 24rpx; color: #737373;
+}

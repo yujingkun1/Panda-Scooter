@@ -1,0 +1,43 @@
+
+.page { min-height: 100vh; background: linear-gradient(180deg, #fafaf8 0%, #f0efe8 100%); padding: 48rpx 32rpx 64rpx;
+}
+.hero { padding: 32rpx 16rpx 48rpx; text-align: center;
+}
+.logo { width: 96rpx; height: 96rpx; margin-bottom: 24rpx;
+}
+.title { display: block; font-size: 44rpx; color: #0b0e0d; font-weight: 500; letter-spacing: 4rpx;
+}
+.subtitle { display: block; margin-top: 16rpx; font-size: 24rpx; color: #737373;
+}
+.card { background-color: #ffffff; border: 1rpx solid #e5e5e2; padding: 40rpx 32rpx;
+}
+.tabs { display: flex; margin-bottom: 32rpx; background: #fafaf8; border: 1rpx solid #e5e5e2;
+}
+.tab { flex: 1; padding: 24rpx 0; text-align: center;
+}
+.tab.active { background-color: #0b0e0d;
+}
+.tab-text { font-size: 24rpx; color: #737373;
+}
+.tab.active .tab-text { color: #ffffff;
+}
+.field { margin-bottom: 28rpx;
+}
+.label { display: block; margin-bottom: 16rpx; font-size: 24rpx; color: #0b0e0d;
+}
+.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx; color: #0b0e0d;
+}
+.inline-field { display: flex; gap: 16rpx;
+}
+.inline-input { flex: 1;
+}
+.code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx;
+}
+.submit-btn { margin-top: 16rpx; background-color: #0b0e0d; color: #ffffff; border: none; border-radius: 0; font-size: 30rpx; letter-spacing: 4rpx;
+}
+.footer-links { margin-top: 32rpx; text-align: center;
+}
+.link, .divider { font-size: 24rpx; color: #737373;
+}
+.link { padding: 0 12rpx;
+}
