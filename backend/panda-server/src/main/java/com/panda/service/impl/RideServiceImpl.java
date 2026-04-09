@@ -2,6 +2,7 @@ package com.panda.service.impl;
 
 import com.panda.context.BaseContext;
 import com.panda.dto.LockScooterDTO;
+import com.panda.dto.PayUnpaidOrderDTO;
 import com.panda.entity.RentalOrder;
 import com.panda.entity.Scooter;
 import com.panda.entity.UserBill;
@@ -121,9 +122,8 @@ public class RideServiceImpl implements RideService {
         boolean paid = userWallet.getBalance().compareTo(amount) >= 0;
         BigDecimal balanceAfter = userWallet.getBalance();
         if (paid) {
-            balanceAfter = userWallet.getBalance().subtract(amount).setScale(2, RoundingMode.HALF_UP);
-            userWalletMapper.updateBalanceByUserId(userId, balanceAfter);
-            saveRideBill(userId, rentalOrder.getId(), amount.negate(), balanceAfter);
+            balanceAfter = deductBalance(userId, userWallet.getBalance(), amount);
+            saveRideBill(userId, rentalOrder.getId(), amount.negate(), balanceAfter, "骑行消费");
         }
 
         rentalOrder.setStartTime(startTime);
@@ -157,6 +157,56 @@ public class RideServiceImpl implements RideService {
         data.put("totalKilometer", rentalOrder.getTotalKilometer());
         data.put("balanceAfter", balanceAfter);
         data.put("message", paid ? "扣费成功" : "余额不足，订单待支付");
+        return data;
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> payUnpaidOrder(PayUnpaidOrderDTO payUnpaidOrderDTO) {
+        Long userId = currentUserId();
+        log.info("开始支付未支付订单，userId={}, orderId={}", userId, payUnpaidOrderDTO.getOrderId());
+        RentalOrder rentalOrder = rentalOrderMapper.getById(payUnpaidOrderDTO.getOrderId());
+        if (rentalOrder == null || !userId.equals(rentalOrder.getUserId())) {
+            log.warn("支付未支付订单失败，订单不存在，userId={}, orderId={}", userId, payUnpaidOrderDTO.getOrderId());
+            throw new BaseException("订单不存在");
+        }
+        if (!Integer.valueOf(1).equals(rentalOrder.getOrderStatus()) || !Integer.valueOf(0).equals(rentalOrder.getPayStatus())) {
+            log.warn("支付未支付订单失败，订单状态不正确，orderId={}, orderStatus={}, payStatus={}",
+                    rentalOrder.getId(), rentalOrder.getOrderStatus(), rentalOrder.getPayStatus());
+            throw new BaseException("订单不是待支付状态");
+        }
+
+        BigDecimal payableAmount = payUnpaidOrderDTO.getAmount() == null
+                ? rentalOrder.getAmount()
+                : payUnpaidOrderDTO.getAmount().setScale(2, RoundingMode.HALF_UP);
+        if (payableAmount.compareTo(rentalOrder.getAmount()) != 0) {
+            log.warn("支付未支付订单失败，支付金额不一致，orderId={}, requestAmount={}, orderAmount={}",
+                    rentalOrder.getId(), payableAmount, rentalOrder.getAmount());
+            throw new BaseException("支付金额与订单金额不一致");
+        }
+
+        UserWallet userWallet = userWalletMapper.getByUserId(userId);
+        if (userWallet == null) {
+            log.warn("支付未支付订单失败，钱包不存在，userId={}", userId);
+            throw new BaseException("钱包不存在");
+        }
+        if (userWallet.getBalance().compareTo(payableAmount) < 0) {
+            log.warn("支付未支付订单失败，余额不足，userId={}, balance={}, amount={}", userId, userWallet.getBalance(), payableAmount);
+            throw new BaseException("余额不足");
+        }
+
+        BigDecimal balanceAfter = deductBalance(userId, userWallet.getBalance(), payableAmount);
+        rentalOrder.setOrderStatus(2);
+        rentalOrder.setPayStatus(1);
+        rentalOrderMapper.updateFinishInfo(rentalOrder);
+        saveRideBill(userId, rentalOrder.getId(), payableAmount.negate(), balanceAfter, "补交骑行订单");
+        log.info("支付未支付订单成功，userId={}, orderId={}, amount={}, balanceAfter={}", userId, rentalOrder.getId(), payableAmount, balanceAfter);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("orderId", rentalOrder.getId());
+        data.put("amount", payableAmount);
+        data.put("payStatus", rentalOrder.getPayStatus());
+        data.put("balanceAfter", balanceAfter);
         return data;
     }
 
@@ -255,14 +305,20 @@ public class RideServiceImpl implements RideService {
                 .divide(BigDecimal.valueOf(metersPerDegree), 10, RoundingMode.HALF_UP);
     }
 
-    private void saveRideBill(Long userId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
+    private BigDecimal deductBalance(Long userId, BigDecimal balance, BigDecimal amount) {
+        BigDecimal balanceAfter = balance.subtract(amount).setScale(2, RoundingMode.HALF_UP);
+        userWalletMapper.updateBalanceByUserId(userId, balanceAfter);
+        return balanceAfter;
+    }
+
+    private void saveRideBill(Long userId, Long orderId, BigDecimal amount, BigDecimal balanceAfter, String remark) {
         UserBill userBill = new UserBill();
         userBill.setUserId(userId);
         userBill.setType(1);
         userBill.setAmount(amount);
         userBill.setBalanceAfter(balanceAfter);
         userBill.setOrderId(orderId);
-        userBill.setRemark("骑行消费");
+        userBill.setRemark(remark);
         userBill.setCreateTime(LocalDateTime.now());
         userBillMapper.insert(userBill);
     }
