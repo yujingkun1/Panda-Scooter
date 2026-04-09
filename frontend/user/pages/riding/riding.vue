@@ -187,6 +187,13 @@ export default {
     }
   },
   async onLoad() {
+    if (!uni.getStorageSync('token')) {
+      uni.redirectTo({
+        url: '/pages/login/login?mode=login'
+      })
+      return
+    }
+
     const cachedRide = uni.getStorageSync(CURRENT_RIDE_STORAGE_KEY)
     if (!cachedRide || !cachedRide.orderId) {
       uni.redirectTo({

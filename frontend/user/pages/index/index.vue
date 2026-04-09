@@ -107,6 +107,17 @@ export default {
     this.resumeCurrentRide()
   },
   methods: {
+    ensureLoggedIn() {
+      const hasToken = Boolean(uni.getStorageSync('token'))
+      if (hasToken) {
+        return true
+      }
+
+      uni.navigateTo({
+        url: '/pages/login/login?mode=login'
+      })
+      return false
+    },
     syncHeaderUser() {
       const cachedUser = uni.getStorageSync('userInfo') || {}
       const hasToken = Boolean(uni.getStorageSync('token'))
@@ -363,6 +374,10 @@ export default {
       return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
     },
     scanUnlock() {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
       uni.scanCode({
         success: async (res) => {
           const code = this.extractScooterCode(res.result)
@@ -433,8 +448,8 @@ export default {
           scooterCode: normalizedCode,
           scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
           battery: Number(scooterInfo.battery || 0),
-          rideStatus: scooterInfo.ride_status || 1,
-          faultStatus: scooterInfo.fault_status || 0,
+          rideStatus: scooterInfo.rideStatus || 1,
+          faultStatus: scooterInfo.faultStatus || 0,
           currentLatitude: Number(scooterInfo.latitude || this.latitude),
           currentLongitude: Number(scooterInfo.longitude || this.longitude),
           routePoints: [],
@@ -451,11 +466,19 @@ export default {
       }
     },
     showParkingPoints() {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
       uni.navigateTo({
         url: '/pages/parking/parking'
       })
     },
     showRideNotice() {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
       uni.showModal({
         title: '骑行须知',
         content: '请佩戴头盔、遵守交通规则，并在指定区域规范停车。',
@@ -463,12 +486,20 @@ export default {
       })
     },
     handleSubscription(pkg) {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
       uni.showToast({
         title: `${pkg.title} 购买功能暂未开放`,
         icon: 'none'
       })
     },
     navigateTo(page) {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
       if (page === 'fault') {
         uni.navigateTo({
           url: '/pages/reportFault/reportFault'
@@ -482,6 +513,10 @@ export default {
       }
     },
     navigateToProfile() {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
       uni.navigateTo({
         url: '/pages/profile/profile'
       })

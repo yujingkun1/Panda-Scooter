@@ -72,6 +72,13 @@ export default {
     }
   },
   onLoad(options) {
+    if (!uni.getStorageSync('token')) {
+      uni.redirectTo({
+        url: '/pages/login/login?mode=login'
+      })
+      return
+    }
+
     if (options && options.code) {
       this.scooterCode = this.extractDigits(options.code)
     }
@@ -163,8 +170,8 @@ export default {
           scooterCode: normalizedCode,
           scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
           battery: Number(scooterInfo.battery || 0),
-          rideStatus: scooterInfo.ride_status || 1,
-          faultStatus: scooterInfo.fault_status || 0,
+          rideStatus: scooterInfo.rideStatus || 1,
+          faultStatus: scooterInfo.faultStatus || 0,
           currentLatitude: Number(scooterInfo.latitude || 0),
           currentLongitude: Number(scooterInfo.longitude || 0),
           routePoints: [],
