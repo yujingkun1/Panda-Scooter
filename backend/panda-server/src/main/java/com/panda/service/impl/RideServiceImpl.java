@@ -4,10 +4,14 @@ import com.panda.context.BaseContext;
 import com.panda.dto.LockScooterDTO;
 import com.panda.entity.RentalOrder;
 import com.panda.entity.Scooter;
+import com.panda.entity.UserBill;
+import com.panda.entity.UserWallet;
 import com.panda.exception.BaseException;
 import com.panda.mapper.RentalOrderMapper;
 import com.panda.mapper.ScooterMapper;
+import com.panda.mapper.UserBillMapper;
 import com.panda.mapper.UserMapper;
+import com.panda.mapper.UserWalletMapper;
 import com.panda.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,12 +34,19 @@ public class RideServiceImpl implements RideService {
     private final ScooterMapper scooterMapper;
     private final RentalOrderMapper rentalOrderMapper;
     private final UserMapper userMapper;
+    private final UserWalletMapper userWalletMapper;
+    private final UserBillMapper userBillMapper;
 
     @Override
     @Transactional
     public Map<String, Object> unlockScooter(String code) {
         Long userId = currentUserId();
         log.info("开始解锁单车，userId={}, code={}", userId, code);
+        RentalOrder unpaidOrder = rentalOrderMapper.getUnpaidOrderByUserId(userId);
+        if (unpaidOrder != null) {
+            log.warn("解锁失败，存在未支付订单，userId={}, orderId={}", userId, unpaidOrder.getId());
+            throw new BaseException("存在未支付订单，请先完成支付");
+        }
         RentalOrder ridingOrder = rentalOrderMapper.getRidingOrderByUserId(userId);
         if (ridingOrder != null) {
             log.warn("解锁失败，存在进行中订单，userId={}, orderId={}", userId, ridingOrder.getId());
@@ -92,16 +103,34 @@ public class RideServiceImpl implements RideService {
             throw new BaseException("订单已结束");
         }
 
+        LocalDateTime startTime = lockScooterDTO.getStartTime() == null ? rentalOrder.getStartTime() : lockScooterDTO.getStartTime();
         LocalDateTime endTime = lockScooterDTO.getEndTime() == null ? LocalDateTime.now() : lockScooterDTO.getEndTime();
-        long seconds = Duration.between(rentalOrder.getStartTime(), endTime).getSeconds();
-        int totalMinutes = (int) Math.max(1, Math.ceil(seconds / 60.0));
-        BigDecimal amount = BigDecimal.valueOf(totalMinutes).multiply(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP);
+        long seconds = Duration.between(startTime, endTime).getSeconds();
+        int totalMinutes = (int) Math.max(1, Math.ceil(Math.max(0, seconds) / 60.0));
+        BigDecimal amount = lockScooterDTO.getAmount() == null
+                ? BigDecimal.valueOf(totalMinutes).multiply(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP)
+                : lockScooterDTO.getAmount().setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalKilometer = lockScooterDTO.getTotalKilometer() == null ? BigDecimal.ZERO : lockScooterDTO.getTotalKilometer();
 
+        UserWallet userWallet = userWalletMapper.getByUserId(userId);
+        if (userWallet == null) {
+            log.warn("结束骑行失败，钱包不存在，userId={}", userId);
+            throw new BaseException("钱包不存在");
+        }
+
+        boolean paid = userWallet.getBalance().compareTo(amount) >= 0;
+        BigDecimal balanceAfter = userWallet.getBalance();
+        if (paid) {
+            balanceAfter = userWallet.getBalance().subtract(amount).setScale(2, RoundingMode.HALF_UP);
+            userWalletMapper.updateBalanceByUserId(userId, balanceAfter);
+            saveRideBill(userId, rentalOrder.getId(), amount.negate(), balanceAfter);
+        }
+
+        rentalOrder.setStartTime(startTime);
         rentalOrder.setEndTime(endTime);
         rentalOrder.setTotalTime(totalMinutes);
-        rentalOrder.setOrderStatus(2);
-        rentalOrder.setPayStatus(1);
+        rentalOrder.setOrderStatus(paid ? 2 : 1);
+        rentalOrder.setPayStatus(paid ? 1 : 0);
         rentalOrder.setAmount(amount);
         rentalOrder.setTotalKilometer(totalKilometer);
         rentalOrderMapper.updateFinishInfo(rentalOrder);
@@ -113,19 +142,21 @@ public class RideServiceImpl implements RideService {
                     0,
                     scooter.getFaultStatus(),
                     lockScooterDTO.getBattery() == null ? scooter.getBattery() : lockScooterDTO.getBattery(),
-                    lockScooterDTO.getLatitude(),
-                    lockScooterDTO.getLongitude()
+                    lockScooterDTO.getLatitude() == null ? scooter.getLatitude() : lockScooterDTO.getLatitude(),
+                    lockScooterDTO.getLongitude() == null ? scooter.getLongitude() : lockScooterDTO.getLongitude()
             );
         }
-        log.info("结束骑行成功，orderId={}, totalMinutes={}, amount={}, totalKilometer={}", rentalOrder.getId(), totalMinutes, amount, totalKilometer);
+        log.info("结束骑行成功，orderId={}, totalMinutes={}, amount={}, totalKilometer={}, paid={}", rentalOrder.getId(), totalMinutes, amount, totalKilometer, paid);
 
         Map<String, Object> data = new HashMap<>();
         data.put("id", rentalOrder.getId());
-        data.put("startTime", rentalOrder.getStartTime());
+        data.put("startTime", startTime);
         data.put("payStatus", rentalOrder.getPayStatus());
         data.put("amount", rentalOrder.getAmount());
         data.put("totalTime", totalMinutes + "分钟");
         data.put("totalKilometer", rentalOrder.getTotalKilometer());
+        data.put("balanceAfter", balanceAfter);
+        data.put("message", paid ? "扣费成功" : "余额不足，订单待支付");
         return data;
     }
 
@@ -222,6 +253,18 @@ public class RideServiceImpl implements RideService {
 
         return BigDecimal.valueOf(meters)
                 .divide(BigDecimal.valueOf(metersPerDegree), 10, RoundingMode.HALF_UP);
+    }
+
+    private void saveRideBill(Long userId, Long orderId, BigDecimal amount, BigDecimal balanceAfter) {
+        UserBill userBill = new UserBill();
+        userBill.setUserId(userId);
+        userBill.setType(1);
+        userBill.setAmount(amount);
+        userBill.setBalanceAfter(balanceAfter);
+        userBill.setOrderId(orderId);
+        userBill.setRemark("骑行消费");
+        userBill.setCreateTime(LocalDateTime.now());
+        userBillMapper.insert(userBill);
     }
 
     private Long currentUserId() {

@@ -36,6 +36,16 @@
         limit 1
     </select>
 
+    <select id="getUnpaidOrderByUserId" resultMap="rentalOrderResultMap">
+        select id, user_id, scooter_id, start_time, end_time, total_time, order_status, pay_status, amount, total_kilometer, create_time
+        from rental_order
+        where user_id = #{userId}
+          and order_status = 1
+          and pay_status = 0
+        order by id desc
+        limit 1
+    </select>
+
     <update id="updateFinishInfo" parameterType="com.panda.entity.RentalOrder">
         update rental_order
         set end_time = #{endTime},
