@@ -583,8 +583,8 @@ GET /map
       {
         "id": 1,
         "code": "string",
-        "ride_status": "0",
-        "fault_status": 0,
+        "rideStatus": "0",
+        "faultStatus": 0,
         "battery": "100",
         "latitude": 0,
         "longitude": 0
@@ -626,8 +626,8 @@ GET /map
 |»» scooters|[object]|true|none||none|
 |»»» id|integer|true|none||scooter主键ID|
 |»»» code|string|true|none||车辆编码|
-|»»» ride_status|integer¦null|false|none||状态：0-空闲，1-使用中|
-|»»» fault_status|integer|true|none||0-正常 1-故障|
+|»»» rideStatus|integer¦null|false|none||状态：0-空闲，1-使用中|
+|»»» faultStatus|integer|true|none||0-正常 1-故障|
 |»»» battery|integer¦null|false|none||电量|
 |»»» latitude|number¦null|false|none||纬度|
 |»»» longitude|number¦null|false|none||经度|
@@ -706,8 +706,8 @@ GET /scooter
   "data": {
     "id": 1,
     "code": "string",
-    "ride_status": "0",
-    "fault_status": 0,
+    "rideStatus": "0",
+    "faultStatus": 0,
     "battery": "100",
     "latitude": 0,
     "longitude": 0
@@ -732,8 +732,8 @@ GET /scooter
 |» data|object|true|none||none|
 |»» id|integer|true|none||主键ID|
 |»» code|string|true|none||车辆编码|
-|»» ride_status|integer¦null|false|none||状态：0-空闲，1-使用中|
-|»» fault_status|integer|true|none||0-正常 1-故障|
+|»» rideStatus|integer¦null|false|none||状态：0-空闲，1-使用中|
+|»» faultStatus|integer|true|none||0-正常 1-故障|
 |»» battery|integer¦null|false|none||电量|
 |»» latitude|number¦null|false|none||纬度|
 |»» longitude|number¦null|false|none||经度|
@@ -893,7 +893,7 @@ description: ""
   "code": 0,
   "msg": "string",
   "data": {
-    "fault_status": 0,
+    "faultStatus": 0,
     "orderId": "string"
   }
 }
@@ -914,7 +914,7 @@ description: ""
 |» code|integer|true|none||none|
 |» msg|string|true|none||none|
 |» data|object|true|none||none|
-|»» fault_status|integer|true|none||状态：0-正常，1-故障|
+|»» faultStatus|integer|true|none||状态：0-正常，1-故障|
 |»» orderId|string|true|none||如果使用中，传orderId|
 
 # 套餐接口
