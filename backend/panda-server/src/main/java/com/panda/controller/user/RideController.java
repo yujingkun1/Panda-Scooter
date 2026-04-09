@@ -1,6 +1,7 @@
 package com.panda.controller.user;
 
 import com.panda.dto.LockScooterDTO;
+import com.panda.dto.PayUnpaidOrderDTO;
 import com.panda.result.Result;
 import com.panda.service.RideService;
 import jakarta.validation.Valid;
@@ -34,6 +35,11 @@ public class RideController {
     @PostMapping("/scooter/lock")
     public Result<Object> lock(@Valid @RequestBody LockScooterDTO lockScooterDTO) {
         return Result.success(rideService.lockScooter(lockScooterDTO));
+    }
+
+    @PostMapping("/unpaid-order")
+    public Result<Object> payUnpaidOrder(@Valid @RequestBody PayUnpaidOrderDTO payUnpaidOrderDTO) {
+        return Result.success(rideService.payUnpaidOrder(payUnpaidOrderDTO));
     }
 
     @GetMapping("/ride-history")
