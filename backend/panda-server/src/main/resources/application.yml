@@ -1,34 +1,8 @@
 spring:
   application:
     name: panda-server
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/bike_system?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: root
-    password: '051213'
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 2
-      timeout: 5000ms
-  mail:
-    host: smtp.qq.com
-    port: 587
-    username: 1105554311@qq.com
-    password: ajabqtbspqutgbdg
-    protocol: smtp
-    default-encoding: UTF-8
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          timeout: 5000
-          connectiontimeout: 5000
-          writetimeout: 5000
+  profiles:
+    active: dev
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
