@@ -8,6 +8,8 @@ import com.panda.entity.Scooter;
 import com.panda.entity.UserBill;
 import com.panda.entity.UserWallet;
 import com.panda.exception.BaseException;
+import com.panda.mapper.NoParkingAreaMapper;
+import com.panda.mapper.ParkingPointMapper;
 import com.panda.mapper.RentalOrderMapper;
 import com.panda.mapper.ScooterMapper;
 import com.panda.mapper.UserBillMapper;
@@ -37,6 +39,8 @@ public class RideServiceImpl implements RideService {
     private final UserMapper userMapper;
     private final UserWalletMapper userWalletMapper;
     private final UserBillMapper userBillMapper;
+    private final NoParkingAreaMapper noParkingAreaMapper;
+    private final ParkingPointMapper parkingPointMapper;
 
     @Override
     @Transactional
@@ -257,9 +261,35 @@ public class RideServiceImpl implements RideService {
                 longitude, latitude, mapScale, radiusInMeters, minLongitude, maxLongitude, minLatitude, maxLatitude);
 
         Map<String, Object> data = new HashMap<>();
-        data.put("scooters", scooterMapper.listNearby(minLongitude, maxLongitude, minLatitude, maxLatitude));
-        data.put("noParkingAreas", List.of());
-        data.put("parkingPoints", List.of());
+        data.put("scooters", scooterMapper.listNearby(minLongitude, maxLongitude, minLatitude, maxLatitude).stream()
+                .map(item -> {
+                    Map<String, Object> scooter = new HashMap<>();
+                    scooter.put("id", item.getId());
+                    scooter.put("code", item.getCode());
+                    scooter.put("rideStatus", item.getRideStatus());
+                    scooter.put("faultStatus", item.getFaultStatus());
+                    scooter.put("battery", item.getBattery());
+                    scooter.put("latitude", item.getLatitude());
+                    scooter.put("longitude", item.getLongitude());
+                    return scooter;
+                }).toList());
+        data.put("noParkingAreas", noParkingAreaMapper.listEnabled().stream()
+                .map(item -> {
+                    Map<String, Object> area = new HashMap<>();
+                    area.put("id", item.getId());
+                    area.put("polygon", item.getPolygon());
+                    area.put("status", item.getStatus());
+                    area.put("center", resolvePolygonCenter(item.getPolygon()));
+                    return area;
+                }).toList());
+        data.put("parkingPoints", parkingPointMapper.listEnabled().stream()
+                .map(item -> {
+                    Map<String, Object> point = new HashMap<>();
+                    point.put("name", item.getName());
+                    point.put("latitude", item.getLatitude());
+                    point.put("longitude", item.getLongitude());
+                    return point;
+                }).toList());
         return data;
     }
 
@@ -303,6 +333,42 @@ public class RideServiceImpl implements RideService {
 
         return BigDecimal.valueOf(meters)
                 .divide(BigDecimal.valueOf(metersPerDegree), 10, RoundingMode.HALF_UP);
+    }
+
+    private String resolvePolygonCenter(String polygon) {
+        if (polygon == null || polygon.isBlank()) {
+            return null;
+        }
+
+        String normalized = polygon.replace("[", "").replace("]", "").trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        String[] values = normalized.split(",");
+        if (values.length < 2) {
+            return null;
+        }
+
+        BigDecimal latitudeSum = BigDecimal.ZERO;
+        BigDecimal longitudeSum = BigDecimal.ZERO;
+        int pointCount = 0;
+        for (int i = 0; i + 1 < values.length; i += 2) {
+            try {
+                latitudeSum = latitudeSum.add(new BigDecimal(values[i].trim()));
+                longitudeSum = longitudeSum.add(new BigDecimal(values[i + 1].trim()));
+                pointCount++;
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        if (pointCount == 0) {
+            return null;
+        }
+
+        BigDecimal centerLatitude = latitudeSum.divide(BigDecimal.valueOf(pointCount), 6, RoundingMode.HALF_UP);
+        BigDecimal centerLongitude = longitudeSum.divide(BigDecimal.valueOf(pointCount), 6, RoundingMode.HALF_UP);
+        return centerLatitude.toPlainString() + "," + centerLongitude.toPlainString();
     }
 
     private BigDecimal deductBalance(Long userId, BigDecimal balance, BigDecimal amount) {
