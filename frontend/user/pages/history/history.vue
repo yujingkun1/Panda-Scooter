@@ -133,16 +133,17 @@ export default {
       this.currentFilter = filter
     },
     handlePay(item) {
-      uni.showModal({
-        title: '确认支付',
-        content: `订单 ${item.orderId}，支付金额 ¥${item.amount}`,
-        confirmText: '立即支付',
-        success: async (res) => {
-          if (!res.confirm) {
-            return
-          }
+      this.withAction(`pay-${item.orderId}`, () => new Promise((resolve) => {
+        uni.showModal({
+          title: '确认支付',
+          content: `订单 ${item.orderId}，支付金额 ¥${item.amount}`,
+          confirmText: '立即支付',
+          success: async (res) => {
+            if (!res.confirm) {
+              resolve()
+              return
+            }
 
-          await this.withAction(`pay-${item.orderId}`, async () => {
             try {
               uni.showLoading({
                 title: '支付中...'
@@ -162,9 +163,11 @@ export default {
             } catch (error) {
               uni.hideLoading()
             }
-          })
-        }
-      })
+            resolve()
+          },
+          fail: resolve
+        })
+      }))
     },
     formatDateTime(value) {
       if (!value) {

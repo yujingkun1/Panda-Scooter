@@ -152,6 +152,12 @@ export default {
     this.clearTimer()
   },
   methods: {
+    redirectToLogin(email = this.form.email) {
+      const encodedEmail = encodeURIComponent(email || '')
+      uni.redirectTo({
+        url: `/pages/login/login?mode=login&email=${encodedEmail}`
+      })
+    },
     switchMode(nextMode) {
       this.mode = nextMode
       this.form = {
@@ -278,11 +284,13 @@ export default {
               title: '注册成功，请登录',
               icon: 'success'
             })
-            this.switchMode('login')
-            this.form.email = email
+            setTimeout(() => {
+              this.redirectToLogin(email)
+            }, 800)
             return
           }
 
+          const email = this.form.email
           await userPassword({
             verificationCode: this.form.verificationCode,
             newPassword: this.form.newPassword
@@ -292,9 +300,9 @@ export default {
             title: '密码已重置',
             icon: 'success'
           })
-          const email = this.form.email
-          this.switchMode('login')
-          this.form.email = email
+          setTimeout(() => {
+            this.redirectToLogin(email)
+          }, 800)
         } catch (error) {
           uni.hideLoading()
         }
