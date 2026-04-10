@@ -21,6 +21,7 @@
         :markers="markers"
         :polygons="polygons"
         :show-location="true"
+        @regionchange="handleMapRegionChange"
       ></map>
     </view>
 
@@ -100,11 +101,15 @@ export default {
       polygons: [],
       parkingPoints: [],
       subscriptionPackages: [],
-      headerUsername: '游客用户'
+      headerUsername: '游客用户',
+      mapContext: null
     }
   },
   onLoad() {
     this.initPage()
+  },
+  onReady() {
+    this.mapContext = uni.createMapContext('map', this)
   },
   onShow() {
     this.syncHeaderUser()
@@ -180,7 +185,7 @@ export default {
         const res = await getMapData({
           latitude: this.latitude,
           longitude: this.longitude,
-          scale: this.scale
+          scale: this.normalizeMapScale(this.scale)
         })
         const data = res.data || {}
         const scooters = this.mapScooters(data.scooters || [])
@@ -195,12 +200,49 @@ export default {
           ...this.mapParkingPointMarkers(parkingPoints),
           ...noParkingAreaMarkers
         ]
-        this.syncMapCenter(data, parkingPoints, noParkingAreaMarkers)
       } catch (error) {
         this.markers = []
         this.polygons = []
         this.parkingPoints = []
       }
+    },
+    getMapContext() {
+      if (!this.mapContext) {
+        this.mapContext = uni.createMapContext('map', this)
+      }
+      return this.mapContext
+    },
+    getCurrentMapScale() {
+      return new Promise((resolve, reject) => {
+        this.getMapContext().getScale({
+          success: (res) => resolve(this.normalizeMapScale(res.scale)),
+          fail: reject
+        })
+      })
+    },
+    normalizeMapScale(scale) {
+      const roundedScale = Math.round(Number(scale))
+      if (!Number.isFinite(roundedScale)) {
+        return 16
+      }
+      return Math.min(20, Math.max(3, roundedScale))
+    },
+    async handleMapRegionChange(event) {
+      if (!event || !event.detail || event.detail.type !== 'end') {
+        return
+      }
+
+      await this.withAction('reloadMapByScale', async () => {
+        try {
+          const nextScale = await this.getCurrentMapScale()
+          if (!Number.isFinite(nextScale) || nextScale === this.scale) {
+            return
+          }
+          this.scale = this.normalizeMapScale(nextScale)
+          await this.loadMapData()
+        } catch (error) {
+        }
+      })
     },
     mapScooters(list) {
       return list
@@ -242,9 +284,9 @@ export default {
           return {
             id: item.id || index + 1,
             points,
-            fillColor: 'rgba(255,0,0,0.15)',
-            strokeColor: 'rgba(255,0,0,0.45)',
-            strokeWidth: 2
+            fillColor: '#FF4D4F2E',
+            strokeColor: '#FF4D4F2E',
+            strokeWidth: 0
           }
         })
         .filter(Boolean)
@@ -363,18 +405,6 @@ export default {
       return {
         latitude: total.latitude / points.length,
         longitude: total.longitude / points.length
-      }
-    },
-    syncMapCenter(data, parkingPoints, noParkingAreaMarkers) {
-      const firstScooter = Array.isArray(data.scooters) ? data.scooters[0] : null
-      const firstPoint =
-        this.normalizePoint(firstScooter) ||
-        parkingPoints[0] ||
-        (noParkingAreaMarkers[0] && this.normalizePoint(noParkingAreaMarkers[0]))
-
-      if (firstPoint) {
-        this.latitude = firstPoint.latitude
-        this.longitude = firstPoint.longitude
       }
     },
     isValidPoint(latitude, longitude) {
@@ -633,16 +663,23 @@ export default {
 .unlock-btn {
   width: 85%;
   height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   background-color: #0b0e0d;
   color: #ffffff;
   border: none;
   border-radius: 0;
   font-size: 32rpx;
   letter-spacing: 4rpx;
+  line-height: 1;
 }
 
 .unlock-btn-text {
+  display: block;
   color: #ffffff;
+  line-height: 1;
 }
 
 .unlock-btn:disabled {

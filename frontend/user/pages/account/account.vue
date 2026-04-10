@@ -343,6 +343,7 @@ export default {
 
 .field {
   margin-bottom: 24rpx;
+  width: 100%;
 }
 
 .field-label {
@@ -359,20 +360,25 @@ export default {
   background-color: #fafaf8;
   padding: 0 24rpx;
   font-size: 28rpx;
+  box-sizing: border-box;
 }
 
 .code-row {
   display: flex;
+  align-items: stretch;
   gap: 16rpx;
+  min-width: 0;
 }
 
 .code-input {
   flex: 1;
+  min-width: 0;
 }
 
 .code-btn {
   width: 220rpx;
   height: 88rpx;
+  flex-shrink: 0;
   border: 1rpx solid #d4d4d1;
   background-color: transparent;
   color: #0b0e0d;

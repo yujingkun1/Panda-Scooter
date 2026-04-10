@@ -5,7 +5,7 @@
     </view>
 
     <view class="display-section">
-      <view class="input-display">
+      <view class="input-display" @click="focusCodeInput">
         <text class="display-label">请输入车辆二维码编号</text>
         <view class="display-value">
           <text class="prefix-tag">PDSC</text>
@@ -18,6 +18,20 @@
             <text class="char-text">{{ char }}</text>
           </text>
         </view>
+        <input
+          class="native-code-input"
+          :value="scooterCode"
+          :focus="inputFocused"
+          type="number"
+          confirm-type="done"
+          :maxlength="maxLength"
+          :adjust-position="true"
+          :cursor-spacing="24"
+          @input="handleCodeInput"
+          @blur="handleCodeBlur"
+          @confirm="confirmUnlock"
+        />
+        <text class="input-tip">点击上方编号区域，使用小程序自带数字键盘输入</text>
       </view>
 
       <view class="flashlight-section">
@@ -27,26 +41,10 @@
       </view>
     </view>
 
-    <view class="keyboard-section">
-      <view class="number-keyboard">
-        <view
-          v-for="num in numberKeys"
-          :key="num"
-          class="key-item"
-          @click="handleNumberClick(num)"
-        >
-          <text class="key-text">{{ num }}</text>
-        </view>
-        <view class="key-item delete-key" @click="deleteNumber">
-          <text class="key-text">⌫</text>
-        </view>
-      </view>
-
-      <view class="confirm-section">
-        <button class="unlock-btn" :disabled="!canUnlock || isActionPending('confirmUnlock')" @click="confirmUnlock">
-          {{ isActionPending('confirmUnlock') ? '开锁中...' : '确认开锁' }}
-        </button>
-      </view>
+    <view class="confirm-section native-confirm-section" :style="confirmSectionStyle">
+      <button class="unlock-btn" :disabled="!canUnlock || isActionPending('confirmUnlock')" @click="confirmUnlock">
+        {{ isActionPending('confirmUnlock') ? unlockLoadingText : unlockConfirmText }}
+      </button>
     </view>
   </view>
 </template>
@@ -63,8 +61,10 @@ export default {
     return {
       scooterCode: '',
       maxLength: 6,
-      numberKeys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-      isFlashlightOn: false
+      isFlashlightOn: false,
+      inputFocused: false,
+      keyboardHeight: 0,
+      keyboardHeightHandler: null
     }
   },
   computed: {
@@ -73,6 +73,17 @@ export default {
     },
     canUnlock() {
       return /^\d{6}$/.test(this.scooterCode)
+    },
+    unlockLoadingText() {
+      return '\u5f00\u9501\u4e2d...'
+    },
+    unlockConfirmText() {
+      return '\u786e\u8ba4\u5f00\u9501'
+    },
+    confirmSectionStyle() {
+      return {
+        bottom: `${this.keyboardHeight}px`
+      }
     }
   },
   onLoad(options) {
@@ -86,8 +97,15 @@ export default {
     if (options && options.code) {
       this.scooterCode = this.extractDigits(options.code)
     }
+
+    this.registerKeyboardHeightListener()
+
+    setTimeout(() => {
+      this.inputFocused = true
+    }, 0)
   },
   onUnload() {
+    this.unregisterKeyboardHeightListener()
     if (this.isFlashlightOn) {
       this.turnOffFlashlight()
     }
@@ -99,6 +117,38 @@ export default {
     normalizeScooterCode(rawCode) {
       const digits = this.extractDigits(rawCode)
       return digits.length === 6 ? `PDSC${digits}` : ''
+    },
+    focusCodeInput() {
+      this.inputFocused = false
+      setTimeout(() => {
+        this.inputFocused = true
+      }, 0)
+    },
+    handleCodeInput(event) {
+      this.scooterCode = this.extractDigits(event && event.detail ? event.detail.value : '')
+    },
+    handleCodeBlur() {
+      this.inputFocused = false
+      this.keyboardHeight = 0
+    },
+    registerKeyboardHeightListener() {
+      if (typeof uni.onKeyboardHeightChange !== 'function' || this.keyboardHeightHandler) {
+        return
+      }
+
+      this.keyboardHeightHandler = (res) => {
+        this.keyboardHeight = Math.max(Number(res && res.height) || 0, 0)
+      }
+      uni.onKeyboardHeightChange(this.keyboardHeightHandler)
+    },
+    unregisterKeyboardHeightListener() {
+      if (!this.keyboardHeightHandler || typeof uni.offKeyboardHeightChange !== 'function') {
+        this.keyboardHeightHandler = null
+        return
+      }
+
+      uni.offKeyboardHeightChange(this.keyboardHeightHandler)
+      this.keyboardHeightHandler = null
     },
     handleNumberClick(num) {
       if (this.scooterCode.length >= this.maxLength) {
@@ -232,6 +282,7 @@ export default {
 
 .input-display {
   margin-bottom: 48rpx;
+  position: relative;
 }
 
 .display-label {
@@ -284,6 +335,20 @@ export default {
   border-bottom-color: #0b0e0d;
 }
 
+.native-code-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.input-tip {
+  display: block;
+  margin-top: 28rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: #737373;
+}
+
 .flashlight-section {
   margin-top: 48rpx;
 }
@@ -312,10 +377,7 @@ export default {
 }
 
 .keyboard-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0 32rpx 48rpx;
+  display: none;
 }
 
 .number-keyboard {
@@ -357,7 +419,21 @@ export default {
   margin-top: auto;
 }
 
+.native-confirm-section {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 0 32rpx 48rpx;
+  background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #fafaf8 32%);
+  transition: bottom 0.2s ease;
+}
+
 .unlock-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: #0b0e0d;
   color: #ffffff;
   border: none;

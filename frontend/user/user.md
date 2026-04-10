@@ -25,6 +25,8 @@ Base URLs:
 
 # Authentication
 
+- HTTP Authentication, scheme: bearer
+
 # 用户接口/账单接口
 
 ## POST 用户充值消费
@@ -48,7 +50,7 @@ POST /user/bill
 |body|body|object| 是 |none|
 |» type|body|integer| 是 |流水类型：1-骑行消费，2-充值，3-退款，4-购买套餐|
 |» amount|body|number| 是 |变动金额（正数为进账，负数为支出）|
-|» remark|body|string| 是 |流水备注（如：购买套餐，账户充值，骑行消费）|
+|» remark|body|string| 否 |流水备注（如：购买套餐，账户充值，骑行消费）|
 
 > 返回示例
 
@@ -511,6 +513,55 @@ GET /ride-history
 |»»» amount|number¦null|false|none||金额|
 |»»» totalKilometer|number¦null|false|none||总里程|
 
+## POST 支付未支付订单
+
+POST /unpaid-order
+
+> Body 请求参数
+
+```json
+{
+  "orderId": 1,
+  "amount": "0.00"
+}
+```
+
+### 请求参数
+
+|名称|位置|类型|必选|说明|
+|---|---|---|---|---|
+|body|body|object| 是 |none|
+|» orderId|body|integer| 是 |主键ID|
+|» amount|body|number¦null| 否 |金额|
+
+> 返回示例
+
+> 200 Response
+
+```json
+{
+  "code": 0,
+  "msg": "string",
+  "data": {}
+}
+```
+
+### 返回结果
+
+|状态码|状态码含义|说明|数据模型|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|none|Inline|
+
+### 返回数据结构
+
+状态码 **200**
+
+|名称|类型|必选|约束|中文名|说明|
+|---|---|---|---|---|---|
+|» code|integer|true|none||none|
+|» msg|string|true|none||none|
+|» data|object|true|none||none|
+
 # 用户接口/个人信息接口
 
 ## GET 查询个人信息
@@ -600,6 +651,7 @@ GET /map
     ],
     "parkingPoints": [
       {
+        "name": "string",
         "latitude": 0,
         "longitude": 0
       }
@@ -637,6 +689,7 @@ GET /map
 |»»» status|integer¦null|false|none||状态：1-启用，0-禁用|
 |»»» center|string|true|none||禁停多边形中心点坐标|
 |»» parkingPoints|[object]|true|none||none|
+|»»» name|string|true|none||none|
 |»»» latitude|number|true|none||none|
 |»»» longitude|number|true|none||none|
 
@@ -662,7 +715,7 @@ POST /scooter/unlock
   "msg": "string",
   "data": {
     "orderId": 0,
-    "scooterId": "string"
+    "scooterId": 0
   }
 }
 ```
@@ -683,7 +736,7 @@ POST /scooter/unlock
 |» msg|string|true|none||none|
 |» data|object|true|none||none|
 |»» orderId|integer|true|none||none|
-|»» scooterId|string|true|none||none|
+|»» scooterId|integer|true|none||none|
 
 ## GET 扫码获取小车信息
 
@@ -893,7 +946,7 @@ description: ""
   "code": 0,
   "msg": "string",
   "data": {
-    "faultStatus": 0,
+    "fault_status": 0,
     "orderId": "string"
   }
 }
@@ -914,7 +967,7 @@ description: ""
 |» code|integer|true|none||none|
 |» msg|string|true|none||none|
 |» data|object|true|none||none|
-|»» faultStatus|integer|true|none||状态：0-正常，1-故障|
+|»» fault_status|integer|true|none||状态：0-正常，1-故障|
 |»» orderId|string|true|none||如果使用中，传orderId|
 
 # 套餐接口

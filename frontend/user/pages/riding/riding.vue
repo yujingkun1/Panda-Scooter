@@ -6,7 +6,6 @@
         :latitude="currentLatitude"
         :longitude="currentLongitude"
         :scale="scale"
-        :markers="markers"
         :polyline="polyline"
         :show-location="true"
       ></map>
@@ -74,9 +73,6 @@ const FEE_PER_MINUTE = 0.2
 const FEE_PER_KILOMETER = 1
 const BATTERY_COST_PER_KILOMETER = 4
 const DEFAULT_SCALE = 17
-
-const SCOOTER_MARKER_ICON = '/static/scooter.svg'
-const START_MARKER_ICON = '/static/parking.svg'
 
 export default {
   mixins: [actionGuard],
@@ -161,32 +157,6 @@ export default {
         color: '#0b0e0d',
         width: 4
       }]
-    },
-    markers() {
-      const markers = []
-      const firstPoint = this.ride.routePoints[0]
-
-      if (firstPoint) {
-        markers.push({
-          id: 1,
-          latitude: firstPoint.latitude,
-          longitude: firstPoint.longitude,
-          iconPath: START_MARKER_ICON,
-          width: 24,
-          height: 24
-        })
-      }
-
-      markers.push({
-        id: 2,
-        latitude: this.currentLatitude,
-        longitude: this.currentLongitude,
-        iconPath: SCOOTER_MARKER_ICON,
-        width: 34,
-        height: 34
-      })
-
-      return markers
     }
   },
   async onLoad() {

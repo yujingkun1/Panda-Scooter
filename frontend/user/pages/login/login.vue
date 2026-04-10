@@ -152,10 +152,13 @@ export default {
     this.clearTimer()
   },
   methods: {
-    redirectToLogin(email = this.form.email) {
+    redirectToLogin(email = '') {
       const encodedEmail = encodeURIComponent(email || '')
+      const url = encodedEmail
+        ? `/pages/login/login?mode=login&email=${encodedEmail}`
+        : '/pages/login/login?mode=login'
       uni.redirectTo({
-        url: `/pages/login/login?mode=login&email=${encodedEmail}`
+        url
       })
     },
     switchMode(nextMode) {
@@ -266,14 +269,13 @@ export default {
             })
             setTimeout(() => {
               uni.reLaunch({
-                url: '/pages/profile/profile'
+                url: '/pages/index/index'
               })
             }, 800)
             return
           }
 
           if (this.mode === 'signup') {
-            const email = this.form.email
             await userSignin({
               email: this.form.email,
               password: this.form.password,
@@ -285,7 +287,7 @@ export default {
               icon: 'success'
             })
             setTimeout(() => {
-              this.redirectToLogin(email)
+              this.redirectToLogin()
             }, 800)
             return
           }
@@ -379,6 +381,7 @@ export default {
 
 .field {
   margin-bottom: 28rpx;
+  width: 100%;
 }
 
 .label {
@@ -396,20 +399,25 @@ export default {
   padding: 0 24rpx;
   font-size: 28rpx;
   color: #0b0e0d;
+  box-sizing: border-box;
 }
 
 .inline-field {
   display: flex;
+  align-items: stretch;
   gap: 16rpx;
+  min-width: 0;
 }
 
 .inline-input {
   flex: 1;
+  min-width: 0;
 }
 
 .code-btn {
   width: 220rpx;
   height: 88rpx;
+  flex-shrink: 0;
   border: 1rpx solid #d4d4d1;
   background-color: transparent;
   color: #0b0e0d;

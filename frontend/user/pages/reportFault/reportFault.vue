@@ -193,10 +193,10 @@ export default {
 .form-section { padding: 32rpx; }
 .form-item { margin-bottom: 32rpx; background-color: #fff; padding: 40rpx 32rpx; border: 1rpx solid #e5e5e2; }
 .form-label { display: block; margin-bottom: 24rpx; font-size: 26rpx; color: #0b0e0d; }
-.input-wrapper { display: flex; align-items: center; gap: 20rpx; }
-.input { flex: 1; height: 88rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 0 28rpx; font-size: 28rpx; }
-.scan-btn { height: 88rpx; padding: 0 40rpx; background-color: transparent; border: 1rpx solid #d4d4d1; border-radius: 0; color: #0b0e0d; }
-.textarea { width: 100%; min-height: 240rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 24rpx 28rpx; font-size: 28rpx; }
+.input-wrapper { display: flex; align-items: stretch; gap: 20rpx; min-width: 0; }
+.input { flex: 1; min-width: 0; height: 88rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 0 28rpx; font-size: 28rpx; box-sizing: border-box; }
+.scan-btn { height: 88rpx; flex-shrink: 0; padding: 0 40rpx; background-color: transparent; border: 1rpx solid #d4d4d1; border-radius: 0; color: #0b0e0d; }
+.textarea { width: 100%; min-height: 240rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 24rpx 28rpx; font-size: 28rpx; box-sizing: border-box; }
 .char-count { display: block; text-align: right; margin-top: 12rpx; font-size: 22rpx; color: #737373; }
 .upload-section { display: flex; flex-wrap: wrap; gap: 20rpx; }
 .photo-item { position: relative; width: 200rpx; height: 200rpx; border: 1rpx solid #e5e5e2; overflow: hidden; }

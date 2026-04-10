@@ -132,7 +132,7 @@ export default {
         const res = await getMapData({
           latitude: this.latitude,
           longitude: this.longitude,
-          scale: this.scale
+          scale: this.normalizeMapScale(this.scale)
         })
         const data = res.data || {}
         const points = this.normalizeParkingPoints(data.parkingPoints || [])
@@ -169,12 +169,19 @@ export default {
         this.selectParkingPoint(current)
       }
     },
+    normalizeMapScale(scale) {
+      const roundedScale = Math.round(Number(scale))
+      if (!Number.isFinite(roundedScale)) {
+        return 17
+      }
+      return Math.min(20, Math.max(3, roundedScale))
+    },
     selectParkingPoint(item, adjustScale = true) {
       this.selectedParkingId = item.id
       this.latitude = item.latitude
       this.longitude = item.longitude
       if (adjustScale) {
-        this.scale = 18
+        this.scale = this.normalizeMapScale(18)
       }
     },
     clearKeyword() {
@@ -215,6 +222,7 @@ export default {
 .search-box {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 20rpx;
   padding: 0 24rpx;
   height: 88rpx;
@@ -224,11 +232,13 @@ export default {
 
 .search-input {
   flex: 1;
+  min-width: 0;
   font-size: 28rpx;
   color: #0b0e0d;
 }
 
 .clear-btn {
+  flex-shrink: 0;
   font-size: 24rpx;
   color: #737373;
 }

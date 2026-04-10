@@ -13,7 +13,7 @@
       <view class="balance-section">
         <view class="balance-label">我的余额</view>
         <view class="balance-amount">¥{{ balance }}</view>
-        <button class="recharge-btn" @click="showRechargePopup = true">去充值</button>
+        <button class="recharge-btn" @click="openRechargePopup">{{ rechargeButtonText }}</button>
       </view>
 
       <view class="card-section">
@@ -42,7 +42,7 @@
     </template>
 
     <view v-if="showRechargePopup" class="popup-mask" @click="closeRechargePopup"></view>
-    <view v-if="showRechargePopup" class="popup-content">
+    <view v-if="showRechargePopup" class="popup-content" :style="popupStyle">
       <view class="popup-header">
         <text class="popup-title">充值金额</text>
         <text class="popup-close" @click="closeRechargePopup">✕</text>
@@ -56,6 +56,11 @@
             type="digit"
             placeholder="请输入充值金额"
             :maxlength="10"
+            :focus="rechargeInputFocused"
+            :adjust-position="false"
+            :cursor-spacing="24"
+            @focus="handleRechargeFocus"
+            @blur="handleRechargeBlur"
           />
         </view>
         <button class="confirm-recharge-btn" :disabled="isActionPending('confirmRecharge')" @click="confirmRecharge">
@@ -78,14 +83,33 @@ export default {
       balance: '0.00',
       ridingCards: [],
       showRechargePopup: false,
-      rechargeAmount: ''
+      rechargeAmount: '',
+      rechargeInputFocused: false,
+      keyboardHeight: 0,
+      keyboardHeightHandler: null
     }
+  },
+  computed: {
+    popupStyle() {
+      return {
+        bottom: `${this.keyboardHeight}px`
+      }
+    },
+    rechargeButtonText() {
+      return '\u53bb\u5145\u503c'
+    }
+  },
+  onLoad() {
+    this.registerKeyboardHeightListener()
   },
   onShow() {
     this.hasToken = Boolean(uni.getStorageSync('token'))
     if (this.hasToken) {
       this.loadWalletData()
     }
+  },
+  onUnload() {
+    this.unregisterKeyboardHeightListener()
   },
   methods: {
     async loadWalletData() {
@@ -116,13 +140,55 @@ export default {
         url: '/pages/login/login?mode=login'
       })
     },
-    closeRechargePopup() {
-      if (this.isActionPending('confirmRecharge')) {
+    openRechargePopup() {
+      this.showRechargePopup = true
+      this.keyboardHeight = 0
+      this.rechargeInputFocused = false
+      setTimeout(() => {
+        this.rechargeInputFocused = true
+      }, 0)
+    },
+    closeRechargePopup(force = false) {
+      if (!force && this.isActionPending('confirmRecharge')) {
         return
       }
 
+      this.rechargeInputFocused = false
+      this.keyboardHeight = 0
       this.showRechargePopup = false
       this.rechargeAmount = ''
+      if (typeof uni.hideKeyboard === 'function') {
+        uni.hideKeyboard()
+      }
+    },
+    registerKeyboardHeightListener() {
+      if (typeof uni.onKeyboardHeightChange !== 'function' || this.keyboardHeightHandler) {
+        return
+      }
+
+      this.keyboardHeightHandler = (res) => {
+        if (!this.showRechargePopup) {
+          return
+        }
+        this.keyboardHeight = Math.max(Number(res && res.height) || 0, 0)
+      }
+      uni.onKeyboardHeightChange(this.keyboardHeightHandler)
+    },
+    unregisterKeyboardHeightListener() {
+      if (!this.keyboardHeightHandler || typeof uni.offKeyboardHeightChange !== 'function') {
+        this.keyboardHeightHandler = null
+        return
+      }
+
+      uni.offKeyboardHeightChange(this.keyboardHeightHandler)
+      this.keyboardHeightHandler = null
+    },
+    handleRechargeFocus() {
+      this.rechargeInputFocused = true
+    },
+    handleRechargeBlur() {
+      this.rechargeInputFocused = false
+      this.keyboardHeight = 0
     },
     async confirmRecharge() {
       const amount = parseFloat(this.rechargeAmount)
@@ -145,7 +211,7 @@ export default {
             remark: '账户充值'
           })
           uni.hideLoading()
-          this.closeRechargePopup()
+          this.closeRechargePopup(true)
           await this.loadWalletData()
           uni.showToast({
             title: '充值成功',
@@ -328,9 +394,11 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 20;
   background-color: #ffffff;
   padding: 48rpx 32rpx 32rpx;
   border-top: 1rpx solid #e5e5e2;
+  transition: bottom 0.2s ease;
 }
 
 .popup-header {
@@ -353,6 +421,7 @@ export default {
 .input-section {
   display: flex;
   align-items: center;
+  min-width: 0;
   margin-bottom: 32rpx;
   padding: 28rpx 32rpx;
   border: 1rpx solid #e5e5e2;
@@ -366,7 +435,9 @@ export default {
 
 .amount-input {
   flex: 1;
+  min-width: 0;
   font-size: 36rpx;
+  box-sizing: border-box;
 }
 
 .confirm-recharge-btn {

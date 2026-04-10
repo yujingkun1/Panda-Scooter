@@ -61,7 +61,7 @@
               </view>
             </view>
 
-            <view v-if="!item.isPaid" class="pay-action">
+            <view v-if="item.canPay" class="pay-action">
               <button class="pay-btn" :disabled="isActionPending(`pay-${item.orderId}`)" @click="handlePay(item)">
                 {{ isActionPending(`pay-${item.orderId}`) ? '支付中...' : '立即支付' }}
               </button>
@@ -116,15 +116,18 @@ export default {
       }
     },
     normalizeHistory(item, index) {
+      const orderId = Number(item.id || item.orderId || 0) || null
       const isPaid = Number(item.payStatus) === 1 || item.isPaid === true
+      const isUnpaidOrder = Number(item.orderStatus) === 1 && Number(item.payStatus) === 0
       return {
-        id: item.id || index + 1,
-        orderId: item.id || '--',
+        id: orderId || index + 1,
+        orderId: orderId || '--',
         orderTime: this.formatDateTime(item.startTime),
         duration: item.totalTime || this.mapOrderStatus(item.orderStatus),
         distance: this.formatAmount(item.totalKilometer),
         amount: this.formatAmount(item.amount),
         isPaid,
+        canPay: Boolean(orderId) && (isUnpaidOrder || !isPaid),
         paidStatus: isPaid ? '已支付' : '未支付',
         paidStatusClass: isPaid ? 'status-paid' : 'status-unpaid'
       }
@@ -149,11 +152,12 @@ export default {
                 title: '支付中...'
               })
               await payUnpaidOrder({
-                orderId: Number(item.orderId),
+                orderId: item.orderId,
                 amount: Number(item.amount)
               })
               uni.hideLoading()
               item.isPaid = true
+              item.canPay = false
               item.paidStatus = '已支付'
               item.paidStatusClass = 'status-paid'
               uni.showToast({
