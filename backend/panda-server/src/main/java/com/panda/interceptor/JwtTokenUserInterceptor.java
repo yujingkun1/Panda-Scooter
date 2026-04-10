@@ -21,7 +21,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String token = request.getHeader("Authorization");
         if (token == null || token.isBlank()) {
-            throw new BaseException("NOT_LOGIN");
+            throw new BaseException("未登录");
         }
         if (token.startsWith("Bearer ")) {
             token = token.substring(7);
@@ -32,7 +32,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             BaseContext.setCurrentId(userId);
             return true;
         } catch (Exception e) {
-            throw new BaseException("登录失效");
+            throw new BaseException("登录已失效，请重新登录");
         }
     }
 
