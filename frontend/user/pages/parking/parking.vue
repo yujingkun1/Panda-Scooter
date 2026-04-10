@@ -37,7 +37,7 @@
           @click="selectParkingPoint(item)"
         >
           <text class="result-name">{{ item.name }}</text>
-          <text class="result-location">{{ formatCoordinate(item.latitude, item.longitude) }}</text>
+          <text class="result-location">{{ formatDistance(item.distance) }}</text>
         </view>
         <view v-if="!filteredParkingPoints.length" class="empty-state">
           <text class="empty-text">暂无匹配的停车点</text>
@@ -62,6 +62,8 @@ export default {
     return {
       latitude: DEFAULT_LOCATION.latitude,
       longitude: DEFAULT_LOCATION.longitude,
+      originLatitude: DEFAULT_LOCATION.latitude,
+      originLongitude: DEFAULT_LOCATION.longitude,
       scale: 17,
       keyword: '',
       selectedParkingId: null,
@@ -122,6 +124,8 @@ export default {
         const location = await this.getLocation()
         this.latitude = Number(location.latitude)
         this.longitude = Number(location.longitude)
+        this.originLatitude = Number(location.latitude)
+        this.originLongitude = Number(location.longitude)
       } catch (error) {
       }
 
@@ -158,10 +162,12 @@ export default {
             id: index + 1,
             name: item.name || `停车点 ${index + 1}`,
             latitude,
-            longitude
+            longitude,
+            distance: this.calculateDistance(this.originLatitude, this.originLongitude, latitude, longitude)
           }
         })
         .filter(Boolean)
+        .sort((first, second) => first.distance - second.distance)
     },
     handleMarkerTap(event) {
       const current = this.filteredParkingPoints.find((item) => item.id === event.detail.markerId)
@@ -190,8 +196,24 @@ export default {
         this.selectParkingPoint(this.parkingPoints[0], false)
       }
     },
-    formatCoordinate(latitude, longitude) {
-      return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    calculateDistance(fromLatitude, fromLongitude, toLatitude, toLongitude) {
+      const toRadians = (degree) => degree * (Math.PI / 180)
+      const earthRadius = 6371000
+      const deltaLatitude = toRadians(toLatitude - fromLatitude)
+      const deltaLongitude = toRadians(toLongitude - fromLongitude)
+      const startLatitude = toRadians(fromLatitude)
+      const endLatitude = toRadians(toLatitude)
+      const haversine = Math.sin(deltaLatitude / 2) ** 2
+        + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(deltaLongitude / 2) ** 2
+      const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+      return earthRadius * arc
+    },
+    formatDistance(distance) {
+      const meters = Number(distance || 0)
+      if (meters < 1000) {
+        return `直线距离 ${Math.round(meters)} m`
+      }
+      return `直线距离 ${(meters / 1000).toFixed(2)} km`
     }
   }
 }
