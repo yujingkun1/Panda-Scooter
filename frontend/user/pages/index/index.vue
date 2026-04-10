@@ -25,8 +25,8 @@
     </view>
 
     <view class="unlock-section">
-      <button class="unlock-btn" @click="scanUnlock">
-        <text class="unlock-btn-text">扫码开锁</text>
+      <button class="unlock-btn" :disabled="isActionPending('scanUnlock') || isActionPending('unlockByCode')" @click="scanUnlock">
+        <text class="unlock-btn-text">{{ isActionPending('scanUnlock') || isActionPending('unlockByCode') ? '处理中...' : '扫码开锁' }}</text>
       </button>
     </view>
 
@@ -60,7 +60,9 @@
             <text class="subscription-desc">{{ pkg.description || '骑行套餐' }}</text>
             <text class="subscription-price">¥{{ formatAmount(pkg.price) }}</text>
           </view>
-          <button class="subscription-btn" @click="handleSubscription(pkg)">查看详情</button>
+          <button class="subscription-btn" :disabled="isActionPending('viewSubscription')" @click="handleSubscription(pkg)">
+            {{ isActionPending('viewSubscription') ? '处理中...' : '查看详情' }}
+          </button>
         </view>
       </view>
       <view v-else class="empty-state">
@@ -71,6 +73,7 @@
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getMapData, getScooterInfo, getSubscriptions, unlockScooter } from '@/api/index'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
@@ -87,6 +90,7 @@ const MARKER_ICONS = {
 }
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       latitude: DEFAULT_LOCATION.latitude,
@@ -113,9 +117,12 @@ export default {
         return true
       }
 
-      uni.navigateTo({
-        url: '/pages/login/login?mode=login'
-      })
+      this.withAction('loginRedirect', () => new Promise((resolve) => {
+        uni.navigateTo({
+          url: '/pages/login/login?mode=login',
+          complete: resolve
+        })
+      }))
       return false
     },
     syncHeaderUser() {
@@ -378,18 +385,21 @@ export default {
         return
       }
 
-      uni.scanCode({
-        success: async (res) => {
-          const code = this.extractScooterCode(res.result)
-          await this.unlockByCode(code)
-        },
-        fail: () => {
-          uni.showToast({
-            title: '扫码失败，请重试',
-            icon: 'none'
-          })
-        }
-      })
+      this.withAction('scanUnlock', () => new Promise((resolve) => {
+        uni.scanCode({
+          success: async (res) => {
+            const code = this.extractScooterCode(res.result)
+            await this.unlockByCode(code)
+          },
+          fail: () => {
+            uni.showToast({
+              title: '扫码失败，请重试',
+              icon: 'none'
+            })
+          },
+          complete: resolve
+        })
+      }))
     },
     extractScooterCode(rawCode) {
       const value = String(rawCode || '').trim()
@@ -434,65 +444,78 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '正在开锁...'
-        })
-        const normalizedCode = this.normalizeScooterCode(code)
-        const scooterRes = await getScooterInfo(normalizedCode)
-        const scooterInfo = scooterRes.data || {}
-        const res = await unlockScooter(normalizedCode)
-        uni.hideLoading()
-        uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
-          ...(res.data || {}),
-          scooterCode: normalizedCode,
-          scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
-          battery: Number(scooterInfo.battery || 0),
-          rideStatus: scooterInfo.rideStatus || 1,
-          faultStatus: scooterInfo.faultStatus || 0,
-          currentLatitude: Number(scooterInfo.latitude || this.latitude),
-          currentLongitude: Number(scooterInfo.longitude || this.longitude),
-          routePoints: [],
-          startTime: new Date().toISOString(),
-          totalKilometer: 0,
-          amount: 0,
-          active: true
-        })
-        uni.navigateTo({
-          url: '/pages/riding/riding'
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+      await this.withAction('unlockByCode', async () => {
+        try {
+          uni.showLoading({
+            title: '正在开锁...'
+          })
+          const normalizedCode = this.normalizeScooterCode(code)
+          const scooterRes = await getScooterInfo(normalizedCode)
+          const scooterInfo = scooterRes.data || {}
+          const res = await unlockScooter(normalizedCode)
+          uni.hideLoading()
+          uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
+            ...(res.data || {}),
+            scooterCode: normalizedCode,
+            scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
+            battery: Number(scooterInfo.battery || 0),
+            rideStatus: scooterInfo.rideStatus || 1,
+            faultStatus: scooterInfo.faultStatus || 0,
+            currentLatitude: Number(scooterInfo.latitude || this.latitude),
+            currentLongitude: Number(scooterInfo.longitude || this.longitude),
+            routePoints: [],
+            startTime: new Date().toISOString(),
+            totalKilometer: 0,
+            amount: 0,
+            active: true
+          })
+          await this.withAction('goRiding', () => new Promise((resolve) => {
+            uni.navigateTo({
+              url: '/pages/riding/riding',
+              complete: resolve
+            })
+          }))
+        } catch (error) {
+          uni.hideLoading()
+        }
+      })
     },
     showParkingPoints() {
       if (!this.ensureLoggedIn()) {
         return
       }
 
-      uni.navigateTo({
-        url: '/pages/parking/parking'
-      })
+      this.withAction('goParking', () => new Promise((resolve) => {
+        uni.navigateTo({
+          url: '/pages/parking/parking',
+          complete: resolve
+        })
+      }))
     },
     showRideNotice() {
       if (!this.ensureLoggedIn()) {
         return
       }
 
-      uni.showModal({
-        title: '骑行须知',
-        content: '请佩戴头盔、遵守交通规则，并在指定区域规范停车。',
-        showCancel: false
-      })
+      this.withAction('showRideNotice', () => new Promise((resolve) => {
+        uni.showModal({
+          title: '骑行须知',
+          content: '请佩戴头盔、遵守交通规则，并在指定区域规范停车。',
+          showCancel: false,
+          complete: resolve
+        })
+      }))
     },
     handleSubscription(pkg) {
       if (!this.ensureLoggedIn()) {
         return
       }
 
-      uni.showToast({
-        title: `${pkg.title} 购买功能暂未开放`,
-        icon: 'none'
+      this.withAction('viewSubscription', async () => {
+        uni.showToast({
+          title: `${pkg.title} 购买功能暂未开放`,
+          icon: 'none'
+        })
       })
     },
     navigateTo(page) {
@@ -501,15 +524,21 @@ export default {
       }
 
       if (page === 'fault') {
-        uni.navigateTo({
-          url: '/pages/reportFault/reportFault'
-        })
+        this.withAction('goFault', () => new Promise((resolve) => {
+          uni.navigateTo({
+            url: '/pages/reportFault/reportFault',
+            complete: resolve
+          })
+        }))
         return
       }
       if (page === 'unlock') {
-        uni.navigateTo({
-          url: '/pages/unlock/unlock'
-        })
+        this.withAction('goUnlock', () => new Promise((resolve) => {
+          uni.navigateTo({
+            url: '/pages/unlock/unlock',
+            complete: resolve
+          })
+        }))
       }
     },
     navigateToProfile() {
@@ -517,9 +546,12 @@ export default {
         return
       }
 
-      uni.navigateTo({
-        url: '/pages/profile/profile'
-      })
+      this.withAction('goProfile', () => new Promise((resolve) => {
+        uni.navigateTo({
+          url: '/pages/profile/profile',
+          complete: resolve
+        })
+      }))
     },
     formatAmount(value) {
       const amount = Number(value || 0)
@@ -611,6 +643,10 @@ export default {
 
 .unlock-btn-text {
   color: #ffffff;
+}
+
+.unlock-btn:disabled {
+  background-color: #d4d4d1;
 }
 
 .function-area {
@@ -711,6 +747,11 @@ export default {
   border-radius: 0;
   padding: 20rpx 40rpx;
   font-size: 24rpx;
+}
+
+.subscription-btn[disabled] {
+  color: #999999;
+  border-color: #e5e5e2;
 }
 
 .empty-state {

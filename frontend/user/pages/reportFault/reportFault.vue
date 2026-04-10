@@ -52,7 +52,9 @@
       </view>
 
       <view class="submit-section">
-        <button class="submit-btn" @click="submitReport">确认提交</button>
+        <button class="submit-btn" :disabled="isActionPending('submitReport')" @click="submitReport">
+          {{ isActionPending('submitReport') ? '提交中...' : '确认提交' }}
+        </button>
       </view>
 
       <view class="history-link" @click="navigateToHistory">
@@ -63,9 +65,11 @@
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getScooterInfo, reportFault } from '@/api/index'
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       hasToken: false,
@@ -138,35 +142,37 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '提交中...'
-        })
-        let scooterId = Number(this.scooterCode.trim())
-        if (!Number.isFinite(scooterId)) {
-          const scooterRes = await getScooterInfo(this.scooterCode.trim())
-          scooterId = Number(scooterRes.data && scooterRes.data.id) || 0
-        }
-        await reportFault({
-          scooterId,
-          scooterCode: this.scooterCode.trim(),
-          description: this.faultReason.trim(),
-          image: ''
-        })
-        uni.hideLoading()
-        uni.showModal({
-          title: '提交成功',
-          content: '感谢你的反馈，我们会尽快处理。',
-          showCancel: false,
-          success: () => {
-            uni.navigateTo({
-              url: '/pages/faults/faults'
-            })
+      await this.withAction('submitReport', async () => {
+        try {
+          uni.showLoading({
+            title: '提交中...'
+          })
+          let scooterId = Number(this.scooterCode.trim())
+          if (!Number.isFinite(scooterId)) {
+            const scooterRes = await getScooterInfo(this.scooterCode.trim())
+            scooterId = Number(scooterRes.data && scooterRes.data.id) || 0
           }
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+          await reportFault({
+            scooterId,
+            scooterCode: this.scooterCode.trim(),
+            description: this.faultReason.trim(),
+            image: ''
+          })
+          uni.hideLoading()
+          uni.showModal({
+            title: '提交成功',
+            content: '感谢你的反馈，我们会尽快处理。',
+            showCancel: false,
+            success: () => {
+              uni.navigateTo({
+                url: '/pages/faults/faults'
+              })
+            }
+          })
+        } catch (error) {
+          uni.hideLoading()
+        }
+      })
     },
     navigateToHistory() {
       uni.navigateTo({
@@ -202,6 +208,7 @@ export default {
 .upload-tip { display: block; margin-top: 16rpx; font-size: 22rpx; color: #737373; }
 .submit-section { margin-top: 64rpx; }
 .submit-btn { background-color: #0b0e0d; color: #fff; border: none; border-radius: 0; font-size: 32rpx; letter-spacing: 4rpx; }
+.submit-btn[disabled] { background-color: #d4d4d1; }
 .history-link { margin-top: 40rpx; padding: 40rpx 32rpx; text-align: center; background-color: #fff; border: 1rpx solid #e5e5e2; }
 .link-text { font-size: 28rpx; color: #737373; }
 </style>

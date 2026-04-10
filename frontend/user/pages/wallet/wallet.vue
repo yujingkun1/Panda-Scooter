@@ -58,16 +58,20 @@
             :maxlength="10"
           />
         </view>
-        <button class="confirm-recharge-btn" @click="confirmRecharge">确认充值</button>
+        <button class="confirm-recharge-btn" :disabled="isActionPending('confirmRecharge')" @click="confirmRecharge">
+          {{ isActionPending('confirmRecharge') ? '充值中...' : '确认充值' }}
+        </button>
       </view>
     </view>
   </view>
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getUserWallet, userBill } from '@/api/index'
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       hasToken: false,
@@ -113,6 +117,10 @@ export default {
       })
     },
     closeRechargePopup() {
+      if (this.isActionPending('confirmRecharge')) {
+        return
+      }
+
       this.showRechargePopup = false
       this.rechargeAmount = ''
     },
@@ -126,25 +134,27 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '充值中...'
-        })
-        await userBill({
-          type: 2,
-          amount,
-          remark: '账户充值'
-        })
-        uni.hideLoading()
-        this.closeRechargePopup()
-        await this.loadWalletData()
-        uni.showToast({
-          title: '充值成功',
-          icon: 'success'
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+      await this.withAction('confirmRecharge', async () => {
+        try {
+          uni.showLoading({
+            title: '充值中...'
+          })
+          await userBill({
+            type: 2,
+            amount,
+            remark: '账户充值'
+          })
+          uni.hideLoading()
+          this.closeRechargePopup()
+          await this.loadWalletData()
+          uni.showToast({
+            title: '充值成功',
+            icon: 'success'
+          })
+        } catch (error) {
+          uni.hideLoading()
+        }
+      })
     },
     navigateToBill() {
       uni.navigateTo({
@@ -364,5 +374,9 @@ export default {
   color: #ffffff;
   border: none;
   border-radius: 0;
+}
+
+.confirm-recharge-btn:disabled {
+  background-color: #d4d4d1;
 }
 </style>

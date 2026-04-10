@@ -62,7 +62,9 @@
             </view>
 
             <view v-if="!item.isPaid" class="pay-action">
-              <button class="pay-btn" @click="handlePay(item)">立即支付</button>
+              <button class="pay-btn" :disabled="isActionPending(`pay-${item.orderId}`)" @click="handlePay(item)">
+                {{ isActionPending(`pay-${item.orderId}`) ? '支付中...' : '立即支付' }}
+              </button>
             </view>
           </view>
         </view>
@@ -75,9 +77,11 @@
 </template>
 
 <script>
-import { getRideHistory } from '@/api/index'
+import actionGuard from '@/mixins/actionGuard'
+import { getRideHistory, payUnpaidOrder } from '@/api/index'
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       hasToken: false,
@@ -137,17 +141,27 @@ export default {
           if (!res.confirm) {
             return
           }
-          uni.showLoading({
-            title: '支付中...'
-          })
-          await new Promise((resolve) => setTimeout(resolve, 800))
-          uni.hideLoading()
-          item.isPaid = true
-          item.paidStatus = '已支付'
-          item.paidStatusClass = 'status-paid'
-          uni.showToast({
-            title: '支付成功',
-            icon: 'success'
+
+          await this.withAction(`pay-${item.orderId}`, async () => {
+            try {
+              uni.showLoading({
+                title: '支付中...'
+              })
+              await payUnpaidOrder({
+                orderId: Number(item.orderId),
+                amount: Number(item.amount)
+              })
+              uni.hideLoading()
+              item.isPaid = true
+              item.paidStatus = '已支付'
+              item.paidStatusClass = 'status-paid'
+              uni.showToast({
+                title: '支付成功',
+                icon: 'success'
+              })
+            } catch (error) {
+              uni.hideLoading()
+            }
           })
         }
       })
@@ -205,6 +219,7 @@ export default {
 .info-divider { width: 1rpx; background-color: #e5e5e2; margin: 0 40rpx; }
 .pay-action { padding: 24rpx 32rpx 32rpx; border-top: 1rpx solid #e5e5e2; }
 .pay-btn { background-color: transparent; color: #0b0e0d; border: 1rpx solid #d4d4d1; border-radius: 0; }
+.pay-btn[disabled] { color: #999999; border-color: #e5e5e2; }
 .empty-history { padding: 128rpx 32rpx; text-align: center; }
 .empty-text { font-size: 24rpx; color: #737373; }
 </style>

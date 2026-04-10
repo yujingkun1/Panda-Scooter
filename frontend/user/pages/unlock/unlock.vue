@@ -43,18 +43,22 @@
       </view>
 
       <view class="confirm-section">
-        <button class="unlock-btn" :disabled="!canUnlock" @click="confirmUnlock">确认开锁</button>
+        <button class="unlock-btn" :disabled="!canUnlock || isActionPending('confirmUnlock')" @click="confirmUnlock">
+          {{ isActionPending('confirmUnlock') ? '开锁中...' : '确认开锁' }}
+        </button>
       </view>
     </view>
   </view>
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getScooterInfo, unlockScooter } from '@/api/index'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       scooterCode: '',
@@ -148,49 +152,51 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '正在开锁...'
-        })
-        const normalizedCode = this.normalizeScooterCode(this.scooterCode)
-        if (!normalizedCode) {
-          uni.hideLoading()
-          uni.showToast({
-            title: '请输入6位编号',
-            icon: 'none'
+      await this.withAction('confirmUnlock', async () => {
+        try {
+          uni.showLoading({
+            title: '正在开锁...'
           })
-          return
-        }
-        const scooterRes = await getScooterInfo(normalizedCode)
-        const scooterInfo = scooterRes.data || {}
-        const res = await unlockScooter(normalizedCode)
-        uni.hideLoading()
-        uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
-          ...(res.data || {}),
-          scooterCode: normalizedCode,
-          scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
-          battery: Number(scooterInfo.battery || 0),
-          rideStatus: scooterInfo.rideStatus || 1,
-          faultStatus: scooterInfo.faultStatus || 0,
-          currentLatitude: Number(scooterInfo.latitude || 0),
-          currentLongitude: Number(scooterInfo.longitude || 0),
-          routePoints: [],
-          startTime: new Date().toISOString(),
-          totalKilometer: 0,
-          amount: 0,
-          active: true
-        })
+          const normalizedCode = this.normalizeScooterCode(this.scooterCode)
+          if (!normalizedCode) {
+            uni.hideLoading()
+            uni.showToast({
+              title: '请输入6位编号',
+              icon: 'none'
+            })
+            return
+          }
+          const scooterRes = await getScooterInfo(normalizedCode)
+          const scooterInfo = scooterRes.data || {}
+          const res = await unlockScooter(normalizedCode)
+          uni.hideLoading()
+          uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
+            ...(res.data || {}),
+            scooterCode: normalizedCode,
+            scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
+            battery: Number(scooterInfo.battery || 0),
+            rideStatus: scooterInfo.rideStatus || 1,
+            faultStatus: scooterInfo.faultStatus || 0,
+            currentLatitude: Number(scooterInfo.latitude || 0),
+            currentLongitude: Number(scooterInfo.longitude || 0),
+            routePoints: [],
+            startTime: new Date().toISOString(),
+            totalKilometer: 0,
+            amount: 0,
+            active: true
+          })
 
-        if (this.isFlashlightOn) {
-          this.turnOffFlashlight()
-        }
+          if (this.isFlashlightOn) {
+            this.turnOffFlashlight()
+          }
 
-        uni.navigateTo({
-          url: '/pages/riding/riding'
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+          uni.navigateTo({
+            url: '/pages/riding/riding'
+          })
+        } catch (error) {
+          uni.hideLoading()
+        }
+      })
     }
   }
 }

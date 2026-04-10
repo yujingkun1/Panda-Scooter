@@ -60,13 +60,15 @@
             type="text"
             placeholder="请输入验证码"
           />
-          <button class="code-btn" :disabled="countdown > 0" @click="sendCode">
-            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+          <button class="code-btn" :disabled="countdown > 0 || isActionPending('sendCode')" @click="sendCode">
+            {{ isActionPending('sendCode') ? '发送中...' : (countdown > 0 ? `${countdown}s` : '获取验证码') }}
           </button>
         </view>
       </view>
 
-      <button class="submit-btn" @click="submit">{{ submitText }}</button>
+      <button class="submit-btn" :disabled="isActionPending('submit')" @click="submit">
+        {{ isActionPending('submit') ? '提交中...' : submitText }}
+      </button>
 
       <view class="footer-links">
         <text v-if="mode === 'login'" class="link" @click="switchMode('signup')">去注册</text>
@@ -79,6 +81,7 @@
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import {
   getVerificationCode,
   userLogin,
@@ -112,6 +115,7 @@ const DEFAULT_FORM = () => ({
 })
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       mode: 'login',
@@ -166,15 +170,17 @@ export default {
         return
       }
 
-      try {
-        await getVerificationCode(this.form.email)
-        uni.showToast({
-          title: '验证码已发送',
-          icon: 'success'
-        })
-        this.startCountdown()
-      } catch (error) {
-      }
+      await this.withAction('sendCode', async () => {
+        try {
+          await getVerificationCode(this.form.email)
+          uni.showToast({
+            title: '验证码已发送',
+            icon: 'success'
+          })
+          this.startCountdown()
+        } catch (error) {
+        }
+      })
     },
     startCountdown() {
       this.clearTimer()
@@ -227,70 +233,72 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '提交中...'
-        })
+      await this.withAction('submit', async () => {
+        try {
+          uni.showLoading({
+            title: '提交中...'
+          })
 
-        if (this.mode === 'login') {
-          const res = await userLogin({
-            email: this.form.email,
-            password: this.form.password
-          })
-          const data = res.data || {}
-          if (data.token) {
-            uni.setStorageSync('token', data.token)
-          }
-          uni.setStorageSync('userInfo', {
-            id: data.id || '',
-            username: data.username || '用户',
-            email: data.email || this.form.email
-          })
-          uni.hideLoading()
-          uni.showToast({
-            title: '登录成功',
-            icon: 'success'
-          })
-          setTimeout(() => {
-            uni.reLaunch({
-              url: '/pages/profile/profile'
+          if (this.mode === 'login') {
+            const res = await userLogin({
+              email: this.form.email,
+              password: this.form.password
             })
-          }, 800)
-          return
-        }
+            const data = res.data || {}
+            if (data.token) {
+              uni.setStorageSync('token', data.token)
+            }
+            uni.setStorageSync('userInfo', {
+              id: data.id || '',
+              username: data.username || '用户',
+              email: data.email || this.form.email
+            })
+            uni.hideLoading()
+            uni.showToast({
+              title: '登录成功',
+              icon: 'success'
+            })
+            setTimeout(() => {
+              uni.reLaunch({
+                url: '/pages/profile/profile'
+              })
+            }, 800)
+            return
+          }
 
-        if (this.mode === 'signup') {
-          const email = this.form.email
-          await userSignin({
-            email: this.form.email,
-            password: this.form.password,
-            verificationCode: this.form.verificationCode
+          if (this.mode === 'signup') {
+            const email = this.form.email
+            await userSignin({
+              email: this.form.email,
+              password: this.form.password,
+              verificationCode: this.form.verificationCode
+            })
+            uni.hideLoading()
+            uni.showToast({
+              title: '注册成功，请登录',
+              icon: 'success'
+            })
+            this.switchMode('login')
+            this.form.email = email
+            return
+          }
+
+          await userPassword({
+            verificationCode: this.form.verificationCode,
+            newPassword: this.form.newPassword
           })
           uni.hideLoading()
           uni.showToast({
-            title: '注册成功，请登录',
+            title: '密码已重置',
             icon: 'success'
           })
+          const email = this.form.email
           this.switchMode('login')
           this.form.email = email
-          return
+        } catch (error) {
+          uni.hideLoading()
         }
-
-        await userPassword({
-          verificationCode: this.form.verificationCode,
-          newPassword: this.form.newPassword
-        })
-        uni.hideLoading()
-        uni.showToast({
-          title: '密码已重置',
-          icon: 'success'
-        })
-        const email = this.form.email
-        this.switchMode('login')
-        this.form.email = email
-      } catch (error) {
-        uni.hideLoading()
-      }
+      })
     }
   }
 }
@@ -414,6 +422,10 @@ export default {
   font-size: 30rpx;
   font-weight: 400;
   letter-spacing: 4rpx;
+}
+
+.submit-btn[disabled] {
+  background-color: #d4d4d1;
 }
 
 .footer-links {

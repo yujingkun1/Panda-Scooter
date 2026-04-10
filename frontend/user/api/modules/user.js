@@ -109,3 +109,11 @@ export const getRideHistory = () => {
     method: 'GET'
   })
 }
+
+export const payUnpaidOrder = (data) => {
+  return request({
+    url: '/unpaid-order',
+    method: 'POST',
+    data
+  })
+}
