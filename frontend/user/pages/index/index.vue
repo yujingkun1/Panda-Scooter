@@ -8,11 +8,14 @@
           <text class="brand-subtitle">{{ headerUsername }}</text>
         </view>
       </view>
-      <image class="avatar" src="/static/avatar.png" mode="aspectFit" @click="navigateToProfile"></image>
+      <view class="avatar-hit ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateToProfile">
+        <image class="avatar" src="/static/avatar.png" mode="aspectFit"></image>
+      </view>
     </view>
 
     <view class="map-container">
       <map
+        v-if="mapVisible"
         class="map"
         id="map"
         :latitude="latitude"
@@ -26,25 +29,25 @@
     </view>
 
     <view class="unlock-section">
-      <button class="unlock-btn" :disabled="isActionPending('scanUnlock') || isActionPending('unlockByCode')" @click="scanUnlock">
+      <button class="unlock-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('scanUnlock') || isActionPending('unlockByCode')" @click="scanUnlock">
         <text class="unlock-btn-text">{{ isActionPending('scanUnlock') || isActionPending('unlockByCode') ? '处理中...' : '扫码开锁' }}</text>
       </button>
     </view>
 
     <view class="function-area">
-      <view class="function-item" @click="showParkingPoints">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="showParkingPoints">
         <text class="function-text">搜停车点</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="navigateTo('fault')">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('fault')">
         <text class="function-text">故障上报</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="navigateTo('unlock')">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('unlock')">
         <text class="function-text">编号开锁</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="showRideNotice">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="showRideNotice">
         <text class="function-text">骑行须知</text>
       </view>
     </view>
@@ -61,7 +64,7 @@
             <text class="subscription-desc">{{ pkg.description || '骑行套餐' }}</text>
             <text class="subscription-price">¥{{ formatAmount(pkg.price) }}</text>
           </view>
-          <button class="subscription-btn" :disabled="isActionPending('viewSubscription')" @click="handleSubscription(pkg)">
+          <button class="subscription-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('viewSubscription')" @click="handleSubscription(pkg)">
             {{ isActionPending('viewSubscription') ? '处理中...' : '查看详情' }}
           </button>
         </view>
@@ -103,7 +106,9 @@ export default {
       parkingPoints: [],
       subscriptionPackages: [],
       headerUsername: '游客用户',
-      mapContext: null
+      mapContext: null,
+      mapVisible: true,
+      mapRefreshTimer: null
     }
   },
   onLoad() {
@@ -115,8 +120,30 @@ export default {
   onShow() {
     this.syncHeaderUser()
     this.resumeCurrentRide()
+    this.refreshMapView()
+  },
+  onUnload() {
+    this.clearMapRefreshTimer()
   },
   methods: {
+    clearMapRefreshTimer() {
+      if (this.mapRefreshTimer) {
+        clearTimeout(this.mapRefreshTimer)
+        this.mapRefreshTimer = null
+      }
+    },
+    refreshMapView() {
+      this.clearMapRefreshTimer()
+      this.mapVisible = false
+      this.$nextTick(() => {
+        this.mapRefreshTimer = setTimeout(async () => {
+          this.mapVisible = true
+          await this.$nextTick()
+          this.mapContext = uni.createMapContext('map', this)
+          await this.loadMapData()
+        }, 30)
+      })
+    },
     ensureLoggedIn() {
       const hasToken = Boolean(uni.getStorageSync('token'))
       if (hasToken) {
@@ -643,6 +670,12 @@ export default {
 .avatar {
   width: 64rpx;
   height: 64rpx;
+}
+
+.avatar-hit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .map-container {

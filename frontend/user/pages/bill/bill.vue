@@ -6,18 +6,18 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">登录后可查看账单记录</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
     </view>
 
     <template v-else>
       <view class="filter-section">
-        <view class="filter-item" :class="{ active: currentFilter === 'all' }" @click="changeFilter('all')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'all' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('all')">
           <text class="filter-text">全部</text>
         </view>
-        <view class="filter-item" :class="{ active: currentFilter === 'income' }" @click="changeFilter('income')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'income' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('income')">
           <text class="filter-text">收入</text>
         </view>
-        <view class="filter-item" :class="{ active: currentFilter === 'expense' }" @click="changeFilter('expense')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'expense' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('expense')">
           <text class="filter-text">支出</text>
         </view>
       </view>

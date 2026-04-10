@@ -21,7 +21,9 @@
           placeholder="搜索停车点名称"
           confirm-type="search"
         />
-        <text v-if="keyword" class="clear-btn" @click="clearKeyword">清空</text>
+        <view v-if="keyword" class="clear-btn ui-pressable-inline" hover-class="ui-pressable-inline-hover" hover-stay-time="70" @click="clearKeyword">
+          <text>清空</text>
+        </view>
       </view>
 
       <view class="result-meta">
@@ -32,8 +34,10 @@
         <view
           v-for="item in filteredParkingPoints"
           :key="item.id"
-          class="result-item"
+          class="result-item ui-pressable"
           :class="{ active: item.id === selectedParkingId }"
+          hover-class="ui-pressable-hover"
+          hover-stay-time="70"
           @click="selectParkingPoint(item)"
         >
           <text class="result-name">{{ item.name }}</text>
@@ -263,6 +267,9 @@ export default {
 }
 
 .clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   font-size: 24rpx;
   color: #737373;

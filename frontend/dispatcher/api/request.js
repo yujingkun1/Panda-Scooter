@@ -31,7 +31,7 @@ const resolveErrorMessage = (payload, fallback) => {
   if (typeof fallback === 'string' && fallback.trim()) {
     return fallback.trim()
   }
-  return '请求失败'
+  return '\u8bf7\u6c42\u5931\u8d25'
 }
 
 const showRequestError = (message) => {
@@ -70,7 +70,7 @@ const request = (options = {}) => {
 
     if (!isAbsoluteUrl(url) && !resolvedBaseURL) {
       const apiConfig = getApiConfig(env)
-      const message = `${apiConfig.label} API 地址未配置`
+      const message = `${apiConfig.label} API \u5730\u5740\u672a\u914d\u7f6e`
       rejectWithMessage(reject, message)
       return
     }
@@ -97,7 +97,7 @@ const request = (options = {}) => {
         const { statusCode, data } = res
 
         if (statusCode < 200 || statusCode >= 300) {
-          const message = resolveErrorMessage(data, `请求失败: ${statusCode}`)
+          const message = resolveErrorMessage(data, `\u8bf7\u6c42\u5931\u8d25: ${statusCode}`)
           rejectWithMessage(reject, message, { statusCode, data })
           return
         }
@@ -111,7 +111,7 @@ const request = (options = {}) => {
         resolve(data)
       },
       fail: (err) => {
-        const message = resolveErrorMessage(null, err && err.errMsg ? err.errMsg : '网络异常')
+        const message = resolveErrorMessage(null, err && err.errMsg ? err.errMsg : '\u7f51\u7edc\u5f02\u5e38')
         rejectWithMessage(reject, message, { cause: err })
       }
     })

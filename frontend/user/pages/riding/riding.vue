@@ -54,7 +54,7 @@
         </view>
       </view>
 
-      <button class="end-btn" :disabled="isActionPending('finishRide')" @click="finishRide">
+      <button class="end-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('finishRide')" @click="finishRide">
         {{ isActionPending('finishRide') ? '结束中...' : '结束用车' }}
       </button>
     </view>

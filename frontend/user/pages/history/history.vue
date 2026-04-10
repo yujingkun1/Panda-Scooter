@@ -6,18 +6,18 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">登录后可查看骑行历史</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
     </view>
 
     <template v-else>
       <view class="filter-section">
-        <view class="filter-item" :class="{ active: currentFilter === 'all' }" @click="changeFilter('all')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'all' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('all')">
           <text class="filter-text">全部</text>
         </view>
-        <view class="filter-item" :class="{ active: currentFilter === 'paid' }" @click="changeFilter('paid')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'paid' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('paid')">
           <text class="filter-text">已支付</text>
         </view>
-        <view class="filter-item" :class="{ active: currentFilter === 'unpaid' }" @click="changeFilter('unpaid')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'unpaid' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('unpaid')">
           <text class="filter-text">未支付</text>
         </view>
       </view>
@@ -62,7 +62,7 @@
             </view>
 
             <view v-if="item.canPay" class="pay-action">
-              <button class="pay-btn" :disabled="isActionPending(`pay-${item.orderId}`)" @click="handlePay(item)">
+              <button class="pay-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending(`pay-${item.orderId}`)" @click="handlePay(item)">
                 {{ isActionPending(`pay-${item.orderId}`) ? '支付中...' : '立即支付' }}
               </button>
             </view>

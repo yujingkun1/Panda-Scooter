@@ -6,18 +6,18 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">登录后可查看故障上报记录</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
     </view>
 
     <template v-else>
       <view class="filter-section">
-        <view class="filter-item" :class="{ active: currentFilter === 'all' }" @click="changeFilter('all')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'all' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('all')">
           <text class="filter-text">全部</text>
         </view>
-        <view class="filter-item" :class="{ active: currentFilter === 'pending' }" @click="changeFilter('pending')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'pending' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('pending')">
           <text class="filter-text">处理中</text>
         </view>
-        <view class="filter-item" :class="{ active: currentFilter === 'completed' }" @click="changeFilter('completed')">
+        <view class="filter-item ui-pressable" :class="{ active: currentFilter === 'completed' }" hover-class="ui-pressable-hover" hover-stay-time="70" @click="changeFilter('completed')">
           <text class="filter-text">已完成</text>
         </view>
       </view>

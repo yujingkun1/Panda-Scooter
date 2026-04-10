@@ -6,7 +6,7 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">登录后可提交故障上报</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
     </view>
 
     <view v-else class="form-section">
@@ -19,7 +19,7 @@
             placeholder="请输入或扫码获取车辆编号"
             :maxlength="10"
           />
-          <button class="scan-btn" @click="scanScooterCode">扫码</button>
+          <button class="scan-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="scanScooterCode">扫码</button>
         </view>
       </view>
 
@@ -40,11 +40,11 @@
         <view class="upload-section">
           <view v-for="(photo, index) in photos" :key="photo" class="photo-item">
             <image class="photo-image" :src="photo" mode="aspectFill" />
-            <view class="photo-delete" @click="deletePhoto(index)">
+            <view class="photo-delete ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="deletePhoto(index)">
               <text class="delete-icon">×</text>
             </view>
           </view>
-          <view v-if="photos.length < maxPhotos" class="upload-btn" @click="chooseImage">
+          <view v-if="photos.length < maxPhotos" class="upload-btn ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="chooseImage">
             <text class="upload-text">添加图片</text>
           </view>
         </view>
@@ -52,12 +52,12 @@
       </view>
 
       <view class="submit-section">
-        <button class="submit-btn" :disabled="isActionPending('submitReport')" @click="submitReport">
+        <button class="submit-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('submitReport')" @click="submitReport">
           {{ isActionPending('submitReport') ? '提交中...' : '确认提交' }}
         </button>
       </view>
 
-      <view class="history-link" @click="navigateToHistory">
+      <view class="history-link ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateToHistory">
         <text class="link-text">查看历史上报记录 ›</text>
       </view>
     </view>

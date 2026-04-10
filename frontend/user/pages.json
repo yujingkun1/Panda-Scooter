@@ -13,6 +13,12 @@
       }
     },
     {
+      "path": "pages/resetPassword/resetPassword",
+      "style": {
+        "navigationBarTitleText": "\u91cd\u7f6e\u5bc6\u7801"
+      }
+    },
+    {
       "path": "pages/profile/profile",
       "style": {
         "navigationBarTitleText": "\u4e2a\u4eba\u4e3b\u9875"

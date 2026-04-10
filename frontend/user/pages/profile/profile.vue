@@ -6,7 +6,7 @@
         <text class="username">{{ userInfo.username }}</text>
         <text class="email">{{ userInfo.email }}</text>
       </view>
-      <view class="account-manage" @click="openAccount">
+      <view class="account-manage ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="openAccount">
         <text class="manage-text">账号管理</text>
       </view>
     </view>
@@ -26,19 +26,19 @@
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">当前为游客模式</text>
       <text class="guest-desc">登录后可同步个人资料、账单和骑行记录。</text>
-      <button class="login-btn" @click="goLogin('login')">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin('login')">去登录</button>
     </view>
 
     <view class="menu-section">
-      <view class="menu-item" @click="navigateTo('wallet')">
+      <view class="menu-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('wallet')">
         <text class="menu-text">我的钱包</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @click="navigateTo('history')">
+      <view class="menu-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('history')">
         <text class="menu-text">历史行程</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @click="navigateTo('faults')">
+      <view class="menu-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('faults')">
         <text class="menu-text">故障上报记录</text>
         <text class="menu-arrow">›</text>
       </view>

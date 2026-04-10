@@ -16,18 +16,17 @@
     </view>
 
     <view class="action-section">
-      <view class="action-item" @click="goToForgotPassword">
+      <view class="action-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="goToForgotPassword">
         <text class="action-text">修改密码</text>
         <text class="action-arrow">›</text>
       </view>
-      <view class="action-item" @click="logout">
+      <view class="action-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="logout">
         <text class="action-text logout-text">退出登录</text>
       </view>
     </view>
 
     <view class="delete-section">
       <text class="section-title">注销账号</text>
-      <text class="section-desc">根据接口文档，注销账号需要密码和邮箱验证码。</text>
 
       <view class="field">
         <text class="field-label">登录密码</text>
@@ -49,13 +48,13 @@
             type="text"
             placeholder="请输入验证码"
           />
-          <button class="code-btn" :disabled="countdown > 0 || isActionPending('sendDeleteCode')" @click="sendDeleteCode">
+          <button class="code-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="countdown > 0 || isActionPending('sendDeleteCode')" @click="sendDeleteCode">
             {{ isActionPending('sendDeleteCode') ? '发送中...' : (countdown > 0 ? `${countdown}s` : '获取验证码') }}
           </button>
         </view>
       </view>
 
-      <button class="delete-btn" :disabled="isActionPending('deleteAccount')" @click="deleteAccount">
+      <button class="delete-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('deleteAccount')" @click="deleteAccount">
         {{ isActionPending('deleteAccount') ? '注销中...' : '确认注销' }}
       </button>
     </view>
@@ -124,7 +123,7 @@ export default {
     },
     goToForgotPassword() {
       uni.navigateTo({
-        url: `/pages/login/login?mode=forgot-password&email=${encodeURIComponent(this.userInfo.email)}`
+        url: '/pages/resetPassword/resetPassword'
       })
     },
     async sendDeleteCode() {
@@ -337,14 +336,6 @@ export default {
   margin-bottom: 12rpx;
 }
 
-.section-desc {
-  display: block;
-  font-size: 22rpx;
-  line-height: 1.7;
-  color: #737373;
-  margin-bottom: 28rpx;
-}
-
 .field {
   margin-bottom: 24rpx;
   width: 100%;
@@ -369,7 +360,7 @@ export default {
 
 .code-row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 16rpx;
   min-width: 0;
 }
@@ -383,10 +374,20 @@ export default {
   width: 220rpx;
   height: 88rpx;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 88rpx;
+  text-align: center;
   border: 1rpx solid #d4d4d1;
   background-color: transparent;
   color: #0b0e0d;
   font-size: 24rpx;
+}
+
+.code-btn::after {
+  border: none;
 }
 
 .delete-btn {

@@ -56,6 +56,9 @@
         },
         "usingComponents" : true,
         "permission" : {
+            "scope.camera" : {
+                "desc" : "用于打开补光灯，方便在暗光环境下输入或识别车辆编号"
+            },
             "scope.userLocation" : {
                 "desc" : "用于获取您的位置信息，以便在地图上显示附近的车辆和停车点"
             }

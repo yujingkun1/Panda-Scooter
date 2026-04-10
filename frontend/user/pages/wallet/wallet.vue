@@ -6,14 +6,14 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">登录后可查看钱包余额和骑行卡</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
     </view>
 
     <template v-else>
       <view class="balance-section">
         <view class="balance-label">我的余额</view>
         <view class="balance-amount">¥{{ balance }}</view>
-        <button class="recharge-btn" @click="openRechargePopup">{{ rechargeButtonText }}</button>
+        <button class="recharge-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="openRechargePopup">{{ rechargeButtonText }}</button>
       </view>
 
       <view class="card-section">
@@ -34,7 +34,7 @@
 
       <view class="bill-section">
         <view class="section-title">我的账单</view>
-        <view class="bill-item" @click="navigateToBill">
+        <view class="bill-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateToBill">
           <text class="bill-text">查看完整账单</text>
           <text class="bill-arrow">›</text>
         </view>
@@ -45,7 +45,9 @@
     <view v-if="showRechargePopup" class="popup-content" :style="popupStyle">
       <view class="popup-header">
         <text class="popup-title">充值金额</text>
-        <text class="popup-close" @click="closeRechargePopup">✕</text>
+        <view class="popup-close ui-pressable-inline" hover-class="ui-pressable-inline-hover" hover-stay-time="70" @click="closeRechargePopup">
+          <text>✕</text>
+        </view>
       </view>
       <view class="popup-body">
         <view class="input-section">
@@ -63,7 +65,7 @@
             @blur="handleRechargeBlur"
           />
         </view>
-        <button class="confirm-recharge-btn" :disabled="isActionPending('confirmRecharge')" @click="confirmRecharge">
+        <button class="confirm-recharge-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('confirmRecharge')" @click="confirmRecharge">
           {{ isActionPending('confirmRecharge') ? '充值中...' : '确认充值' }}
         </button>
       </view>
@@ -417,6 +419,9 @@ export default {
 }
 
 .popup-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 36rpx;
   color: #737373;
 }
