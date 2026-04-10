@@ -67,6 +67,7 @@
 <script>
 import actionGuard from '@/mixins/actionGuard'
 import { getScooterInfo, reportFault } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 export default {
   mixins: [actionGuard],
@@ -171,6 +172,7 @@ export default {
           })
         } catch (error) {
           uni.hideLoading()
+          showUnhandledError(error, '提交故障上报失败，请稍后重试')
         }
       })
     },

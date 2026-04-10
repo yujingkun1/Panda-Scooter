@@ -52,6 +52,7 @@
 <script>
 import actionGuard from '@/mixins/actionGuard'
 import { getScooterInfo, unlockScooter } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 
@@ -245,6 +246,7 @@ export default {
           })
         } catch (error) {
           uni.hideLoading()
+          showUnhandledError(error, '开锁失败，请稍后重试')
         }
       })
     }

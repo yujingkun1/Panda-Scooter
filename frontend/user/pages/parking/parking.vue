@@ -49,6 +49,7 @@
 
 <script>
 import { getMapData } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const DEFAULT_LOCATION = {
   latitude: 30.75953206821905,
@@ -127,6 +128,7 @@ export default {
         this.originLatitude = Number(location.latitude)
         this.originLongitude = Number(location.longitude)
       } catch (error) {
+        showUnhandledError(error, '定位失败，已按默认位置查找停车点')
       }
 
       await this.loadParkingPoints()
@@ -147,6 +149,7 @@ export default {
         }
       } catch (error) {
         this.parkingPoints = []
+        showUnhandledError(error, '加载停车点失败，请稍后重试')
       }
     },
     normalizeParkingPoints(list) {

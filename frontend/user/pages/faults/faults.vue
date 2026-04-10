@@ -63,6 +63,7 @@
 
 <script>
 import { getFaults } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 export default {
   data() {
@@ -96,6 +97,7 @@ export default {
         this.faultsList = faults.map((item, index) => this.normalizeFault(item, index))
       } catch (error) {
         this.faultsList = []
+        showUnhandledError(error, '加载故障记录失败，请稍后重试')
       }
     },
     normalizeFault(item, index) {

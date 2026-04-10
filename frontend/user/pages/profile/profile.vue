@@ -48,6 +48,7 @@
 
 <script>
 import { getUserInfo } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const DEFAULT_USER_INFO = {
   username: '游客用户',
@@ -91,6 +92,7 @@ export default {
           totalKilometer: DEFAULT_USER_INFO.totalKilometer,
           totalTime: DEFAULT_USER_INFO.totalTime
         }
+        showUnhandledError(error, '加载个人信息失败，已展示本地缓存')
       }
     },
     openAccount() {

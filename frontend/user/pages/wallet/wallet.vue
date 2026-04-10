@@ -74,6 +74,7 @@
 <script>
 import actionGuard from '@/mixins/actionGuard'
 import { getUserWallet, userBill } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 export default {
   mixins: [actionGuard],
@@ -133,6 +134,7 @@ export default {
       } catch (error) {
         this.balance = '0.00'
         this.ridingCards = []
+        showUnhandledError(error, '加载钱包信息失败，请稍后重试')
       }
     },
     goLogin() {
@@ -219,6 +221,7 @@ export default {
           })
         } catch (error) {
           uni.hideLoading()
+          showUnhandledError(error, '充值失败，请稍后重试')
         }
       })
     },

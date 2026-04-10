@@ -70,6 +70,7 @@ import {
   userDelete,
   userLogout
 } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const DEFAULT_USER_INFO = {
   username: '游客用户',
@@ -144,6 +145,7 @@ export default {
           })
           this.startCountdown()
         } catch (error) {
+          showUnhandledError(error, '验证码发送失败，请稍后重试')
         }
       })
     },
@@ -179,6 +181,7 @@ export default {
             try {
               await userLogout()
             } catch (error) {
+              showUnhandledError(error, '退出登录请求失败，已为你清除本地登录状态')
             }
 
             uni.removeStorageSync('token')
@@ -242,6 +245,7 @@ export default {
               }, 800)
             } catch (error) {
               uni.hideLoading()
+              showUnhandledError(error, '注销失败，请稍后重试')
             }
             resolve()
           },

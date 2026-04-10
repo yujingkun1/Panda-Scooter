@@ -64,6 +64,7 @@
 <script>
 import actionGuard from '@/mixins/actionGuard'
 import { lockScooter } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 const DISTANCE_SAMPLE_INTERVAL = 5000
@@ -332,6 +333,7 @@ export default {
         try {
           await this.captureCurrentLocation()
         } catch (error) {
+          showUnhandledError(error, '定位失败，将使用上次位置结束用车')
         }
 
         try {
@@ -366,6 +368,7 @@ export default {
           })
         } catch (error) {
           uni.hideLoading()
+          showUnhandledError(error, '结束用车失败，请稍后重试')
         }
       })
     }

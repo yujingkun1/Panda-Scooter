@@ -79,6 +79,7 @@
 <script>
 import actionGuard from '@/mixins/actionGuard'
 import { getRideHistory, payUnpaidOrder } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 export default {
   mixins: [actionGuard],
@@ -113,6 +114,7 @@ export default {
         this.historyList = history.map((item, index) => this.normalizeHistory(item, index))
       } catch (error) {
         this.historyList = []
+        showUnhandledError(error, '加载骑行历史失败，请稍后重试')
       }
     },
     normalizeHistory(item, index) {
@@ -166,6 +168,7 @@ export default {
               })
             } catch (error) {
               uni.hideLoading()
+              showUnhandledError(error, '支付失败，请稍后重试')
             }
             resolve()
           },

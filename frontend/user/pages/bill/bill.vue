@@ -47,6 +47,7 @@
 
 <script>
 import { getUserBills } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const BILL_TYPE_TEXT = {
   1: '骑行消费',
@@ -87,6 +88,7 @@ export default {
         this.bills = bills.map((item, index) => this.normalizeBill(item, index))
       } catch (error) {
         this.bills = []
+        showUnhandledError(error, '加载账单失败，请稍后重试')
       }
     },
     normalizeBill(item, index) {

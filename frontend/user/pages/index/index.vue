@@ -76,6 +76,7 @@
 <script>
 import actionGuard from '@/mixins/actionGuard'
 import { getMapData, getScooterInfo, getSubscriptions, unlockScooter } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 
@@ -155,6 +156,7 @@ export default {
         this.subscriptionPackages = packages
       } catch (error) {
         this.subscriptionPackages = []
+        showUnhandledError(error, '加载套餐失败，请稍后重试')
       }
     },
     getLocation() {
@@ -204,6 +206,7 @@ export default {
         this.markers = []
         this.polygons = []
         this.parkingPoints = []
+        showUnhandledError(error, '加载地图数据失败，请稍后重试')
       }
     },
     getMapContext() {
@@ -507,6 +510,7 @@ export default {
           }))
         } catch (error) {
           uni.hideLoading()
+          showUnhandledError(error, '开锁失败，请稍后重试')
         }
       })
     },

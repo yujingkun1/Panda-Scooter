@@ -88,6 +88,7 @@ import {
   userPassword,
   userSignin
 } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const MODE_META = {
   login: {
@@ -188,6 +189,7 @@ export default {
           })
           this.startCountdown()
         } catch (error) {
+          showUnhandledError(error, '验证码发送失败，请稍后重试')
         }
       })
     },
@@ -307,6 +309,7 @@ export default {
           }, 800)
         } catch (error) {
           uni.hideLoading()
+          showUnhandledError(error, '提交失败，请稍后重试')
         }
       })
     }
