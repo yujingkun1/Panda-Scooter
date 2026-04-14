@@ -11,7 +11,7 @@
  Target Server Version : 80042 (8.0.42)
  File Encoding         : 65001
 
- Date: 24/03/2026 20:40:09
+ Date: 10/04/2026 11:57:20
 */
 
 SET NAMES utf8mb4;
@@ -181,7 +181,7 @@ CREATE TABLE `rental_order`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   INDEX `idx_scooter_id`(`scooter_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '骑行租赁订单表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '骑行租赁订单表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of rental_order
@@ -202,11 +202,31 @@ CREATE TABLE `scooter`  (
   `create_time` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `idx_code`(`code` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '滑板车信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '滑板车信息表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of scooter
 -- ----------------------------
+INSERT INTO `scooter` VALUES (1, 'PDSC000001', 92, NULL, NULL, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (2, 'PDSC000002', 85, 30.760480, 103.979220, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (3, 'PDSC000003', 76, 30.760760, 103.979560, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (4, 'PDSC000004', 88, 30.761020, 103.980010, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (5, 'PDSC000005', 67, 30.759940, 103.978610, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (6, 'PDSC000006', 54, 30.759620, 103.979880, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (7, 'PDSC000007', 97, 30.760950, 103.978300, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (8, 'PDSC000008', 73, 30.761300, 103.979400, 0, 0, '2026-04-08 19:07:09');
+INSERT INTO `scooter` VALUES (9, 'PDSC000009', 95, 30.760120, 103.979020, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (10, 'PDSC000010', 89, 30.760260, 103.979180, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (11, 'PDSC000011', 84, 30.760410, 103.979360, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (12, 'PDSC000012', 91, 30.760560, 103.979540, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (13, 'PDSC000013', 87, 30.760730, 103.979710, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (14, 'PDSC000014', 93, 30.760890, 103.979920, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (15, 'PDSC000015', 82, 30.761040, 103.980080, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (16, 'PDSC000016', 78, 30.760950, 103.978860, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (17, 'PDSC000017', 86, 30.760680, 103.978720, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (18, 'PDSC000018', 90, 30.760330, 103.978580, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (19, 'PDSC000019', 88, 30.759980, 103.978940, 0, 0, '2026-04-08 21:35:40');
+INSERT INTO `scooter` VALUES (20, 'PDSC000020', 96, 30.759820, 103.979260, 0, 0, '2026-04-08 21:35:40');
 
 -- ----------------------------
 -- Table structure for subscription_package
@@ -237,7 +257,7 @@ CREATE TABLE `user`  (
   `email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '电子邮箱',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户信息表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of user
@@ -259,7 +279,7 @@ CREATE TABLE `user_bill`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户账单流水表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户账单流水表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of user_bill
@@ -296,7 +316,7 @@ CREATE TABLE `user_wallet`  (
   `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户钱包表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户钱包表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of user_wallet

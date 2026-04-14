@@ -24,6 +24,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e) {
-        return Result.error(e.getMessage() == null ? "server error" : e.getMessage());
+        return Result.error(e.getMessage() == null ? "服务器内部发生错误" : e.getMessage());
     }
 }

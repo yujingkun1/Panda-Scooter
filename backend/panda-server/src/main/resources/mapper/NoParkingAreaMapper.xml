@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.NoParkingAreaMapper">
+
+    <select id="listEnabled" resultType="com.panda.entity.NoParkingArea">
+        select id, name, polygon, status, create_time
+        from no_parking_area
+        where status = 1
+        order by id desc
+    </select>
+
+</mapper>

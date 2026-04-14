@@ -1,0 +1,34 @@
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/bike_system?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      timeout: 5000ms
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:1105554311@qq.com}
+    password: ${MAIL_PASSWORD:ajabqtbspqutgbdg}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          timeout: 5000
+          connectiontimeout: 5000
+          writetimeout: 5000
+
+logging:
+  level:
+    root: info
