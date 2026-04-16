@@ -1,23 +1,64 @@
 
-.page { min-height: 100vh; background-color: #fafaf8;
+.page {
+  min-height: 100vh;
+  background-color: #fafaf8;
 }
-.header { padding: 48rpx 32rpx; background-color: #ffffff; border-bottom: 1rpx solid #e5e5e2;
+.header {
+  padding: 48rpx 32rpx;
+  background-color: #ffffff;
+  border-bottom: 1rpx solid #e5e5e2;
 }
-.title { font-size: 36rpx; color: #0b0e0d; letter-spacing: 4rpx;
+.title {
+  font-size: 36rpx;
+  color: #0b0e0d;
+  letter-spacing: 4rpx;
 }
-.form-card { margin: 32rpx; padding: 48rpx 32rpx; background-color: #ffffff; border: 1rpx solid #e5e5e2;
+.form-card {
+  margin: 32rpx;
+  padding: 48rpx 32rpx;
+  background-color: #ffffff;
+  border: 1rpx solid #e5e5e2;
 }
-.card-title { display: block; margin-bottom: 12rpx; font-size: 32rpx; color: #0b0e0d;
+.card-title {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 32rpx;
+  color: #0b0e0d;
 }
-.card-desc { display: block; margin-bottom: 36rpx; font-size: 24rpx; color: #737373; line-height: 1.7;
+.card-desc {
+  display: block;
+  margin-bottom: 36rpx;
+  font-size: 24rpx;
+  color: #737373;
+  line-height: 1.7;
 }
-.field { margin-bottom: 32rpx;
+.field {
+  margin-bottom: 32rpx;
 }
-.field-label { display: block; margin-bottom: 16rpx; font-size: 24rpx; color: #0b0e0d;
+.field-label {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 24rpx;
+  color: #0b0e0d;
 }
-.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx; color: #0b0e0d;
+.input {
+  width: 100%;
+  height: 88rpx;
+  border: 1rpx solid #e5e5e2;
+  background-color: #fafaf8;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #0b0e0d;
+  box-sizing: border-box;
 }
-.submit-btn { background-color: #0b0e0d; color: #ffffff; border: none; border-radius: 0; font-size: 30rpx; letter-spacing: 4rpx;
+.submit-btn {
+  background-color: #0b0e0d;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
 }
-.submit-btn:disabled { background-color: #d4d4d1;
+.submit-btn:disabled {
+  background-color: #d4d4d1;
 }

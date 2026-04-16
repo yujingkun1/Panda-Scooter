@@ -7,13 +7,6 @@ const _sfc_main = {
       scooterCode: ""
     };
   },
-  onShow() {
-    if (!common_vendor.index.getStorageSync("dispatcherToken")) {
-      common_vendor.index.redirectTo({
-        url: "/pages/login/login?mode=login"
-      });
-    }
-  },
   computed: {
     canSubmit() {
       return Boolean(this.scooterCode.trim());
@@ -21,7 +14,14 @@ const _sfc_main = {
   },
   onLoad(options) {
     if (options && options.code) {
-      this.scooterCode = options.code;
+      this.scooterCode = decodeURIComponent(options.code);
+    }
+  },
+  onShow() {
+    if (!common_vendor.index.getStorageSync("dispatcherToken")) {
+      common_vendor.index.redirectTo({
+        url: "/pages/login/login?mode=login"
+      });
     }
   },
   methods: {
@@ -66,9 +66,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     a: $data.scooterCode,
     b: common_vendor.o(common_vendor.m(($event) => $data.scooterCode = $event.detail.value, {
       trim: true
-    }), "49"),
+    }), "24"),
     c: !$options.canSubmit,
-    d: common_vendor.o((...args) => $options.confirmUnlock && $options.confirmUnlock(...args), "ca")
+    d: common_vendor.o((...args) => $options.confirmUnlock && $options.confirmUnlock(...args), "60")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

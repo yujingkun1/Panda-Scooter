@@ -1,5 +1,5 @@
 export const API_ENV_STORAGE_KEY = 'apiEnv'
-export const DEFAULT_API_ENV = 'test'
+export const DEFAULT_API_ENV = 'mock'
 
 export const API_ENVS = Object.freeze({
   mock: {
