@@ -1,0 +1,41 @@
+[
+  {
+    "caseName": "登录场景-账号不存在",
+    "path": "/user/user/login",
+    "method": "POST",
+    "expectedStatusCode": 200,
+    "expectedCode": 1,
+    "expectedMsg": "用户不存在",
+    "extractToken": false,
+    "requestBody": {
+      "email": "not-exists@example.com",
+      "password": "123456"
+    }
+  },
+  {
+    "caseName": "登录失败-邮箱格式非法",
+    "path": "/user/user/login",
+    "method": "POST",
+    "expectedStatusCode": 200,
+    "expectedCode": 1,
+    "expectedMsg": "不是一个合法的电子邮件地址",
+    "extractToken": false,
+    "requestBody": {
+      "email": "invalid-email",
+      "password": "123456"
+    }
+  },
+  {
+    "caseName": "登录失败-密码为空",
+    "path": "/user/user/login",
+    "method": "POST",
+    "expectedStatusCode": 200,
+    "expectedCode": 1,
+    "expectedMsg": "不能为空",
+    "extractToken": false,
+    "requestBody": {
+      "email": "test@example.com",
+      "password": ""
+    }
+  }
+]
