@@ -6,14 +6,14 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">登录后可查看钱包余额和骑行卡</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
     </view>
 
     <template v-else>
       <view class="balance-section">
         <view class="balance-label">我的余额</view>
         <view class="balance-amount">¥{{ balance }}</view>
-        <button class="recharge-btn" @click="showRechargePopup = true">去充值</button>
+        <button class="recharge-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="openRechargePopup">{{ rechargeButtonText }}</button>
       </view>
 
       <view class="card-section">
@@ -34,7 +34,7 @@
 
       <view class="bill-section">
         <view class="section-title">我的账单</view>
-        <view class="bill-item" @click="navigateToBill">
+        <view class="bill-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateToBill">
           <text class="bill-text">查看完整账单</text>
           <text class="bill-arrow">›</text>
         </view>
@@ -42,10 +42,12 @@
     </template>
 
     <view v-if="showRechargePopup" class="popup-mask" @click="closeRechargePopup"></view>
-    <view v-if="showRechargePopup" class="popup-content">
+    <view v-if="showRechargePopup" class="popup-content" :style="popupStyle">
       <view class="popup-header">
         <text class="popup-title">充值金额</text>
-        <text class="popup-close" @click="closeRechargePopup">✕</text>
+        <view class="popup-close ui-pressable-inline" hover-class="ui-pressable-inline-hover" hover-stay-time="70" @click="closeRechargePopup">
+          <text>✕</text>
+        </view>
       </view>
       <view class="popup-body">
         <view class="input-section">
@@ -56,32 +58,61 @@
             type="digit"
             placeholder="请输入充值金额"
             :maxlength="10"
+            :focus="rechargeInputFocused"
+            :adjust-position="false"
+            :cursor-spacing="24"
+            @focus="handleRechargeFocus"
+            @blur="handleRechargeBlur"
           />
         </view>
-        <button class="confirm-recharge-btn" @click="confirmRecharge">确认充值</button>
+        <button class="confirm-recharge-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('confirmRecharge')" @click="confirmRecharge">
+          {{ isActionPending('confirmRecharge') ? '充值中...' : '确认充值' }}
+        </button>
       </view>
     </view>
   </view>
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getUserWallet, userBill } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       hasToken: false,
       balance: '0.00',
       ridingCards: [],
       showRechargePopup: false,
-      rechargeAmount: ''
+      rechargeAmount: '',
+      rechargeInputFocused: false,
+      keyboardHeight: 0,
+      keyboardHeightHandler: null
     }
+  },
+  computed: {
+    popupStyle() {
+      return {
+        bottom: `${this.keyboardHeight}px`
+      }
+    },
+    rechargeButtonText() {
+      return '\u53bb\u5145\u503c'
+    }
+  },
+  onLoad() {
+    this.registerKeyboardHeightListener()
   },
   onShow() {
     this.hasToken = Boolean(uni.getStorageSync('token'))
     if (this.hasToken) {
       this.loadWalletData()
     }
+  },
+  onUnload() {
+    this.unregisterKeyboardHeightListener()
   },
   methods: {
     async loadWalletData() {
@@ -105,6 +136,7 @@ export default {
       } catch (error) {
         this.balance = '0.00'
         this.ridingCards = []
+        showUnhandledError(error, '加载钱包信息失败，请稍后重试')
       }
     },
     goLogin() {
@@ -112,9 +144,55 @@ export default {
         url: '/pages/login/login?mode=login'
       })
     },
-    closeRechargePopup() {
+    openRechargePopup() {
+      this.showRechargePopup = true
+      this.keyboardHeight = 0
+      this.rechargeInputFocused = false
+      setTimeout(() => {
+        this.rechargeInputFocused = true
+      }, 0)
+    },
+    closeRechargePopup(force = false) {
+      if (!force && this.isActionPending('confirmRecharge')) {
+        return
+      }
+
+      this.rechargeInputFocused = false
+      this.keyboardHeight = 0
       this.showRechargePopup = false
       this.rechargeAmount = ''
+      if (typeof uni.hideKeyboard === 'function') {
+        uni.hideKeyboard()
+      }
+    },
+    registerKeyboardHeightListener() {
+      if (typeof uni.onKeyboardHeightChange !== 'function' || this.keyboardHeightHandler) {
+        return
+      }
+
+      this.keyboardHeightHandler = (res) => {
+        if (!this.showRechargePopup) {
+          return
+        }
+        this.keyboardHeight = Math.max(Number(res && res.height) || 0, 0)
+      }
+      uni.onKeyboardHeightChange(this.keyboardHeightHandler)
+    },
+    unregisterKeyboardHeightListener() {
+      if (!this.keyboardHeightHandler || typeof uni.offKeyboardHeightChange !== 'function') {
+        this.keyboardHeightHandler = null
+        return
+      }
+
+      uni.offKeyboardHeightChange(this.keyboardHeightHandler)
+      this.keyboardHeightHandler = null
+    },
+    handleRechargeFocus() {
+      this.rechargeInputFocused = true
+    },
+    handleRechargeBlur() {
+      this.rechargeInputFocused = false
+      this.keyboardHeight = 0
     },
     async confirmRecharge() {
       const amount = parseFloat(this.rechargeAmount)
@@ -126,25 +204,28 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '充值中...'
-        })
-        await userBill({
-          type: 2,
-          amount,
-          remark: '账户充值'
-        })
-        uni.hideLoading()
-        this.closeRechargePopup()
-        await this.loadWalletData()
-        uni.showToast({
-          title: '充值成功',
-          icon: 'success'
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+      await this.withAction('confirmRecharge', async () => {
+        try {
+          uni.showLoading({
+            title: '充值中...'
+          })
+          await userBill({
+            type: 2,
+            amount,
+            remark: '账户充值'
+          })
+          uni.hideLoading()
+          this.closeRechargePopup(true)
+          await this.loadWalletData()
+          uni.showToast({
+            title: '充值成功',
+            icon: 'success'
+          })
+        } catch (error) {
+          uni.hideLoading()
+          showUnhandledError(error, '充值失败，请稍后重试')
+        }
+      })
     },
     navigateToBill() {
       uni.navigateTo({
@@ -318,9 +399,11 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 20;
   background-color: #ffffff;
   padding: 48rpx 32rpx 32rpx;
   border-top: 1rpx solid #e5e5e2;
+  transition: bottom 0.2s ease;
 }
 
 .popup-header {
@@ -336,6 +419,9 @@ export default {
 }
 
 .popup-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 36rpx;
   color: #737373;
 }
@@ -343,6 +429,7 @@ export default {
 .input-section {
   display: flex;
   align-items: center;
+  min-width: 0;
   margin-bottom: 32rpx;
   padding: 28rpx 32rpx;
   border: 1rpx solid #e5e5e2;
@@ -356,7 +443,9 @@ export default {
 
 .amount-input {
   flex: 1;
+  min-width: 0;
   font-size: 36rpx;
+  box-sizing: border-box;
 }
 
 .confirm-recharge-btn {
@@ -364,5 +453,9 @@ export default {
   color: #ffffff;
   border: none;
   border-radius: 0;
+}
+
+.confirm-recharge-btn:disabled {
+  background-color: #d4d4d1;
 }
 </style>

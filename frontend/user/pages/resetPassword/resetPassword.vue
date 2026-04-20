@@ -2,25 +2,11 @@
   <view class="page">
     <view class="hero">
       <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-      <text class="title">{{ pageTitle }}</text>
-      <text class="subtitle">{{ pageSubtitle }}</text>
+      <text class="title">重置密码</text>
+      <text class="subtitle">验证邮箱后重置登录密码</text>
     </view>
 
     <view class="card">
-      <view class="tabs">
-        <view
-          v-for="item in tabs"
-          :key="item.mode"
-          class="tab ui-pressable"
-          :class="{ active: mode === item.mode }"
-          hover-class="ui-pressable-hover"
-          hover-stay-time="70"
-          @click="switchMode(item.mode)"
-        >
-          <text class="tab-text">{{ item.label }}</text>
-        </view>
-      </view>
-
       <view class="field">
         <text class="label">邮箱</text>
         <input
@@ -32,17 +18,6 @@
       </view>
 
       <view class="field">
-        <text class="label">密码</text>
-        <input
-          v-model.trim="form.password"
-          class="input"
-          password
-          type="text"
-          placeholder="请输入密码"
-        />
-      </view>
-
-      <view v-if="mode === 'signup'" class="field">
         <text class="label">验证码</text>
         <view class="inline-field">
           <input
@@ -57,37 +32,23 @@
         </view>
       </view>
 
+      <view class="field">
+        <text class="label">新密码</text>
+        <input
+          v-model.trim="form.newPassword"
+          class="input"
+          password
+          type="text"
+          placeholder="请输入新密码"
+        />
+      </view>
+
       <button class="submit-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('submit')" @click="submit">
-        {{ isActionPending('submit') ? '提交中...' : submitText }}
+        {{ isActionPending('submit') ? '提交中...' : '确认重置' }}
       </button>
 
       <view class="footer-links">
-        <view
-          v-if="mode === 'login'"
-          class="link-button ui-pressable-inline"
-          hover-class="ui-pressable-inline-hover"
-          hover-stay-time="70"
-          @click="switchMode('signup')"
-        >
-          <text class="link">去注册</text>
-        </view>
-        <text v-if="mode === 'login'" class="divider">|</text>
-        <view
-          v-if="mode === 'login'"
-          class="link-button ui-pressable-inline"
-          hover-class="ui-pressable-inline-hover"
-          hover-stay-time="70"
-          @click="goResetPassword"
-        >
-          <text class="link">忘记密码</text>
-        </view>
-        <view
-          v-if="mode !== 'login'"
-          class="link-button ui-pressable-inline"
-          hover-class="ui-pressable-inline-hover"
-          hover-stay-time="70"
-          @click="switchMode('login')"
-        >
+        <view class="link-button ui-pressable-inline" hover-class="ui-pressable-inline-hover" hover-stay-time="70" @click="goLogin">
           <text class="link">返回登录</text>
         </view>
       </view>
@@ -97,83 +58,39 @@
 
 <script>
 import actionGuard from '@/mixins/actionGuard'
-import {
-  getVerificationCode,
-  userLogin,
-  userSignin
-} from '@/api/index'
+import { getVerificationCode, userPassword } from '@/api/index'
 import { showUnhandledError } from '@/utils/error'
-
-const MODE_META = {
-  login: {
-    title: '登录账号',
-    subtitle: '继续使用你的骑行服务',
-    submitText: '立即登录'
-  },
-  signup: {
-    title: '注册账号',
-    subtitle: '使用邮箱快速创建新账号',
-    submitText: '完成注册'
-  }
-}
 
 const DEFAULT_FORM = () => ({
   email: '',
-  password: '',
-  verificationCode: ''
+  verificationCode: '',
+  newPassword: ''
 })
 
 export default {
   mixins: [actionGuard],
   data() {
     return {
-      mode: 'login',
       form: DEFAULT_FORM(),
       countdown: 0,
-      timer: null,
-      tabs: [
-        { mode: 'login', label: '登录' },
-        { mode: 'signup', label: '注册' }
-      ]
+      timer: null
     }
   },
-  computed: {
-    pageTitle() {
-      return MODE_META[this.mode].title
-    },
-    pageSubtitle() {
-      return MODE_META[this.mode].subtitle
-    },
-    submitText() {
-      return MODE_META[this.mode].submitText
-    }
-  },
-  onLoad(options) {
-    if (options && MODE_META[options.mode]) {
-      this.mode = options.mode
-    }
+  onLoad() {
+    this.resetPageState()
   },
   onUnload() {
     this.clearTimer()
   },
   methods: {
-    redirectToLogin() {
-      uni.redirectTo({
-        url: '/pages/login/login?mode=login'
-      })
-    },
-    switchMode(nextMode) {
-      this.mode = nextMode
-      this.form = {
-        ...DEFAULT_FORM(),
-        email: this.form.email
-      }
+    resetPageState() {
+      this.form = DEFAULT_FORM()
       this.clearTimer()
       this.countdown = 0
     },
-    goResetPassword() {
-      uni.navigateTo({
-        url: '/pages/resetPassword/resetPassword'
+    goLogin() {
+      uni.redirectTo({
+        url: '/pages/login/login?mode=login'
       })
     },
     async sendCode() {
@@ -225,17 +142,9 @@ export default {
         return
       }
 
-      if (!this.form.password) {
+      if (!this.form.verificationCode || !this.form.newPassword) {
         uni.showToast({
-          title: '请输入密码',
-          icon: 'none'
-        })
-        return
-      }
-
-      if (this.mode === 'signup' && !this.form.verificationCode) {
-        uni.showToast({
-          title: '请输入验证码',
+          title: '请填写完整重置信息',
           icon: 'none'
         })
         return
@@ -246,50 +155,21 @@ export default {
           uni.showLoading({
             title: '提交中...'
           })
-
-          if (this.mode === 'login') {
-            const res = await userLogin({
-              email: this.form.email,
-              password: this.form.password
-            })
-            const data = res.data || {}
-            if (data.token) {
-              uni.setStorageSync('token', data.token)
-            }
-            uni.setStorageSync('userInfo', {
-              id: data.id || '',
-              username: data.username || '用户',
-              email: data.email || this.form.email
-            })
-            uni.hideLoading()
-            uni.showToast({
-              title: '登录成功',
-              icon: 'success'
-            })
-            setTimeout(() => {
-              uni.reLaunch({
-                url: '/pages/index/index'
-              })
-            }, 800)
-            return
-          }
-
-          await userSignin({
-            email: this.form.email,
-            password: this.form.password,
-            verificationCode: this.form.verificationCode
+          await userPassword({
+            verificationCode: this.form.verificationCode,
+            newPassword: this.form.newPassword
           })
           uni.hideLoading()
           uni.showToast({
-            title: '注册成功，请登录',
+            title: '密码已重置',
             icon: 'success'
           })
           setTimeout(() => {
-            this.redirectToLogin()
+            this.goLogin()
           }, 800)
         } catch (error) {
           uni.hideLoading()
-          showUnhandledError(error, '提交失败，请稍后重试')
+          showUnhandledError(error, '重置密码失败，请稍后重试')
         }
       })
     }
@@ -334,32 +214,6 @@ export default {
   background-color: #ffffff;
   border: 1rpx solid #e5e5e2;
   padding: 40rpx 32rpx;
-}
-
-.tabs {
-  display: flex;
-  margin-bottom: 32rpx;
-  background: #fafaf8;
-  border: 1rpx solid #e5e5e2;
-}
-
-.tab {
-  flex: 1;
-  padding: 24rpx 0;
-  text-align: center;
-}
-
-.tab.active {
-  background-color: #0b0e0d;
-}
-
-.tab-text {
-  font-size: 24rpx;
-  color: #737373;
-}
-
-.tab.active .tab-text {
-  color: #ffffff;
 }
 
 .field {
@@ -448,13 +302,8 @@ export default {
   justify-content: center;
 }
 
-.link,
-.divider {
+.link {
   font-size: 24rpx;
   color: #737373;
-}
-
-.link {
-  padding: 0 12rpx;
 }
 </style>

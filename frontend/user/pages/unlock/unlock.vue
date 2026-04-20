@@ -1,11 +1,19 @@
 <template>
   <view class="page">
+    <camera
+      v-if="cameraVisible"
+      class="torch-camera"
+      device-position="back"
+      :flash="cameraFlash"
+      @error="handleCameraError"
+    ></camera>
+
     <view class="header">
       <text class="title">编号开锁</text>
     </view>
 
     <view class="display-section">
-      <view class="input-display">
+      <view class="input-display ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="focusCodeInput">
         <text class="display-label">请输入车辆二维码编号</text>
         <view class="display-value">
           <text class="prefix-tag">PDSC</text>
@@ -18,49 +26,66 @@
             <text class="char-text">{{ char }}</text>
           </text>
         </view>
+        <input
+          class="native-code-input"
+          :value="scooterCode"
+          :focus="inputFocused"
+          type="number"
+          confirm-type="done"
+          :maxlength="maxLength"
+          :adjust-position="true"
+          :cursor-spacing="24"
+          @input="handleCodeInput"
+          @blur="handleCodeBlur"
+          @confirm="confirmUnlock"
+        />
       </view>
 
       <view class="flashlight-section">
-        <button class="flashlight-btn" :class="{ active: isFlashlightOn }" @click="toggleFlashlight">
-          <text class="flashlight-text">{{ isFlashlightOn ? '关闭补光' : '打开补光' }}</text>
+        <button
+          class="flashlight-btn"
+          hover-class="button-hover"
+          hover-start-time="0"
+          hover-stay-time="90"
+          :class="{ active: isFlashlightOn }"
+          :disabled="isFlashlightPending"
+          @click="toggleFlashlight"
+        >
+          <text class="flashlight-text">
+            {{ isFlashlightPending ? '处理中...' : (isFlashlightOn ? '关闭补光' : '打开补光') }}
+          </text>
         </button>
       </view>
     </view>
 
-    <view class="keyboard-section">
-      <view class="number-keyboard">
-        <view
-          v-for="num in numberKeys"
-          :key="num"
-          class="key-item"
-          @click="handleNumberClick(num)"
-        >
-          <text class="key-text">{{ num }}</text>
-        </view>
-        <view class="key-item delete-key" @click="deleteNumber">
-          <text class="key-text">⌫</text>
-        </view>
-      </view>
-
-      <view class="confirm-section">
-        <button class="unlock-btn" :disabled="!canUnlock" @click="confirmUnlock">确认开锁</button>
-      </view>
+    <view class="confirm-section native-confirm-section" :style="confirmSectionStyle">
+      <button class="unlock-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="!canUnlock || isActionPending('confirmUnlock')" @click="confirmUnlock">
+        {{ isActionPending('confirmUnlock') ? '开锁中...' : '确认开锁' }}
+      </button>
     </view>
   </view>
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getScooterInfo, unlockScooter } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       scooterCode: '',
       maxLength: 6,
-      numberKeys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-      isFlashlightOn: false
+      isFlashlightOn: false,
+      isFlashlightPending: false,
+      inputFocused: false,
+      keyboardHeight: 0,
+      keyboardHeightHandler: null,
+      cameraVisible: false,
+      cameraFlash: 'off'
     }
   },
   computed: {
@@ -69,6 +94,11 @@ export default {
     },
     canUnlock() {
       return /^\d{6}$/.test(this.scooterCode)
+    },
+    confirmSectionStyle() {
+      return {
+        bottom: `${this.keyboardHeight}px`
+      }
     }
   },
   onLoad(options) {
@@ -82,11 +112,19 @@ export default {
     if (options && options.code) {
       this.scooterCode = this.extractDigits(options.code)
     }
+
+    this.registerKeyboardHeightListener()
+
+    setTimeout(() => {
+      this.inputFocused = true
+    }, 0)
+  },
+  onHide() {
+    this.forceReleaseFlashlight()
   },
   onUnload() {
-    if (this.isFlashlightOn) {
-      this.turnOffFlashlight()
-    }
+    this.unregisterKeyboardHeightListener()
+    this.forceReleaseFlashlight()
   },
   methods: {
     extractDigits(rawCode) {
@@ -96,47 +134,173 @@ export default {
       const digits = this.extractDigits(rawCode)
       return digits.length === 6 ? `PDSC${digits}` : ''
     },
-    handleNumberClick(num) {
-      if (this.scooterCode.length >= this.maxLength) {
-        uni.showToast({
-          title: '编号长度已达上限',
-          icon: 'none'
-        })
+    focusCodeInput() {
+      this.inputFocused = false
+      setTimeout(() => {
+        this.inputFocused = true
+      }, 0)
+    },
+    handleCodeInput(event) {
+      this.scooterCode = this.extractDigits(event && event.detail ? event.detail.value : '')
+    },
+    handleCodeBlur() {
+      this.inputFocused = false
+      this.keyboardHeight = 0
+    },
+    registerKeyboardHeightListener() {
+      if (typeof uni.onKeyboardHeightChange !== 'function' || this.keyboardHeightHandler) {
         return
       }
 
-      this.scooterCode += num
-      uni.vibrateShort()
+      this.keyboardHeightHandler = (res) => {
+        this.keyboardHeight = Math.max(Number(res && res.height) || 0, 0)
+      }
+      uni.onKeyboardHeightChange(this.keyboardHeightHandler)
     },
-    deleteNumber() {
-      if (!this.scooterCode.length) {
+    unregisterKeyboardHeightListener() {
+      if (!this.keyboardHeightHandler || typeof uni.offKeyboardHeightChange !== 'function') {
+        this.keyboardHeightHandler = null
         return
       }
 
-      this.scooterCode = this.scooterCode.slice(0, -1)
-      uni.vibrateShort()
+      uni.offKeyboardHeightChange(this.keyboardHeightHandler)
+      this.keyboardHeightHandler = null
     },
-    toggleFlashlight() {
+    async toggleFlashlight() {
+      if (this.isFlashlightPending) {
+        return
+      }
+
       if (this.isFlashlightOn) {
         this.turnOffFlashlight()
-      } else {
-        this.turnOnFlashlight()
+        return
       }
+
+      await this.turnOnFlashlight()
     },
-    turnOnFlashlight() {
-      uni.setScreenBrightness({
-        value: 1,
-        success: () => {
-          this.isFlashlightOn = true
-        }
+    wait(ms) {
+      return new Promise((resolve) => {
+        setTimeout(resolve, ms)
       })
     },
-    turnOffFlashlight() {
-      uni.setScreenBrightness({
-        value: 0.5,
-        success: () => {
-          this.isFlashlightOn = false
+    getSetting() {
+      return new Promise((resolve, reject) => {
+        uni.getSetting({
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    authorizeCamera() {
+      return new Promise((resolve, reject) => {
+        uni.authorize({
+          scope: 'scope.camera',
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    showCameraPermissionModal() {
+      return new Promise((resolve) => {
+        uni.showModal({
+          title: '需要相机权限',
+          content: '打开补光需要相机权限，请授权后重试。',
+          confirmText: '去设置',
+          success: (res) => {
+            resolve(!!(res && res.confirm))
+          },
+          fail: () => {
+            resolve(false)
+          }
+        })
+      })
+    },
+    openSetting() {
+      return new Promise((resolve, reject) => {
+        uni.openSetting({
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    async ensureCameraPermission() {
+      const setting = await this.getSetting()
+      const authSetting = (setting && setting.authSetting) || {}
+
+      if (authSetting['scope.camera'] === true) {
+        return
+      }
+
+      if (authSetting['scope.camera'] === undefined) {
+        try {
+          await this.authorizeCamera()
+          return
+        } catch (error) {
+          // Fall through to settings when the initial system authorization is denied.
         }
+      }
+
+      const confirmed = await this.showCameraPermissionModal()
+      if (!confirmed) {
+        throw new Error('camera-permission-cancelled')
+      }
+
+      const openSettingResult = await this.openSetting()
+      const nextAuthSetting = (openSettingResult && openSettingResult.authSetting) || {}
+      if (!nextAuthSetting['scope.camera']) {
+        throw new Error('camera-permission-denied')
+      }
+    },
+    async ensureCameraMounted() {
+      if (!this.cameraVisible) {
+        this.cameraVisible = true
+        await this.$nextTick()
+      }
+
+      await this.wait(120)
+    },
+    async turnOnFlashlight() {
+      this.isFlashlightPending = true
+      try {
+        await this.ensureCameraPermission()
+        await this.ensureCameraMounted()
+        this.cameraFlash = 'off'
+        await this.wait(80)
+        this.cameraFlash = 'torch'
+        this.isFlashlightOn = true
+      } catch (error) {
+        this.turnOffFlashlight()
+        if (!String(error && error.message || '').startsWith('camera-permission')) {
+          uni.showToast({
+            title: '补光开启失败',
+            icon: 'none'
+          })
+        }
+      } finally {
+        this.isFlashlightPending = false
+      }
+    },
+    turnOffFlashlight() {
+      this.cameraFlash = 'off'
+      this.isFlashlightOn = false
+      setTimeout(() => {
+        if (!this.isFlashlightOn) {
+          this.cameraVisible = false
+        }
+      }, 80)
+    },
+    forceReleaseFlashlight() {
+      this.cameraFlash = 'off'
+      this.isFlashlightOn = false
+      this.isFlashlightPending = false
+      this.cameraVisible = false
+    },
+    handleCameraError() {
+      this.isFlashlightPending = false
+      this.turnOffFlashlight()
+      uni.showToast({
+        title: '补光开启失败',
+        icon: 'none'
       })
     },
     async confirmUnlock() {
@@ -148,49 +312,51 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '正在开锁...'
-        })
-        const normalizedCode = this.normalizeScooterCode(this.scooterCode)
-        if (!normalizedCode) {
-          uni.hideLoading()
-          uni.showToast({
-            title: '请输入6位编号',
-            icon: 'none'
+      await this.withAction('confirmUnlock', async () => {
+        try {
+          uni.showLoading({
+            title: '开锁中...'
           })
-          return
-        }
-        const scooterRes = await getScooterInfo(normalizedCode)
-        const scooterInfo = scooterRes.data || {}
-        const res = await unlockScooter(normalizedCode)
-        uni.hideLoading()
-        uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
-          ...(res.data || {}),
-          scooterCode: normalizedCode,
-          scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
-          battery: Number(scooterInfo.battery || 0),
-          rideStatus: scooterInfo.rideStatus || 1,
-          faultStatus: scooterInfo.faultStatus || 0,
-          currentLatitude: Number(scooterInfo.latitude || 0),
-          currentLongitude: Number(scooterInfo.longitude || 0),
-          routePoints: [],
-          startTime: new Date().toISOString(),
-          totalKilometer: 0,
-          amount: 0,
-          active: true
-        })
+          const normalizedCode = this.normalizeScooterCode(this.scooterCode)
+          if (!normalizedCode) {
+            uni.hideLoading()
+            uni.showToast({
+              title: '请输入 6 位编号',
+              icon: 'none'
+            })
+            return
+          }
 
-        if (this.isFlashlightOn) {
+          const scooterRes = await getScooterInfo(normalizedCode)
+          const scooterInfo = scooterRes.data || {}
+          const res = await unlockScooter(normalizedCode)
+          uni.hideLoading()
+          uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
+            ...(res.data || {}),
+            scooterCode: normalizedCode,
+            scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
+            battery: Number(scooterInfo.battery || 0),
+            rideStatus: scooterInfo.rideStatus || 1,
+            faultStatus: scooterInfo.faultStatus || 0,
+            currentLatitude: Number(scooterInfo.latitude || 0),
+            currentLongitude: Number(scooterInfo.longitude || 0),
+            routePoints: [],
+            startTime: new Date().toISOString(),
+            totalKilometer: 0,
+            amount: 0,
+            active: true
+          })
+
           this.turnOffFlashlight()
-        }
 
-        uni.navigateTo({
-          url: '/pages/riding/riding'
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+          uni.navigateTo({
+            url: '/pages/riding/riding'
+          })
+        } catch (error) {
+          uni.hideLoading()
+          showUnhandledError(error, '开锁失败，请稍后重试')
+        }
+      })
     }
   }
 }
@@ -202,6 +368,16 @@ export default {
   flex-direction: column;
   min-height: 100vh;
   background-color: #fafaf8;
+}
+
+.torch-camera {
+  position: fixed;
+  top: -200rpx;
+  left: -200rpx;
+  width: 1rpx;
+  height: 1rpx;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .header {
@@ -226,6 +402,7 @@ export default {
 
 .input-display {
   margin-bottom: 48rpx;
+  position: relative;
 }
 
 .display-label {
@@ -278,6 +455,12 @@ export default {
   border-bottom-color: #0b0e0d;
 }
 
+.native-code-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
 .flashlight-section {
   margin-top: 48rpx;
 }
@@ -300,58 +483,38 @@ export default {
   border-color: #0b0e0d;
 }
 
+.flashlight-btn[disabled] {
+  opacity: 0.7;
+}
+
+.flashlight-btn::after {
+  border: none;
+}
+
 .flashlight-text {
   font-size: 26rpx;
   letter-spacing: 2rpx;
-}
-
-.keyboard-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0 32rpx 48rpx;
-}
-
-.number-keyboard {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24rpx;
-  margin-bottom: 48rpx;
-}
-
-.key-item {
-  background-color: #ffffff;
-  padding: 48rpx 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1rpx solid #e5e5e2;
-}
-
-.key-item:active {
-  background-color: #fafaf8;
-  transform: scale(0.98);
-}
-
-.key-text {
-  font-size: 40rpx;
-  font-weight: 300;
-  color: #0b0e0d;
-}
-
-.delete-key {
-  background-color: #fafaf8;
-}
-
-.delete-key .key-text {
-  color: #737373;
 }
 
 .confirm-section {
   margin-top: auto;
 }
 
+.native-confirm-section {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 0 32rpx 48rpx;
+  background: linear-gradient(180deg, rgba(250, 250, 248, 0) 0%, #fafaf8 32%);
+  transition: bottom 0.2s ease;
+}
+
 .unlock-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: #0b0e0d;
   color: #ffffff;
   border: none;

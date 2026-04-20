@@ -6,7 +6,7 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">登录后可提交故障上报</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+      <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
     </view>
 
     <view v-else class="form-section">
@@ -19,7 +19,7 @@
             placeholder="请输入或扫码获取车辆编号"
             :maxlength="10"
           />
-          <button class="scan-btn" @click="scanScooterCode">扫码</button>
+          <button class="scan-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="scanScooterCode">扫码</button>
         </view>
       </view>
 
@@ -40,11 +40,11 @@
         <view class="upload-section">
           <view v-for="(photo, index) in photos" :key="photo" class="photo-item">
             <image class="photo-image" :src="photo" mode="aspectFill" />
-            <view class="photo-delete" @click="deletePhoto(index)">
+            <view class="photo-delete ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="deletePhoto(index)">
               <text class="delete-icon">×</text>
             </view>
           </view>
-          <view v-if="photos.length < maxPhotos" class="upload-btn" @click="chooseImage">
+          <view v-if="photos.length < maxPhotos" class="upload-btn ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="chooseImage">
             <text class="upload-text">添加图片</text>
           </view>
         </view>
@@ -52,10 +52,12 @@
       </view>
 
       <view class="submit-section">
-        <button class="submit-btn" @click="submitReport">确认提交</button>
+        <button class="submit-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('submitReport')" @click="submitReport">
+          {{ isActionPending('submitReport') ? '提交中...' : '确认提交' }}
+        </button>
       </view>
 
-      <view class="history-link" @click="navigateToHistory">
+      <view class="history-link ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateToHistory">
         <text class="link-text">查看历史上报记录 ›</text>
       </view>
     </view>
@@ -63,9 +65,12 @@
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getScooterInfo, reportFault } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       hasToken: false,
@@ -138,35 +143,38 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '提交中...'
-        })
-        let scooterId = Number(this.scooterCode.trim())
-        if (!Number.isFinite(scooterId)) {
-          const scooterRes = await getScooterInfo(this.scooterCode.trim())
-          scooterId = Number(scooterRes.data && scooterRes.data.id) || 0
-        }
-        await reportFault({
-          scooterId,
-          scooterCode: this.scooterCode.trim(),
-          description: this.faultReason.trim(),
-          image: ''
-        })
-        uni.hideLoading()
-        uni.showModal({
-          title: '提交成功',
-          content: '感谢你的反馈，我们会尽快处理。',
-          showCancel: false,
-          success: () => {
-            uni.navigateTo({
-              url: '/pages/faults/faults'
-            })
+      await this.withAction('submitReport', async () => {
+        try {
+          uni.showLoading({
+            title: '提交中...'
+          })
+          let scooterId = Number(this.scooterCode.trim())
+          if (!Number.isFinite(scooterId)) {
+            const scooterRes = await getScooterInfo(this.scooterCode.trim())
+            scooterId = Number(scooterRes.data && scooterRes.data.id) || 0
           }
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+          await reportFault({
+            scooterId,
+            scooterCode: this.scooterCode.trim(),
+            description: this.faultReason.trim(),
+            image: ''
+          })
+          uni.hideLoading()
+          uni.showModal({
+            title: '提交成功',
+            content: '感谢你的反馈，我们会尽快处理。',
+            showCancel: false,
+            success: () => {
+              uni.navigateTo({
+                url: '/pages/faults/faults'
+              })
+            }
+          })
+        } catch (error) {
+          uni.hideLoading()
+          showUnhandledError(error, '提交故障上报失败，请稍后重试')
+        }
+      })
     },
     navigateToHistory() {
       uni.navigateTo({
@@ -187,10 +195,10 @@ export default {
 .form-section { padding: 32rpx; }
 .form-item { margin-bottom: 32rpx; background-color: #fff; padding: 40rpx 32rpx; border: 1rpx solid #e5e5e2; }
 .form-label { display: block; margin-bottom: 24rpx; font-size: 26rpx; color: #0b0e0d; }
-.input-wrapper { display: flex; align-items: center; gap: 20rpx; }
-.input { flex: 1; height: 88rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 0 28rpx; font-size: 28rpx; }
-.scan-btn { height: 88rpx; padding: 0 40rpx; background-color: transparent; border: 1rpx solid #d4d4d1; border-radius: 0; color: #0b0e0d; }
-.textarea { width: 100%; min-height: 240rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 24rpx 28rpx; font-size: 28rpx; }
+.input-wrapper { display: flex; align-items: stretch; gap: 20rpx; min-width: 0; }
+.input { flex: 1; min-width: 0; height: 88rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 0 28rpx; font-size: 28rpx; box-sizing: border-box; }
+.scan-btn { height: 88rpx; flex-shrink: 0; padding: 0 40rpx; background-color: transparent; border: 1rpx solid #d4d4d1; border-radius: 0; color: #0b0e0d; }
+.textarea { width: 100%; min-height: 240rpx; background-color: #fafaf8; border: 1rpx solid #e5e5e2; padding: 24rpx 28rpx; font-size: 28rpx; box-sizing: border-box; }
 .char-count { display: block; text-align: right; margin-top: 12rpx; font-size: 22rpx; color: #737373; }
 .upload-section { display: flex; flex-wrap: wrap; gap: 20rpx; }
 .photo-item { position: relative; width: 200rpx; height: 200rpx; border: 1rpx solid #e5e5e2; overflow: hidden; }
@@ -202,6 +210,7 @@ export default {
 .upload-tip { display: block; margin-top: 16rpx; font-size: 22rpx; color: #737373; }
 .submit-section { margin-top: 64rpx; }
 .submit-btn { background-color: #0b0e0d; color: #fff; border: none; border-radius: 0; font-size: 32rpx; letter-spacing: 4rpx; }
+.submit-btn[disabled] { background-color: #d4d4d1; }
 .history-link { margin-top: 40rpx; padding: 40rpx 32rpx; text-align: center; background-color: #fff; border: 1rpx solid #e5e5e2; }
 .link-text { font-size: 28rpx; color: #737373; }
 </style>

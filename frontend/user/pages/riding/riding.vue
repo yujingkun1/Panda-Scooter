@@ -6,7 +6,6 @@
         :latitude="currentLatitude"
         :longitude="currentLongitude"
         :scale="scale"
-        :markers="markers"
         :polyline="polyline"
         :show-location="true"
       ></map>
@@ -55,13 +54,17 @@
         </view>
       </view>
 
-      <button class="end-btn" @click="finishRide">结束用车</button>
+      <button class="end-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('finishRide')" @click="finishRide">
+        {{ isActionPending('finishRide') ? '结束中...' : '结束用车' }}
+      </button>
     </view>
   </view>
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { lockScooter } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 const DISTANCE_SAMPLE_INTERVAL = 5000
@@ -72,10 +75,8 @@ const FEE_PER_KILOMETER = 1
 const BATTERY_COST_PER_KILOMETER = 4
 const DEFAULT_SCALE = 17
 
-const SCOOTER_MARKER_ICON = '/static/scooter.svg'
-const START_MARKER_ICON = '/static/parking.svg'
-
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       scale: DEFAULT_SCALE,
@@ -97,8 +98,7 @@ export default {
       },
       elapsedSeconds: 0,
       clockTimer: null,
-      locationTimer: null,
-      finishing: false
+      locationTimer: null
     }
   },
   computed: {
@@ -158,32 +158,6 @@ export default {
         color: '#0b0e0d',
         width: 4
       }]
-    },
-    markers() {
-      const markers = []
-      const firstPoint = this.ride.routePoints[0]
-
-      if (firstPoint) {
-        markers.push({
-          id: 1,
-          latitude: firstPoint.latitude,
-          longitude: firstPoint.longitude,
-          iconPath: START_MARKER_ICON,
-          width: 24,
-          height: 24
-        })
-      }
-
-      markers.push({
-        id: 2,
-        latitude: this.currentLatitude,
-        longitude: this.currentLongitude,
-        iconPath: SCOOTER_MARKER_ICON,
-        width: 34,
-        height: 34
-      })
-
-      return markers
     }
   },
   async onLoad() {
@@ -355,52 +329,48 @@ export default {
       return String(value).replace('T', ' ').replace('Z', '').slice(0, 19)
     },
     async finishRide() {
-      if (this.finishing) {
-        return
-      }
-
-      this.finishing = true
-
-      try {
-        await this.captureCurrentLocation()
-      } catch (error) {
-      }
-
-      try {
-        uni.showLoading({
-          title: '结束用车中...'
-        })
-        const endTime = new Date().toISOString()
-        const payload = {
-          orderId: Number(this.ride.orderId),
-          startTime: this.ride.startTime,
-          endTime,
-          amount: Number(this.ride.amount.toFixed(2)),
-          totalKilometer: Number(this.ride.totalKilometer.toFixed(2)),
-          code: Number(this.ride.scooterId),
-          battery: Number(this.currentBattery.toFixed(0)),
-          latitude: this.currentLatitude,
-          longitude: this.currentLongitude
+      await this.withAction('finishRide', async () => {
+        try {
+          await this.captureCurrentLocation()
+        } catch (error) {
+          showUnhandledError(error, '定位失败，将使用上次位置结束用车')
         }
-        await lockScooter(payload)
-        uni.hideLoading()
-        this.clearTimers()
-        uni.removeStorageSync(CURRENT_RIDE_STORAGE_KEY)
-        uni.showModal({
-          title: '骑行结束',
-          content: `本次骑行 ${this.distanceText}，预计费用 ￥${this.amountText}`,
-          showCancel: false,
-          success: () => {
-            uni.reLaunch({
-              url: '/pages/index/index'
-            })
+
+        try {
+          uni.showLoading({
+            title: '结束用车中...'
+          })
+          const endTime = new Date().toISOString()
+          const payload = {
+            orderId: Number(this.ride.orderId),
+            startTime: this.ride.startTime,
+            endTime,
+            amount: Number(this.ride.amount.toFixed(2)),
+            totalKilometer: Number(this.ride.totalKilometer.toFixed(2)),
+            code: Number(this.ride.scooterId),
+            battery: Number(this.currentBattery.toFixed(0)),
+            latitude: this.currentLatitude,
+            longitude: this.currentLongitude
           }
-        })
-      } catch (error) {
-        uni.hideLoading()
-      } finally {
-        this.finishing = false
-      }
+          await lockScooter(payload)
+          uni.hideLoading()
+          this.clearTimers()
+          uni.removeStorageSync(CURRENT_RIDE_STORAGE_KEY)
+          uni.showModal({
+            title: '骑行结束',
+            content: `本次骑行 ${this.distanceText}，预计费用 ￥${this.amountText}`,
+            showCancel: false,
+            success: () => {
+              uni.reLaunch({
+                url: '/pages/index/index'
+              })
+            }
+          })
+        } catch (error) {
+          uni.hideLoading()
+          showUnhandledError(error, '结束用车失败，请稍后重试')
+        }
+      })
     }
   }
 }
@@ -499,5 +469,9 @@ export default {
   border-radius: 0;
   font-size: 30rpx;
   letter-spacing: 4rpx;
+}
+
+.end-btn:disabled {
+  background-color: #d4d4d1;
 }
 </style>

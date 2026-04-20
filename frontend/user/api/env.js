@@ -1,5 +1,5 @@
 export const API_ENV_STORAGE_KEY = 'apiEnv'
-export const DEFAULT_API_ENV = 'mock'
+export const DEFAULT_API_ENV = 'test'
 
 export const API_ENVS = Object.freeze({
   mock: {
@@ -10,7 +10,7 @@ export const API_ENVS = Object.freeze({
   test: {
     key: 'test',
     label: '前后端联调测试环境',
-    baseURL: ''
+    baseURL: 'http://8.137.181.89:8080/user'
   },
   prod: {
     key: 'prod',
@@ -21,7 +21,7 @@ export const API_ENVS = Object.freeze({
 
 const hasStorage = () => typeof uni !== 'undefined' && typeof uni.getStorageSync === 'function'
 
-const isValidApiEnv = (env) => {console.log(env);return Boolean(API_ENVS[env]);}
+const isValidApiEnv = (env) => Boolean(API_ENVS[env])
 
 const normalizeApiEnv = (env) => (isValidApiEnv(env) ? env : DEFAULT_API_ENV)
 

@@ -21,7 +21,9 @@
           placeholder="搜索停车点名称"
           confirm-type="search"
         />
-        <text v-if="keyword" class="clear-btn" @click="clearKeyword">清空</text>
+        <view v-if="keyword" class="clear-btn ui-pressable-inline" hover-class="ui-pressable-inline-hover" hover-stay-time="70" @click="clearKeyword">
+          <text>清空</text>
+        </view>
       </view>
 
       <view class="result-meta">
@@ -32,12 +34,14 @@
         <view
           v-for="item in filteredParkingPoints"
           :key="item.id"
-          class="result-item"
+          class="result-item ui-pressable"
           :class="{ active: item.id === selectedParkingId }"
+          hover-class="ui-pressable-hover"
+          hover-stay-time="70"
           @click="selectParkingPoint(item)"
         >
           <text class="result-name">{{ item.name }}</text>
-          <text class="result-location">{{ formatCoordinate(item.latitude, item.longitude) }}</text>
+          <text class="result-location">{{ formatDistance(item.distance) }}</text>
         </view>
         <view v-if="!filteredParkingPoints.length" class="empty-state">
           <text class="empty-text">暂无匹配的停车点</text>
@@ -49,6 +53,7 @@
 
 <script>
 import { getMapData } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const DEFAULT_LOCATION = {
   latitude: 30.75953206821905,
@@ -62,6 +67,8 @@ export default {
     return {
       latitude: DEFAULT_LOCATION.latitude,
       longitude: DEFAULT_LOCATION.longitude,
+      originLatitude: DEFAULT_LOCATION.latitude,
+      originLongitude: DEFAULT_LOCATION.longitude,
       scale: 17,
       keyword: '',
       selectedParkingId: null,
@@ -122,7 +129,10 @@ export default {
         const location = await this.getLocation()
         this.latitude = Number(location.latitude)
         this.longitude = Number(location.longitude)
+        this.originLatitude = Number(location.latitude)
+        this.originLongitude = Number(location.longitude)
       } catch (error) {
+        showUnhandledError(error, '定位失败，已按默认位置查找停车点')
       }
 
       await this.loadParkingPoints()
@@ -132,7 +142,7 @@ export default {
         const res = await getMapData({
           latitude: this.latitude,
           longitude: this.longitude,
-          scale: this.scale
+          scale: this.normalizeMapScale(this.scale)
         })
         const data = res.data || {}
         const points = this.normalizeParkingPoints(data.parkingPoints || [])
@@ -143,6 +153,7 @@ export default {
         }
       } catch (error) {
         this.parkingPoints = []
+        showUnhandledError(error, '加载停车点失败，请稍后重试')
       }
     },
     normalizeParkingPoints(list) {
@@ -158,10 +169,12 @@ export default {
             id: index + 1,
             name: item.name || `停车点 ${index + 1}`,
             latitude,
-            longitude
+            longitude,
+            distance: this.calculateDistance(this.originLatitude, this.originLongitude, latitude, longitude)
           }
         })
         .filter(Boolean)
+        .sort((first, second) => first.distance - second.distance)
     },
     handleMarkerTap(event) {
       const current = this.filteredParkingPoints.find((item) => item.id === event.detail.markerId)
@@ -169,12 +182,19 @@ export default {
         this.selectParkingPoint(current)
       }
     },
+    normalizeMapScale(scale) {
+      const roundedScale = Math.round(Number(scale))
+      if (!Number.isFinite(roundedScale)) {
+        return 17
+      }
+      return Math.min(20, Math.max(3, roundedScale))
+    },
     selectParkingPoint(item, adjustScale = true) {
       this.selectedParkingId = item.id
       this.latitude = item.latitude
       this.longitude = item.longitude
       if (adjustScale) {
-        this.scale = 18
+        this.scale = this.normalizeMapScale(18)
       }
     },
     clearKeyword() {
@@ -183,8 +203,24 @@ export default {
         this.selectParkingPoint(this.parkingPoints[0], false)
       }
     },
-    formatCoordinate(latitude, longitude) {
-      return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    calculateDistance(fromLatitude, fromLongitude, toLatitude, toLongitude) {
+      const toRadians = (degree) => degree * (Math.PI / 180)
+      const earthRadius = 6371000
+      const deltaLatitude = toRadians(toLatitude - fromLatitude)
+      const deltaLongitude = toRadians(toLongitude - fromLongitude)
+      const startLatitude = toRadians(fromLatitude)
+      const endLatitude = toRadians(toLatitude)
+      const haversine = Math.sin(deltaLatitude / 2) ** 2
+        + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(deltaLongitude / 2) ** 2
+      const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+      return earthRadius * arc
+    },
+    formatDistance(distance) {
+      const meters = Number(distance || 0)
+      if (meters < 1000) {
+        return `直线距离 ${Math.round(meters)} m`
+      }
+      return `直线距离 ${(meters / 1000).toFixed(2)} km`
     }
   }
 }
@@ -215,6 +251,7 @@ export default {
 .search-box {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 20rpx;
   padding: 0 24rpx;
   height: 88rpx;
@@ -224,11 +261,16 @@ export default {
 
 .search-input {
   flex: 1;
+  min-width: 0;
   font-size: 28rpx;
   color: #0b0e0d;
 }
 
 .clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   font-size: 24rpx;
   color: #737373;
 }

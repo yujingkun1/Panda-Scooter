@@ -16,18 +16,17 @@
     </view>
 
     <view class="action-section">
-      <view class="action-item" @click="goToForgotPassword">
+      <view class="action-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="goToForgotPassword">
         <text class="action-text">修改密码</text>
         <text class="action-arrow">›</text>
       </view>
-      <view class="action-item" @click="logout">
+      <view class="action-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="logout">
         <text class="action-text logout-text">退出登录</text>
       </view>
     </view>
 
     <view class="delete-section">
       <text class="section-title">注销账号</text>
-      <text class="section-desc">根据接口文档，注销账号需要密码和邮箱验证码。</text>
 
       <view class="field">
         <text class="field-label">登录密码</text>
@@ -49,24 +48,28 @@
             type="text"
             placeholder="请输入验证码"
           />
-          <button class="code-btn" :disabled="countdown > 0" @click="sendDeleteCode">
-            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+          <button class="code-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="countdown > 0 || isActionPending('sendDeleteCode')" @click="sendDeleteCode">
+            {{ isActionPending('sendDeleteCode') ? '发送中...' : (countdown > 0 ? `${countdown}s` : '获取验证码') }}
           </button>
         </view>
       </view>
 
-      <button class="delete-btn" @click="deleteAccount">确认注销</button>
+      <button class="delete-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('deleteAccount')" @click="deleteAccount">
+        {{ isActionPending('deleteAccount') ? '注销中...' : '确认注销' }}
+      </button>
     </view>
   </view>
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import {
   getUserInfo,
   getVerificationCode,
   userDelete,
   userLogout
 } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const DEFAULT_USER_INFO = {
   username: '游客用户',
@@ -79,6 +82,7 @@ const DEFAULT_DELETE_FORM = () => ({
 })
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       userInfo: { ...DEFAULT_USER_INFO },
@@ -119,7 +123,7 @@ export default {
     },
     goToForgotPassword() {
       uni.navigateTo({
-        url: `/pages/login/login?mode=forgot-password&email=${encodeURIComponent(this.userInfo.email)}`
+        url: '/pages/resetPassword/resetPassword'
       })
     },
     async sendDeleteCode() {
@@ -131,15 +135,18 @@ export default {
         return
       }
 
-      try {
-        await getVerificationCode(this.userInfo.email)
-        uni.showToast({
-          title: '验证码已发送',
-          icon: 'success'
-        })
-        this.startCountdown()
-      } catch (error) {
-      }
+      await this.withAction('sendDeleteCode', async () => {
+        try {
+          await getVerificationCode(this.userInfo.email)
+          uni.showToast({
+            title: '验证码已发送',
+            icon: 'success'
+          })
+          this.startCountdown()
+        } catch (error) {
+          showUnhandledError(error, '验证码发送失败，请稍后重试')
+        }
+      })
     },
     startCountdown() {
       this.clearTimer()
@@ -160,33 +167,39 @@ export default {
       }
     },
     async logout() {
-      uni.showModal({
-        title: '退出登录',
-        content: '确定要退出当前账号吗？',
-        success: async (res) => {
-          if (!res.confirm) {
-            return
-          }
+      await this.withAction('logout', () => new Promise((resolve) => {
+        uni.showModal({
+          title: '退出登录',
+          content: '确定要退出当前账号吗？',
+          success: async (res) => {
+            if (!res.confirm) {
+              resolve()
+              return
+            }
 
-          try {
-            await userLogout()
-          } catch (error) {
-          }
+            try {
+              await userLogout()
+            } catch (error) {
+              showUnhandledError(error, '退出登录请求失败，已为你清除本地登录状态')
+            }
 
-          uni.removeStorageSync('token')
-          uni.removeStorageSync('currentRide')
-          uni.removeStorageSync('userInfo')
-          uni.showToast({
-            title: '已退出登录',
-            icon: 'success'
-          })
-          setTimeout(() => {
-            uni.reLaunch({
-              url: '/pages/index/index'
+            uni.removeStorageSync('token')
+            uni.removeStorageSync('currentRide')
+            uni.removeStorageSync('userInfo')
+            uni.showToast({
+              title: '已退出登录',
+              icon: 'success'
             })
-          }, 800)
-        }
-      })
+            setTimeout(() => {
+              uni.reLaunch({
+                url: '/pages/index/index'
+              })
+            }, 800)
+            resolve()
+          },
+          fail: resolve
+        })
+      }))
     },
     async deleteAccount() {
       if (!this.deleteForm.password || !this.deleteForm.verificationCode) {
@@ -197,41 +210,47 @@ export default {
         return
       }
 
-      uni.showModal({
-        title: '账号注销',
-        content: '账号注销后将退出当前登录状态，确认继续吗？',
-        confirmColor: '#ff4d4f',
-        success: async (res) => {
-          if (!res.confirm) {
-            return
-          }
+      await this.withAction('deleteAccount', () => new Promise((resolve) => {
+        uni.showModal({
+          title: '账号注销',
+          content: '账号注销后将退出当前登录状态，确认继续吗？',
+          confirmColor: '#ff4d4f',
+          success: async (res) => {
+            if (!res.confirm) {
+              resolve()
+              return
+            }
 
-          try {
-            uni.showLoading({
-              title: '注销中...'
-            })
-            await userDelete({
-              password: this.deleteForm.password,
-              verificationCode: this.deleteForm.verificationCode
-            })
-            uni.hideLoading()
-            uni.removeStorageSync('token')
-            uni.removeStorageSync('currentRide')
-            uni.removeStorageSync('userInfo')
-            uni.showToast({
-              title: '账号已注销',
-              icon: 'success'
-            })
-            setTimeout(() => {
-              uni.reLaunch({
-                url: '/pages/index/index'
+            try {
+              uni.showLoading({
+                title: '注销中...'
               })
-            }, 800)
-          } catch (error) {
-            uni.hideLoading()
-          }
-        }
-      })
+              await userDelete({
+                password: this.deleteForm.password,
+                verificationCode: this.deleteForm.verificationCode
+              })
+              uni.hideLoading()
+              uni.removeStorageSync('token')
+              uni.removeStorageSync('currentRide')
+              uni.removeStorageSync('userInfo')
+              uni.showToast({
+                title: '账号已注销',
+                icon: 'success'
+              })
+              setTimeout(() => {
+                uni.reLaunch({
+                  url: '/pages/index/index'
+                })
+              }, 800)
+            } catch (error) {
+              uni.hideLoading()
+              showUnhandledError(error, '注销失败，请稍后重试')
+            }
+            resolve()
+          },
+          fail: resolve
+        })
+      }))
     }
   }
 }
@@ -317,16 +336,9 @@ export default {
   margin-bottom: 12rpx;
 }
 
-.section-desc {
-  display: block;
-  font-size: 22rpx;
-  line-height: 1.7;
-  color: #737373;
-  margin-bottom: 28rpx;
-}
-
 .field {
   margin-bottom: 24rpx;
+  width: 100%;
 }
 
 .field-label {
@@ -343,24 +355,39 @@ export default {
   background-color: #fafaf8;
   padding: 0 24rpx;
   font-size: 28rpx;
+  box-sizing: border-box;
 }
 
 .code-row {
   display: flex;
+  align-items: center;
   gap: 16rpx;
+  min-width: 0;
 }
 
 .code-input {
   flex: 1;
+  min-width: 0;
 }
 
 .code-btn {
   width: 220rpx;
   height: 88rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 88rpx;
+  text-align: center;
   border: 1rpx solid #d4d4d1;
   background-color: transparent;
   color: #0b0e0d;
   font-size: 24rpx;
+}
+
+.code-btn::after {
+  border: none;
 }
 
 .delete-btn {
@@ -371,5 +398,9 @@ export default {
   border-radius: 0;
   font-size: 30rpx;
   letter-spacing: 4rpx;
+}
+
+.delete-btn[disabled] {
+  background-color: #c6a3a3;
 }
 </style>

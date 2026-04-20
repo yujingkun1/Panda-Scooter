@@ -8,11 +8,14 @@
           <text class="brand-subtitle">{{ headerUsername }}</text>
         </view>
       </view>
-      <image class="avatar" src="/static/avatar.png" mode="aspectFit" @click="navigateToProfile"></image>
+      <view class="avatar-hit ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateToProfile">
+        <image class="avatar" src="/static/avatar.png" mode="aspectFit"></image>
+      </view>
     </view>
 
     <view class="map-container">
       <map
+        v-if="mapVisible"
         class="map"
         id="map"
         :latitude="latitude"
@@ -21,29 +24,30 @@
         :markers="markers"
         :polygons="polygons"
         :show-location="true"
+        @regionchange="handleMapRegionChange"
       ></map>
     </view>
 
     <view class="unlock-section">
-      <button class="unlock-btn" @click="scanUnlock">
-        <text class="unlock-btn-text">扫码开锁</text>
+      <button class="unlock-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('scanUnlock') || isActionPending('unlockByCode')" @click="scanUnlock">
+        <text class="unlock-btn-text">{{ isActionPending('scanUnlock') || isActionPending('unlockByCode') ? '处理中...' : '扫码开锁' }}</text>
       </button>
     </view>
 
     <view class="function-area">
-      <view class="function-item" @click="showParkingPoints">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="showParkingPoints">
         <text class="function-text">搜停车点</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="navigateTo('fault')">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('fault')">
         <text class="function-text">故障上报</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="navigateTo('unlock')">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('unlock')">
         <text class="function-text">编号开锁</text>
       </view>
       <text class="function-divider">|</text>
-      <view class="function-item" @click="showRideNotice">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="showRideNotice">
         <text class="function-text">骑行须知</text>
       </view>
     </view>
@@ -60,7 +64,9 @@
             <text class="subscription-desc">{{ pkg.description || '骑行套餐' }}</text>
             <text class="subscription-price">¥{{ formatAmount(pkg.price) }}</text>
           </view>
-          <button class="subscription-btn" @click="handleSubscription(pkg)">查看详情</button>
+          <button class="subscription-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('viewSubscription')" @click="handleSubscription(pkg)">
+            {{ isActionPending('viewSubscription') ? '处理中...' : '查看详情' }}
+          </button>
         </view>
       </view>
       <view v-else class="empty-state">
@@ -71,7 +77,9 @@
 </template>
 
 <script>
+import actionGuard from '@/mixins/actionGuard'
 import { getMapData, getScooterInfo, getSubscriptions, unlockScooter } from '@/api/index'
+import { showUnhandledError } from '@/utils/error'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
 
@@ -87,6 +95,7 @@ const MARKER_ICONS = {
 }
 
 export default {
+  mixins: [actionGuard],
   data() {
     return {
       latitude: DEFAULT_LOCATION.latitude,
@@ -96,26 +105,57 @@ export default {
       polygons: [],
       parkingPoints: [],
       subscriptionPackages: [],
-      headerUsername: '游客用户'
+      headerUsername: '游客用户',
+      mapContext: null,
+      mapVisible: true,
+      mapRefreshTimer: null
     }
   },
   onLoad() {
     this.initPage()
   },
+  onReady() {
+    this.mapContext = uni.createMapContext('map', this)
+  },
   onShow() {
     this.syncHeaderUser()
     this.resumeCurrentRide()
+    this.refreshMapView()
+  },
+  onUnload() {
+    this.clearMapRefreshTimer()
   },
   methods: {
+    clearMapRefreshTimer() {
+      if (this.mapRefreshTimer) {
+        clearTimeout(this.mapRefreshTimer)
+        this.mapRefreshTimer = null
+      }
+    },
+    refreshMapView() {
+      this.clearMapRefreshTimer()
+      this.mapVisible = false
+      this.$nextTick(() => {
+        this.mapRefreshTimer = setTimeout(async () => {
+          this.mapVisible = true
+          await this.$nextTick()
+          this.mapContext = uni.createMapContext('map', this)
+          await this.loadMapData()
+        }, 30)
+      })
+    },
     ensureLoggedIn() {
       const hasToken = Boolean(uni.getStorageSync('token'))
       if (hasToken) {
         return true
       }
 
-      uni.navigateTo({
-        url: '/pages/login/login?mode=login'
-      })
+      this.withAction('loginRedirect', () => new Promise((resolve) => {
+        uni.navigateTo({
+          url: '/pages/login/login?mode=login',
+          complete: resolve
+        })
+      }))
       return false
     },
     syncHeaderUser() {
@@ -143,6 +183,7 @@ export default {
         this.subscriptionPackages = packages
       } catch (error) {
         this.subscriptionPackages = []
+        showUnhandledError(error, '加载套餐失败，请稍后重试')
       }
     },
     getLocation() {
@@ -173,7 +214,7 @@ export default {
         const res = await getMapData({
           latitude: this.latitude,
           longitude: this.longitude,
-          scale: this.scale
+          scale: this.normalizeMapScale(this.scale)
         })
         const data = res.data || {}
         const scooters = this.mapScooters(data.scooters || [])
@@ -188,12 +229,50 @@ export default {
           ...this.mapParkingPointMarkers(parkingPoints),
           ...noParkingAreaMarkers
         ]
-        this.syncMapCenter(data, parkingPoints, noParkingAreaMarkers)
       } catch (error) {
         this.markers = []
         this.polygons = []
         this.parkingPoints = []
+        showUnhandledError(error, '加载地图数据失败，请稍后重试')
       }
+    },
+    getMapContext() {
+      if (!this.mapContext) {
+        this.mapContext = uni.createMapContext('map', this)
+      }
+      return this.mapContext
+    },
+    getCurrentMapScale() {
+      return new Promise((resolve, reject) => {
+        this.getMapContext().getScale({
+          success: (res) => resolve(this.normalizeMapScale(res.scale)),
+          fail: reject
+        })
+      })
+    },
+    normalizeMapScale(scale) {
+      const roundedScale = Math.round(Number(scale))
+      if (!Number.isFinite(roundedScale)) {
+        return 16
+      }
+      return Math.min(20, Math.max(3, roundedScale))
+    },
+    async handleMapRegionChange(event) {
+      if (!event || !event.detail || event.detail.type !== 'end') {
+        return
+      }
+
+      await this.withAction('reloadMapByScale', async () => {
+        try {
+          const nextScale = await this.getCurrentMapScale()
+          if (!Number.isFinite(nextScale) || nextScale === this.scale) {
+            return
+          }
+          this.scale = this.normalizeMapScale(nextScale)
+          await this.loadMapData()
+        } catch (error) {
+        }
+      })
     },
     mapScooters(list) {
       return list
@@ -235,9 +314,9 @@ export default {
           return {
             id: item.id || index + 1,
             points,
-            fillColor: 'rgba(255,0,0,0.15)',
-            strokeColor: 'rgba(255,0,0,0.45)',
-            strokeWidth: 2
+            fillColor: '#FF4D4F2E',
+            strokeColor: '#FF4D4F2E',
+            strokeWidth: 0
           }
         })
         .filter(Boolean)
@@ -358,18 +437,6 @@ export default {
         longitude: total.longitude / points.length
       }
     },
-    syncMapCenter(data, parkingPoints, noParkingAreaMarkers) {
-      const firstScooter = Array.isArray(data.scooters) ? data.scooters[0] : null
-      const firstPoint =
-        this.normalizePoint(firstScooter) ||
-        parkingPoints[0] ||
-        (noParkingAreaMarkers[0] && this.normalizePoint(noParkingAreaMarkers[0]))
-
-      if (firstPoint) {
-        this.latitude = firstPoint.latitude
-        this.longitude = firstPoint.longitude
-      }
-    },
     isValidPoint(latitude, longitude) {
       return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
     },
@@ -378,18 +445,21 @@ export default {
         return
       }
 
-      uni.scanCode({
-        success: async (res) => {
-          const code = this.extractScooterCode(res.result)
-          await this.unlockByCode(code)
-        },
-        fail: () => {
-          uni.showToast({
-            title: '扫码失败，请重试',
-            icon: 'none'
-          })
-        }
-      })
+      this.withAction('scanUnlock', () => new Promise((resolve) => {
+        uni.scanCode({
+          success: async (res) => {
+            const code = this.extractScooterCode(res.result)
+            await this.unlockByCode(code)
+          },
+          fail: () => {
+            uni.showToast({
+              title: '扫码失败，请重试',
+              icon: 'none'
+            })
+          },
+          complete: resolve
+        })
+      }))
     },
     extractScooterCode(rawCode) {
       const value = String(rawCode || '').trim()
@@ -434,65 +504,79 @@ export default {
         return
       }
 
-      try {
-        uni.showLoading({
-          title: '正在开锁...'
-        })
-        const normalizedCode = this.normalizeScooterCode(code)
-        const scooterRes = await getScooterInfo(normalizedCode)
-        const scooterInfo = scooterRes.data || {}
-        const res = await unlockScooter(normalizedCode)
-        uni.hideLoading()
-        uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
-          ...(res.data || {}),
-          scooterCode: normalizedCode,
-          scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
-          battery: Number(scooterInfo.battery || 0),
-          rideStatus: scooterInfo.rideStatus || 1,
-          faultStatus: scooterInfo.faultStatus || 0,
-          currentLatitude: Number(scooterInfo.latitude || this.latitude),
-          currentLongitude: Number(scooterInfo.longitude || this.longitude),
-          routePoints: [],
-          startTime: new Date().toISOString(),
-          totalKilometer: 0,
-          amount: 0,
-          active: true
-        })
-        uni.navigateTo({
-          url: '/pages/riding/riding'
-        })
-      } catch (error) {
-        uni.hideLoading()
-      }
+      await this.withAction('unlockByCode', async () => {
+        try {
+          uni.showLoading({
+            title: '正在开锁...'
+          })
+          const normalizedCode = this.normalizeScooterCode(code)
+          const scooterRes = await getScooterInfo(normalizedCode)
+          const scooterInfo = scooterRes.data || {}
+          const res = await unlockScooter(normalizedCode)
+          uni.hideLoading()
+          uni.setStorageSync(CURRENT_RIDE_STORAGE_KEY, {
+            ...(res.data || {}),
+            scooterCode: normalizedCode,
+            scooterId: scooterInfo.id || (res.data && res.data.scooterId) || '',
+            battery: Number(scooterInfo.battery || 0),
+            rideStatus: scooterInfo.rideStatus || 1,
+            faultStatus: scooterInfo.faultStatus || 0,
+            currentLatitude: Number(scooterInfo.latitude || this.latitude),
+            currentLongitude: Number(scooterInfo.longitude || this.longitude),
+            routePoints: [],
+            startTime: new Date().toISOString(),
+            totalKilometer: 0,
+            amount: 0,
+            active: true
+          })
+          await this.withAction('goRiding', () => new Promise((resolve) => {
+            uni.navigateTo({
+              url: '/pages/riding/riding',
+              complete: resolve
+            })
+          }))
+        } catch (error) {
+          uni.hideLoading()
+          showUnhandledError(error, '开锁失败，请稍后重试')
+        }
+      })
     },
     showParkingPoints() {
       if (!this.ensureLoggedIn()) {
         return
       }
 
-      uni.navigateTo({
-        url: '/pages/parking/parking'
-      })
+      this.withAction('goParking', () => new Promise((resolve) => {
+        uni.navigateTo({
+          url: '/pages/parking/parking',
+          complete: resolve
+        })
+      }))
     },
     showRideNotice() {
       if (!this.ensureLoggedIn()) {
         return
       }
 
-      uni.showModal({
-        title: '骑行须知',
-        content: '请佩戴头盔、遵守交通规则，并在指定区域规范停车。',
-        showCancel: false
-      })
+      this.withAction('showRideNotice', () => new Promise((resolve) => {
+        uni.showModal({
+          title: '骑行须知',
+          content: '请佩戴头盔、遵守交通规则，并在指定区域规范停车。',
+          showCancel: false,
+          complete: resolve
+        })
+      }))
     },
     handleSubscription(pkg) {
       if (!this.ensureLoggedIn()) {
         return
       }
 
-      uni.showToast({
-        title: `${pkg.title} 购买功能暂未开放`,
-        icon: 'none'
+      this.withAction('viewSubscription', async () => {
+        uni.showToast({
+          title: `${pkg.title} 购买功能暂未开放`,
+          icon: 'none'
+        })
       })
     },
     navigateTo(page) {
@@ -501,15 +585,21 @@ export default {
       }
 
       if (page === 'fault') {
-        uni.navigateTo({
-          url: '/pages/reportFault/reportFault'
-        })
+        this.withAction('goFault', () => new Promise((resolve) => {
+          uni.navigateTo({
+            url: '/pages/reportFault/reportFault',
+            complete: resolve
+          })
+        }))
         return
       }
       if (page === 'unlock') {
-        uni.navigateTo({
-          url: '/pages/unlock/unlock'
-        })
+        this.withAction('goUnlock', () => new Promise((resolve) => {
+          uni.navigateTo({
+            url: '/pages/unlock/unlock',
+            complete: resolve
+          })
+        }))
       }
     },
     navigateToProfile() {
@@ -517,9 +607,12 @@ export default {
         return
       }
 
-      uni.navigateTo({
-        url: '/pages/profile/profile'
-      })
+      this.withAction('goProfile', () => new Promise((resolve) => {
+        uni.navigateTo({
+          url: '/pages/profile/profile',
+          complete: resolve
+        })
+      }))
     },
     formatAmount(value) {
       const amount = Number(value || 0)
@@ -579,6 +672,12 @@ export default {
   height: 64rpx;
 }
 
+.avatar-hit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .map-container {
   width: 100%;
   height: 520rpx;
@@ -601,16 +700,27 @@ export default {
 .unlock-btn {
   width: 85%;
   height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   background-color: #0b0e0d;
   color: #ffffff;
   border: none;
   border-radius: 0;
   font-size: 32rpx;
   letter-spacing: 4rpx;
+  line-height: 1;
 }
 
 .unlock-btn-text {
+  display: block;
   color: #ffffff;
+  line-height: 1;
+}
+
+.unlock-btn:disabled {
+  background-color: #d4d4d1;
 }
 
 .function-area {
@@ -711,6 +821,11 @@ export default {
   border-radius: 0;
   padding: 20rpx 40rpx;
   font-size: 24rpx;
+}
+
+.subscription-btn[disabled] {
+  color: #999999;
+  border-color: #e5e5e2;
 }
 
 .empty-state {
