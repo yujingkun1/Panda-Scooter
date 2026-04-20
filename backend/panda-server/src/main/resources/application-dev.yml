@@ -27,3 +27,10 @@ spring:
           timeout: 5000
           connectiontimeout: 5000
           writetimeout: 5000
+
+panda:
+  minio:
+    endpoint: ${MINIO_DEV_ENDPOINT:http://127.0.0.1:9000}
+    access-key: ${MINIO_DEV_ACCESS_KEY:admin}
+    secret-key: ${MINIO_DEV_SECRET_KEY:12345678}
+    bucket-name: ${MINIO_DEV_BUCKET_NAME:panda-faults-dev}

@@ -8,6 +8,7 @@ import com.panda.entity.Scooter;
 import com.panda.entity.UserBill;
 import com.panda.entity.UserWallet;
 import com.panda.exception.BaseException;
+import com.panda.mapper.DispatchRecordMapper;
 import com.panda.mapper.NoParkingAreaMapper;
 import com.panda.mapper.ParkingPointMapper;
 import com.panda.mapper.RentalOrderMapper;
@@ -39,6 +40,7 @@ public class RideServiceImpl implements RideService {
     private final UserMapper userMapper;
     private final UserWalletMapper userWalletMapper;
     private final UserBillMapper userBillMapper;
+    private final DispatchRecordMapper dispatchRecordMapper;
     private final NoParkingAreaMapper noParkingAreaMapper;
     private final ParkingPointMapper parkingPointMapper;
 
@@ -67,9 +69,13 @@ public class RideServiceImpl implements RideService {
             log.warn("解锁失败，车辆故障中，code={}, scooterId={}", code, scooter.getId());
             throw new BaseException("车辆故障中");
         }
-        if (Integer.valueOf(1).equals(scooter.getRideStatus())) {
-            log.warn("解锁失败，车辆使用中，code={}, scooterId={}", code, scooter.getId());
-            throw new BaseException("车辆使用中");
+        if (dispatchRecordMapper.getActiveRecordByScooterId(scooter.getId()) != null) {
+            log.warn("解锁失败，车辆调度中，code={}, scooterId={}", code, scooter.getId());
+            throw new BaseException("车辆调度中");
+        }
+        if (!Integer.valueOf(0).equals(scooter.getRideStatus())) {
+            log.warn("解锁失败，车辆不可用，code={}, scooterId={}, rideStatus={}", code, scooter.getId(), scooter.getRideStatus());
+            throw new BaseException("车辆当前不可用");
         }
 
         RentalOrder rentalOrder = new RentalOrder();
@@ -139,7 +145,7 @@ public class RideServiceImpl implements RideService {
         rentalOrder.setTotalKilometer(totalKilometer);
         rentalOrderMapper.updateFinishInfo(rentalOrder);
 
-        Scooter scooter = scooterMapper.getByCode(lockScooterDTO.getCode());
+        Scooter scooter = scooterMapper.getById(rentalOrder.getScooterId());
         if (scooter != null) {
             scooterMapper.updateStatusAndLocation(
                     scooter.getId(),

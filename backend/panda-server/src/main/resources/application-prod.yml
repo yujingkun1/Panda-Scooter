@@ -4,7 +4,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/bike_system?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:lch20050112}
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
@@ -32,3 +32,10 @@ spring:
 logging:
   level:
     root: info
+
+panda:
+  minio:
+    endpoint: ${MINIO_PROD_ENDPOINT:http://127.0.0.1:9000}
+    access-key: ${MINIO_PROD_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_PROD_SECRET_KEY:minioadmin}
+    bucket-name: ${MINIO_PROD_BUCKET_NAME:panda-faults-prod}

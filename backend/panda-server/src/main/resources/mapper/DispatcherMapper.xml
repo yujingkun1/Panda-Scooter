@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.DispatcherMapper">
+
+    <resultMap id="dispatcherResultMap" type="com.panda.entity.Dispatcher">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="password" column="password"/>
+        <result property="email" column="email"/>
+        <result property="areaId" column="area_id"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.panda.entity.Dispatcher" useGeneratedKeys="true" keyProperty="id">
+        insert into dispatcher (name, password, email, area_id, status, create_time)
+        values (#{name}, #{password}, #{email}, #{areaId}, #{status}, #{createTime})
+    </insert>
+
+    <select id="getByEmail" resultMap="dispatcherResultMap">
+        select id, name, password, email, area_id, status, create_time
+        from dispatcher
+        where email = #{email}
+        limit 1
+    </select>
+
+    <select id="getById" resultMap="dispatcherResultMap">
+        select id, name, password, email, area_id, status, create_time
+        from dispatcher
+        where id = #{id}
+    </select>
+
+    <update id="updatePasswordById">
+        update dispatcher
+        set password = #{password}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from dispatcher where id = #{id}
+    </delete>
+
+</mapper>
