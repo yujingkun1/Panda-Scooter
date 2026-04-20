@@ -23,6 +23,16 @@ const lockScooter = (data) => {
     data
   });
 };
+const getScooterInfo = (code) => {
+  return api_request.request({
+    url: "/scooter/info",
+    method: "GET",
+    params: {
+      code
+    }
+  });
+};
+exports.getScooterInfo = getScooterInfo;
 exports.lockScooter = lockScooter;
 exports.unlockScooter = unlockScooter;
 //# sourceMappingURL=../../../.sourcemap/mp-weixin/api/modules/scooter.js.map

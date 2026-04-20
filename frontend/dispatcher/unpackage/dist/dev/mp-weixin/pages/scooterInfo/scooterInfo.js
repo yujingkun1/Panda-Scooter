@@ -1,9 +1,16 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
-const api_modules_user = require("../../api/modules/user.js");
 const api_modules_map = require("../../api/modules/map.js");
 const api_modules_scooter = require("../../api/modules/scooter.js");
-const common_assets = require("../../common/assets.js");
+const DEFAULT_SCOOTER_INFO = {
+  id: "",
+  code: "",
+  ride_status: 0,
+  fault_status: 0,
+  battery: 0,
+  latitude: "",
+  longitude: ""
+};
 const DEFAULT_LOCATION = {
   latitude: 30.75953206821905,
   longitude: 103.98442619779992
@@ -16,157 +23,112 @@ const MARKER_ICONS = {
 const _sfc_main = {
   data() {
     return {
-      hasToken: false,
-      currentDispatcherName: "访客调度员",
-      headerSubtitle: "调度控制台",
-      currentAreaName: "未分配辖区",
-      todayDispatchedNum: "0",
-      isScanning: false,
+      currentCode: "",
+      scooterInfo: { ...DEFAULT_SCOOTER_INFO },
+      currentLocation: null,
       latitude: DEFAULT_LOCATION.latitude,
       longitude: DEFAULT_LOCATION.longitude,
-      hasCurrentLocation: false,
       scale: 16,
       markers: [],
       polygons: [],
-      scooterLookup: {}
+      scooterLookup: {},
+      isLocking: false,
+      isContinuing: false
     };
   },
-  onShow() {
+  computed: {
+    rideStatusText() {
+      const statusMap = {
+        0: "空闲",
+        1: "使用中",
+        2: "维修中",
+        3: "调度中"
+      };
+      return statusMap[Number(this.scooterInfo.ride_status)] || "--";
+    },
+    faultStatusText() {
+      return Number(this.scooterInfo.fault_status) === 1 ? "故障" : "正常";
+    },
+    batteryText() {
+      const battery = Number(this.scooterInfo.battery);
+      return Number.isFinite(battery) ? `${battery}%` : "--";
+    }
+  },
+  onLoad(options) {
     if (!common_vendor.index.getStorageSync("dispatcherToken")) {
-      common_vendor.index.reLaunch({
+      common_vendor.index.redirectTo({
         url: "/pages/login/login?mode=login"
       });
       return;
     }
-    this.initPage();
+    const task = common_vendor.index.getStorageSync("dispatcherCurrentTask") || {};
+    this.currentCode = this.normalizeScooterCode(
+      (options && options.code ? decodeURIComponent(options.code) : "") || task.scooterCode || ""
+    );
+    if (!this.currentCode) {
+      common_vendor.index.showToast({
+        title: "缺少车辆编号",
+        icon: "none"
+      });
+      setTimeout(() => {
+        common_vendor.index.navigateBack({
+          delta: 1
+        });
+      }, 600);
+      return;
+    }
+    this.loadScooterInfo();
+    this.loadCurrentLocation();
   },
   methods: {
-    async initPage() {
-      this.loadDispatcherInfo();
-      await this.loadCurrentLocation();
-      this.loadMapData();
-    },
-    async loadDispatcherInfo() {
-      const cached = common_vendor.index.getStorageSync("dispatcherUserInfo") || {};
-      this.hasToken = Boolean(common_vendor.index.getStorageSync("dispatcherToken"));
-      if (!this.hasToken) {
-        this.currentDispatcherName = "访客调度员";
-        this.headerSubtitle = "调度控制台";
-        this.currentAreaName = "未分配辖区";
-        this.todayDispatchedNum = "0";
-        return;
-      }
-      this.applyDispatcherInfo(cached);
-      try {
-        const res = await api_modules_user.getDispatcherInfo();
-        const data = res.data || {};
-        const nextInfo = {
-          ...cached,
-          name: data.name || cached.name || "",
-          email: data.email || cached.email || "",
-          areaName: data.areaName || cached.areaName || "",
-          todayDispatchedNum: String(data.todayDispatchedNum || cached.todayDispatchedNum || "0")
-        };
-        common_vendor.index.setStorageSync("dispatcherUserInfo", nextInfo);
-        this.applyDispatcherInfo(nextInfo);
-      } catch (error) {
-      }
-    },
-    applyDispatcherInfo(info = {}) {
-      this.currentDispatcherName = info.name || info.email || "已登录调度员";
-      this.headerSubtitle = this.currentDispatcherName;
-      this.currentAreaName = info.areaName || "未分配辖区";
-      this.todayDispatchedNum = String(info.todayDispatchedNum || "0");
-    },
-    ensureLoggedIn() {
-      if (this.hasToken) {
-        return true;
-      }
-      this.goLogin();
-      return false;
-    },
-    getLocation() {
-      return new Promise((resolve, reject) => {
-        common_vendor.index.getLocation({
-          type: "gcj02",
-          success: resolve,
-          fail: reject
-        });
-      });
-    },
     async loadCurrentLocation() {
       try {
         const location = await this.getLocation();
-        this.latitude = Number(location.latitude);
-        this.longitude = Number(location.longitude);
-        this.hasCurrentLocation = true;
+        this.currentLocation = {
+          latitude: Number(location.latitude),
+          longitude: Number(location.longitude)
+        };
+        this.latitude = this.currentLocation.latitude;
+        this.longitude = this.currentLocation.longitude;
+        this.loadMapData();
       } catch (error) {
-        this.hasCurrentLocation = false;
-        common_vendor.index.showToast({
-          title: "定位失败，将使用默认位置",
-          icon: "none"
-        });
+        this.currentLocation = null;
+        this.loadMapData();
       }
     },
-    scanUnlock() {
-      if (!this.ensureLoggedIn() || this.isScanning) {
-        return;
-      }
-      this.isScanning = true;
-      common_vendor.index.scanCode({
-        success: (res) => {
-          const code = this.extractScooterCode(res.result);
-          if (!code) {
-            common_vendor.index.showToast({
-              title: "未识别到车辆编号",
-              icon: "none"
-            });
-            return;
-          }
-          this.handleScanUnlock(code);
-        },
-        fail: () => {
-          common_vendor.index.showToast({
-            title: "扫码失败，请重试",
-            icon: "none"
-          });
-        },
-        complete: () => {
-          this.isScanning = false;
-        }
-      });
-    },
-    async handleScanUnlock(code) {
+    async loadScooterInfo() {
       try {
         common_vendor.index.showLoading({
-          title: "开锁中..."
+          title: "加载中..."
         });
-        const normalizedCode = this.normalizeScooterCode(code);
-        if (!normalizedCode) {
-          common_vendor.index.hideLoading();
-          common_vendor.index.showToast({
-            title: "未识别到车辆编号",
-            icon: "none"
-          });
-          return;
-        }
-        const res = await api_modules_scooter.unlockScooter(normalizedCode);
+        const res = await api_modules_scooter.getScooterInfo(this.currentCode);
         common_vendor.index.hideLoading();
-        common_vendor.index.setStorageSync("dispatcherCurrentTask", {
-          ...res.data || {},
-          scooterCode: normalizedCode,
-          taskType: "unlock"
-        });
-        common_vendor.index.navigateTo({
-          url: `/pages/scooterInfo/scooterInfo?code=${encodeURIComponent(normalizedCode)}`
-        });
+        const data = res.data || {};
+        this.scooterInfo = {
+          ...DEFAULT_SCOOTER_INFO,
+          ...data,
+          code: data.code || this.currentCode
+        };
+        this.syncMapCenter();
+        this.loadMapData();
       } catch (error) {
         common_vendor.index.hideLoading();
         common_vendor.index.showToast({
-          title: "开锁失败，请稍后重试",
+          title: "加载车辆信息失败",
           icon: "none"
         });
       }
+    },
+    normalizeScooterCode(rawCode) {
+      const value = String(rawCode || "").trim().toUpperCase();
+      if (!value) {
+        return "";
+      }
+      if (value.startsWith("PDSC")) {
+        return value;
+      }
+      const numericPart = value.replace(/\D/g, "");
+      return numericPart ? `PDSC${numericPart.padStart(6, "0")}` : value;
     },
     extractScooterCode(rawCode) {
       const value = String(rawCode || "").trim();
@@ -190,47 +152,6 @@ const _sfc_main = {
       }
       const segments = value.split("/");
       return segments[segments.length - 1] || value;
-    },
-    normalizeScooterCode(rawCode) {
-      const value = String(rawCode || "").trim().toUpperCase();
-      if (!value) {
-        return "";
-      }
-      if (value.startsWith("PDSC")) {
-        return value;
-      }
-      const numericPart = value.replace(/\D/g, "");
-      return numericPart ? `PDSC${numericPart.padStart(6, "0")}` : value;
-    },
-    openVehicleLookup() {
-      if (!this.ensureLoggedIn()) {
-        return;
-      }
-      common_vendor.index.showToast({
-        title: "车辆查询接口开发中",
-        icon: "none"
-      });
-    },
-    navigateTo(page) {
-      if (!this.ensureLoggedIn()) {
-        return;
-      }
-      common_vendor.index.navigateTo({
-        url: `/pages/${page}/${page}`
-      });
-    },
-    navigateToProfile() {
-      if (!this.ensureLoggedIn()) {
-        return;
-      }
-      common_vendor.index.navigateTo({
-        url: "/pages/profile/profile"
-      });
-    },
-    goLogin() {
-      common_vendor.index.navigateTo({
-        url: "/pages/login/login?mode=login"
-      });
     },
     async loadMapData() {
       try {
@@ -273,8 +194,17 @@ const _sfc_main = {
           latitude: point.latitude,
           longitude: point.longitude,
           iconPath: MARKER_ICONS.scooter,
-          width: 34,
-          height: 34,
+          width: this.isCurrentScooter(item) ? 40 : 34,
+          height: this.isCurrentScooter(item) ? 40 : 34,
+          callout: this.isCurrentScooter(item) ? {
+            content: item.code || this.currentCode,
+            color: "#0b0e0d",
+            fontSize: 12,
+            borderRadius: 6,
+            bgColor: "#ffffff",
+            padding: 6,
+            display: "ALWAYS"
+          } : void 0,
           meta: {
             code: item.code || "--",
             battery: item.battery || "0",
@@ -283,6 +213,9 @@ const _sfc_main = {
           }
         };
       }).filter(Boolean);
+    },
+    isCurrentScooter(item) {
+      return this.normalizeScooterCode(item && item.code) === this.currentCode;
     },
     mapParkingPoints(list) {
       return list.map((item) => this.normalizePoint(item)).filter(Boolean);
@@ -419,14 +352,21 @@ const _sfc_main = {
       };
     },
     syncMapCenter(data, parkingPoints, noParkingMarkers) {
-      if (this.hasCurrentLocation) {
+      const currentScooterPoint = this.findCurrentScooterPoint(Array.isArray(data && data.scooters) ? data.scooters : []) || this.findCurrentScooterPoint([this.scooterInfo]);
+      if (currentScooterPoint) {
+        this.latitude = currentScooterPoint.latitude;
+        this.longitude = currentScooterPoint.longitude;
         return;
       }
-      const firstPoint = this.normalizePoint(Array.isArray(data.scooters) ? data.scooters[0] : null) || parkingPoints[0] || this.normalizePoint(noParkingMarkers[0]);
-      if (firstPoint) {
-        this.latitude = firstPoint.latitude;
-        this.longitude = firstPoint.longitude;
+      const fallbackPoint = parkingPoints && parkingPoints[0] ? parkingPoints[0] : this.normalizePoint(noParkingMarkers && noParkingMarkers[0]);
+      if (fallbackPoint) {
+        this.latitude = fallbackPoint.latitude;
+        this.longitude = fallbackPoint.longitude;
       }
+    },
+    findCurrentScooterPoint(list = []) {
+      const matched = list.find((item) => this.isCurrentScooter(item));
+      return this.normalizePoint(matched);
     },
     handleMarkerTap(event) {
       const marker = this.scooterLookup[event.detail.markerId];
@@ -449,35 +389,140 @@ const _sfc_main = {
         3: "调度中"
       };
       return statusMap[Number(status)] || "--";
+    },
+    getLocation() {
+      return new Promise((resolve, reject) => {
+        common_vendor.index.getLocation({
+          type: "gcj02",
+          success: resolve,
+          fail: reject
+        });
+      });
+    },
+    async lockAndPark() {
+      if (this.isLocking) {
+        return;
+      }
+      this.isLocking = true;
+      try {
+        common_vendor.index.showLoading({
+          title: "停放中..."
+        });
+        let latitude = Number(this.scooterInfo.latitude);
+        let longitude = Number(this.scooterInfo.longitude);
+        try {
+          const location = await this.getLocation();
+          latitude = Number(location.latitude);
+          longitude = Number(location.longitude);
+        } catch (error) {
+        }
+        const payload = {
+          code: this.scooterInfo.code || this.currentCode,
+          battery: Number(this.scooterInfo.battery || 0),
+          latitude,
+          longitude
+        };
+        await api_modules_scooter.lockScooter(payload);
+        common_vendor.index.hideLoading();
+        common_vendor.index.setStorageSync("dispatcherCurrentTask", {
+          ...payload,
+          taskType: "lock"
+        });
+        common_vendor.index.showModal({
+          title: "关锁停放成功",
+          content: `车辆 ${payload.code} 已完成停放。`,
+          showCancel: false,
+          success: () => {
+            common_vendor.index.reLaunch({
+              url: "/pages/index/index"
+            });
+          }
+        });
+      } catch (error) {
+        common_vendor.index.hideLoading();
+        common_vendor.index.showToast({
+          title: "停放失败，请稍后重试",
+          icon: "none"
+        });
+      } finally {
+        this.isLocking = false;
+      }
+    },
+    continueUnlock() {
+      if (this.isContinuing) {
+        return;
+      }
+      this.isContinuing = true;
+      common_vendor.index.scanCode({
+        success: async (res) => {
+          const code = this.normalizeScooterCode(this.extractScooterCode(res.result));
+          if (!code) {
+            common_vendor.index.showToast({
+              title: "未识别到车辆编号",
+              icon: "none"
+            });
+            return;
+          }
+          try {
+            common_vendor.index.showLoading({
+              title: "开锁中..."
+            });
+            const unlockRes = await api_modules_scooter.unlockScooter(code);
+            common_vendor.index.hideLoading();
+            common_vendor.index.setStorageSync("dispatcherCurrentTask", {
+              ...unlockRes.data || {},
+              scooterCode: code,
+              taskType: "unlock"
+            });
+            this.currentCode = code;
+            await this.loadScooterInfo();
+          } catch (error) {
+            common_vendor.index.hideLoading();
+            common_vendor.index.showToast({
+              title: "开锁失败，请稍后重试",
+              icon: "none"
+            });
+          }
+        },
+        fail: () => {
+          common_vendor.index.showToast({
+            title: "扫码失败，请重试",
+            icon: "none"
+          });
+        },
+        complete: () => {
+          this.isContinuing = false;
+        }
+      });
+    },
+    goManualUnlock() {
+      common_vendor.index.navigateTo({
+        url: "/pages/unlock/unlock"
+      });
     }
   }
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
-  return common_vendor.e({
-    a: common_assets._imports_0,
-    b: common_vendor.t($data.headerSubtitle),
-    c: common_assets._imports_0$1,
-    d: common_vendor.o((...args) => $options.navigateToProfile && $options.navigateToProfile(...args), "0d"),
-    e: $data.latitude,
-    f: $data.longitude,
-    g: $data.scale,
-    h: $data.markers,
-    i: $data.polygons,
-    j: common_vendor.o((...args) => $options.handleMarkerTap && $options.handleMarkerTap(...args), "68"),
-    k: common_vendor.t($data.isScanning ? "处理中..." : "扫码开锁"),
-    l: $data.isScanning,
-    m: common_vendor.o((...args) => $options.scanUnlock && $options.scanUnlock(...args), "32"),
-    n: common_vendor.o((...args) => $options.openVehicleLookup && $options.openVehicleLookup(...args), "d1"),
-    o: common_vendor.o(($event) => $options.navigateTo("unlock"), "f4"),
-    p: common_vendor.o(($event) => $options.navigateTo("history"), "80"),
-    q: !$data.hasToken
-  }, !$data.hasToken ? {
-    r: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "29")
-  } : {
-    s: common_vendor.t($data.currentAreaName),
-    t: common_vendor.t($data.todayDispatchedNum)
-  });
+  return {
+    a: $data.latitude,
+    b: $data.longitude,
+    c: $data.scale,
+    d: $data.markers,
+    e: $data.polygons,
+    f: common_vendor.o((...args) => $options.handleMarkerTap && $options.handleMarkerTap(...args), "39"),
+    g: common_vendor.t($data.scooterInfo.code || "--"),
+    h: common_vendor.t($options.rideStatusText),
+    i: common_vendor.t($options.faultStatusText),
+    j: common_vendor.t($options.batteryText),
+    k: common_vendor.t($data.isContinuing ? "处理中..." : "继续开锁"),
+    l: $data.isContinuing,
+    m: common_vendor.o((...args) => $options.continueUnlock && $options.continueUnlock(...args), "cc"),
+    n: common_vendor.t($data.isLocking ? "停放中..." : "关锁停放"),
+    o: $data.isLocking,
+    p: common_vendor.o((...args) => $options.lockAndPark && $options.lockAndPark(...args), "90"),
+    q: common_vendor.o((...args) => $options.goManualUnlock && $options.goManualUnlock(...args), "93")
+  };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);
 wx.createPage(MiniProgramPage);
-//# sourceMappingURL=../../../.sourcemap/mp-weixin/pages/index/index.js.map
+//# sourceMappingURL=../../../.sourcemap/mp-weixin/pages/scooterInfo/scooterInfo.js.map

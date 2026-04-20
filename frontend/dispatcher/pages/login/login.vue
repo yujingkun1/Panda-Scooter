@@ -11,8 +11,10 @@
         <view
           v-for="item in tabs"
           :key="item.mode"
-          class="tab"
+          class="tab ui-pressable"
           :class="{ active: mode === item.mode }"
+          hover-class="ui-pressable-hover"
+          hover-stay-time="70"
           @click="switchMode(item.mode)"
         >
           <text class="tab-text">{{ item.label }}</text>
@@ -21,41 +23,73 @@
 
       <view v-if="mode === 'signup'" class="field">
         <text class="label">姓名</text>
-        <input v-model.trim="form.name" class="input" type="text" placeholder="请输入真实姓名" />
+        <input
+          v-model.trim="form.name"
+          class="input"
+          type="text"
+          placeholder="请输入真实姓名"
+        />
       </view>
 
       <view class="field">
         <text class="label">邮箱</text>
-        <input v-model.trim="form.email" class="input" type="text" placeholder="请输入邮箱" />
+        <input
+          v-model.trim="form.email"
+          class="input"
+          type="text"
+          placeholder="请输入邮箱"
+        />
       </view>
 
-      <view v-if="mode !== 'forgot-password'" class="field">
+      <view class="field">
         <text class="label">密码</text>
-        <input v-model.trim="form.password" class="input" password type="text" placeholder="请输入密码" />
+        <input
+          v-model.trim="form.password"
+          class="input"
+          password
+          type="text"
+          placeholder="请输入密码"
+        />
       </view>
 
-      <view v-if="mode === 'forgot-password'" class="field">
-        <text class="label">新密码</text>
-        <input v-model.trim="form.newPassword" class="input" password type="text" placeholder="请输入新密码" />
-      </view>
-
-      <view v-if="mode !== 'login'" class="field">
+      <view v-if="mode === 'signup'" class="field">
         <text class="label">验证码</text>
         <view class="inline-field">
-          <input v-model.trim="form.verificationCode" class="input inline-input" type="text" placeholder="请输入验证码" />
-          <button class="code-btn" :disabled="countdown > 0" @click="sendCode">
+          <input
+            v-model.trim="form.verificationCode"
+            class="input inline-input"
+            type="text"
+            placeholder="请输入验证码"
+          />
+          <button class="code-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="countdown > 0" @click="sendCode">
             {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
           </button>
         </view>
       </view>
 
-      <button class="submit-btn" @click="submit">{{ submitText }}</button>
+      <button class="submit-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="submit">
+        {{ submitText }}
+      </button>
 
       <view class="footer-links">
-        <text v-if="mode === 'login'" class="link" @click="switchMode('signup')">去注册</text>
-        <text v-if="mode === 'login'" class="divider">|</text>
-        <text v-if="mode === 'login'" class="link" @click="switchMode('forgot-password')">忘记密码</text>
-        <text v-if="mode !== 'login'" class="link" @click="switchMode('login')">返回登录</text>
+        <view
+          v-if="mode === 'login'"
+          class="link-button ui-pressable-inline"
+          hover-class="ui-pressable-inline-hover"
+          hover-stay-time="70"
+          @click="switchMode('signup')"
+        >
+          <text class="link">去注册</text>
+        </view>
+        <view
+          v-if="mode !== 'login'"
+          class="link-button ui-pressable-inline"
+          hover-class="ui-pressable-inline-hover"
+          hover-stay-time="70"
+          @click="switchMode('login')"
+        >
+          <text class="link">返回登录</text>
+        </view>
       </view>
     </view>
   </view>
@@ -64,7 +98,6 @@
 <script>
 import {
   dispatcherLogin,
-  dispatcherPassword,
   dispatcherSignin,
   getVerificationCode
 } from '@/api/index'
@@ -77,13 +110,8 @@ const MODE_META = {
   },
   signup: {
     title: '注册调度账号',
-    subtitle: '使用邮箱创建新的调度员账号',
+    subtitle: '使用邮箱创建新的调度员账户',
     submitText: '完成注册'
-  },
-  'forgot-password': {
-    title: '重置密码',
-    subtitle: '通过邮箱验证码重置调度账号密码',
-    submitText: '确认重置'
   }
 }
 
@@ -91,8 +119,7 @@ const DEFAULT_FORM = () => ({
   name: '',
   email: '',
   password: '',
-  verificationCode: '',
-  newPassword: ''
+  verificationCode: ''
 })
 
 export default {
@@ -104,8 +131,7 @@ export default {
       timer: null,
       tabs: [
         { mode: 'login', label: '登录' },
-        { mode: 'signup', label: '注册' },
-        { mode: 'forgot-password', label: '重置密码' }
+        { mode: 'signup', label: '注册' }
       ]
     }
   },
@@ -123,9 +149,6 @@ export default {
   onLoad(options) {
     if (options && MODE_META[options.mode]) {
       this.mode = options.mode
-    }
-    if (options && options.email) {
-      this.form.email = options.email
     }
   },
   onUnload() {
@@ -187,7 +210,7 @@ export default {
         return
       }
 
-      if (this.mode === 'login' && !this.form.password) {
+      if (!this.form.password) {
         uni.showToast({
           title: '请输入密码',
           icon: 'none'
@@ -195,17 +218,9 @@ export default {
         return
       }
 
-      if (this.mode === 'signup' && (!this.form.name || !this.form.password || !this.form.verificationCode)) {
+      if (this.mode === 'signup' && (!this.form.name || !this.form.verificationCode)) {
         uni.showToast({
           title: '请填写完整注册信息',
-          icon: 'none'
-        })
-        return
-      }
-
-      if (this.mode === 'forgot-password' && (!this.form.verificationCode || !this.form.newPassword)) {
-        uni.showToast({
-          title: '请填写完整重置信息',
           icon: 'none'
         })
         return
@@ -237,40 +252,24 @@ export default {
           })
           setTimeout(() => {
             uni.reLaunch({
-              url: '/pages/profile/profile'
+              url: '/pages/index/index'
             })
           }, 800)
           return
         }
 
-        if (this.mode === 'signup') {
-          const email = this.form.email
-          await dispatcherSignin({
-            name: this.form.name,
-            email: this.form.email,
-            password: this.form.password,
-            verificationCode: this.form.verificationCode
-          })
-          uni.hideLoading()
-          uni.showToast({
-            title: '注册成功，请登录',
-            icon: 'success'
-          })
-          this.switchMode('login')
-          this.form.email = email
-          return
-        }
-
-        await dispatcherPassword({
-          verificationCode: this.form.verificationCode,
-          newPassword: this.form.newPassword
+        const email = this.form.email
+        await dispatcherSignin({
+          name: this.form.name,
+          email: this.form.email,
+          password: this.form.password,
+          verificationCode: this.form.verificationCode
         })
         uni.hideLoading()
         uni.showToast({
-          title: '密码已重置',
+          title: '注册成功，请登录',
           icon: 'success'
         })
-        const email = this.form.email
         this.switchMode('login')
         this.form.email = email
       } catch (error) {
@@ -282,25 +281,155 @@ export default {
 </script>
 
 <style>
-.page { min-height: 100vh; background: linear-gradient(180deg, #fafaf8 0%, #f0efe8 100%); padding: 48rpx 32rpx 64rpx; }
-.hero { padding: 32rpx 16rpx 48rpx; text-align: center; }
-.logo { width: 96rpx; height: 96rpx; margin-bottom: 24rpx; }
-.title { display: block; font-size: 44rpx; color: #0b0e0d; font-weight: 500; letter-spacing: 4rpx; }
-.subtitle { display: block; margin-top: 16rpx; font-size: 24rpx; color: #737373; }
-.card { background-color: #ffffff; border: 1rpx solid #e5e5e2; padding: 40rpx 32rpx; }
-.tabs { display: flex; margin-bottom: 32rpx; background: #fafaf8; border: 1rpx solid #e5e5e2; }
-.tab { flex: 1; padding: 24rpx 0; text-align: center; }
-.tab.active { background-color: #0b0e0d; }
-.tab-text { font-size: 24rpx; color: #737373; }
-.tab.active .tab-text { color: #ffffff; }
-.field { margin-bottom: 28rpx; }
-.label { display: block; margin-bottom: 16rpx; font-size: 24rpx; color: #0b0e0d; }
-.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx; color: #0b0e0d; }
-.inline-field { display: flex; gap: 16rpx; }
-.inline-input { flex: 1; }
-.code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx; }
-.submit-btn { margin-top: 16rpx; background-color: #0b0e0d; color: #ffffff; border: none; border-radius: 0; font-size: 30rpx; letter-spacing: 4rpx; }
-.footer-links { margin-top: 32rpx; text-align: center; }
-.link, .divider { font-size: 24rpx; color: #737373; }
-.link { padding: 0 12rpx; }
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fafaf8 0%, #f0efe8 100%);
+  padding: 48rpx 32rpx 64rpx;
+}
+
+.hero {
+  padding: 32rpx 16rpx 48rpx;
+  text-align: center;
+}
+
+.logo {
+  width: 96rpx;
+  height: 96rpx;
+  margin-bottom: 24rpx;
+}
+
+.title {
+  display: block;
+  font-size: 44rpx;
+  color: #0b0e0d;
+  font-weight: 500;
+  letter-spacing: 4rpx;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #737373;
+}
+
+.card {
+  background-color: #ffffff;
+  border: 1rpx solid #e5e5e2;
+  padding: 40rpx 32rpx;
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 32rpx;
+  background: #fafaf8;
+  border: 1rpx solid #e5e5e2;
+}
+
+.tab {
+  flex: 1;
+  padding: 24rpx 0;
+  text-align: center;
+}
+
+.tab.active {
+  background-color: #0b0e0d;
+}
+
+.tab-text {
+  font-size: 24rpx;
+  color: #737373;
+}
+
+.tab.active .tab-text {
+  color: #ffffff;
+}
+
+.field {
+  margin-bottom: 28rpx;
+  width: 100%;
+}
+
+.label {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 24rpx;
+  color: #0b0e0d;
+}
+
+.input {
+  width: 100%;
+  height: 88rpx;
+  border: 1rpx solid #e5e5e2;
+  background-color: #fafaf8;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #0b0e0d;
+  box-sizing: border-box;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+}
+
+.inline-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.code-btn {
+  width: 220rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 88rpx;
+  text-align: center;
+  border: 1rpx solid #d4d4d1;
+  background-color: transparent;
+  color: #0b0e0d;
+  font-size: 24rpx;
+}
+
+.code-btn::after {
+  border: none;
+}
+
+.code-btn[disabled] {
+  color: #999999;
+  border-color: #e5e5e2;
+}
+
+.submit-btn {
+  margin-top: 16rpx;
+  background-color: #0b0e0d;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+  font-size: 30rpx;
+  font-weight: 400;
+  letter-spacing: 4rpx;
+}
+
+.footer-links {
+  margin-top: 32rpx;
+  text-align: center;
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.link {
+  font-size: 24rpx;
+  color: #737373;
+  padding: 0 12rpx;
+}
 </style>

@@ -44,6 +44,10 @@
         <text class="function-text">车辆查询</text>
       </view>
       <text class="function-divider">|</text>
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('unlock')">
+        <text class="function-text">编号开锁</text>
+      </view>
+      <text class="function-divider">|</text>
       <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('history')">
         <text class="function-text">调度历史</text>
       </view>
@@ -51,7 +55,7 @@
 
     <view class="panel-area">
       <view v-if="!hasToken" class="guest-card">
-        <text class="guest-title">登录后可执行扫码开锁和查看调度记录。</text>
+        <text class="guest-title">登录后可执行扫码开锁、编号开锁和查看调度记录。</text>
         <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
       </view>
       <view v-else class="stats-card">
@@ -70,7 +74,7 @@
 </template>
 
 <script>
-import { getDispatcherInfo, getMapData } from '@/api/index'
+import { getDispatcherInfo, getMapData, unlockScooter } from '@/api/index'
 
 const DEFAULT_LOCATION = {
   latitude: 30.75953206821905,
@@ -94,6 +98,7 @@ export default {
       isScanning: false,
       latitude: DEFAULT_LOCATION.latitude,
       longitude: DEFAULT_LOCATION.longitude,
+      hasCurrentLocation: false,
       scale: 16,
       markers: [],
       polygons: [],
@@ -101,10 +106,20 @@ export default {
     }
   },
   onShow() {
-    this.loadDispatcherInfo()
-    this.loadMapData()
+    if (!uni.getStorageSync('dispatcherToken')) {
+      uni.reLaunch({
+        url: '/pages/login/login?mode=login'
+      })
+      return
+    }
+    this.initPage()
   },
   methods: {
+    async initPage() {
+      this.loadDispatcherInfo()
+      await this.loadCurrentLocation()
+      this.loadMapData()
+    },
     async loadDispatcherInfo() {
       const cached = uni.getStorageSync('dispatcherUserInfo') || {}
       this.hasToken = Boolean(uni.getStorageSync('dispatcherToken'))
@@ -148,6 +163,29 @@ export default {
       this.goLogin()
       return false
     },
+    getLocation() {
+      return new Promise((resolve, reject) => {
+        uni.getLocation({
+          type: 'gcj02',
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    async loadCurrentLocation() {
+      try {
+        const location = await this.getLocation()
+        this.latitude = Number(location.latitude)
+        this.longitude = Number(location.longitude)
+        this.hasCurrentLocation = true
+      } catch (error) {
+        this.hasCurrentLocation = false
+        uni.showToast({
+          title: '定位失败，将使用默认位置',
+          icon: 'none'
+        })
+      }
+    },
     scanUnlock() {
       if (!this.ensureLoggedIn() || this.isScanning) {
         return
@@ -165,9 +203,7 @@ export default {
             return
           }
 
-          uni.navigateTo({
-            url: `/pages/unlock/unlock?code=${encodeURIComponent(code)}`
-          })
+          this.handleScanUnlock(code)
         },
         fail: () => {
           uni.showToast({
@@ -179,6 +215,39 @@ export default {
           this.isScanning = false
         }
       })
+    },
+    async handleScanUnlock(code) {
+      try {
+        uni.showLoading({
+          title: '开锁中...'
+        })
+        const normalizedCode = this.normalizeScooterCode(code)
+        if (!normalizedCode) {
+          uni.hideLoading()
+          uni.showToast({
+            title: '未识别到车辆编号',
+            icon: 'none'
+          })
+          return
+        }
+
+        const res = await unlockScooter(normalizedCode)
+        uni.hideLoading()
+        uni.setStorageSync('dispatcherCurrentTask', {
+          ...(res.data || {}),
+          scooterCode: normalizedCode,
+          taskType: 'unlock'
+        })
+        uni.navigateTo({
+          url: `/pages/scooterInfo/scooterInfo?code=${encodeURIComponent(normalizedCode)}`
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: '开锁失败，请稍后重试',
+          icon: 'none'
+        })
+      }
     },
     extractScooterCode(rawCode) {
       const value = String(rawCode || '').trim()
@@ -205,6 +274,17 @@ export default {
 
       const segments = value.split('/')
       return segments[segments.length - 1] || value
+    },
+    normalizeScooterCode(rawCode) {
+      const value = String(rawCode || '').trim().toUpperCase()
+      if (!value) {
+        return ''
+      }
+      if (value.startsWith('PDSC')) {
+        return value
+      }
+      const numericPart = value.replace(/\D/g, '')
+      return numericPart ? `PDSC${numericPart.padStart(6, '0')}` : value
     },
     openVehicleLookup() {
       if (!this.ensureLoggedIn()) {
@@ -339,9 +419,9 @@ export default {
       return {
         id: 999,
         points,
-        fillColor: 'rgba(24, 144, 255, 0.08)',
-        strokeColor: 'rgba(24, 144, 255, 0.45)',
-        strokeWidth: 2
+        fillColor: 'rgba(18, 52, 120, 0.14)',
+        strokeColor: 'rgba(58, 157, 232, 0.9)',
+        strokeWidth: 3
       }
     },
     mapNoParkingAreaMarkers(sourceAreas, polygons) {
@@ -461,6 +541,10 @@ export default {
       }
     },
     syncMapCenter(data, parkingPoints, noParkingMarkers) {
+      if (this.hasCurrentLocation) {
+        return
+      }
+
       const firstPoint =
         this.normalizePoint(Array.isArray(data.scooters) ? data.scooters[0] : null) ||
         parkingPoints[0] ||

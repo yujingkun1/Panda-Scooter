@@ -48,11 +48,6 @@ const _sfc_main = {
         };
       }
     },
-    goToForgotPassword() {
-      common_vendor.index.navigateTo({
-        url: `/pages/login/login?mode=forgot-password&email=${encodeURIComponent(this.userInfo.email)}`
-      });
-    },
     async sendDeleteCode() {
       if (!this.userInfo.email || this.userInfo.email === DEFAULT_USER_INFO.email) {
         common_vendor.index.showToast({
@@ -110,7 +105,7 @@ const _sfc_main = {
           });
           setTimeout(() => {
             common_vendor.index.reLaunch({
-              url: "/pages/index/index"
+              url: "/pages/login/login?mode=login"
             });
           }, 800);
         }
@@ -150,7 +145,7 @@ const _sfc_main = {
             });
             setTimeout(() => {
               common_vendor.index.reLaunch({
-                url: "/pages/index/index"
+                url: "/pages/login/login?mode=login"
               });
             }, 800);
           } catch (error) {
@@ -165,20 +160,19 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return {
     a: common_vendor.t($data.userInfo.name),
     b: common_vendor.t($data.userInfo.email),
-    c: common_vendor.o((...args) => $options.goToForgotPassword && $options.goToForgotPassword(...args), "c1"),
-    d: common_vendor.o((...args) => $options.logout && $options.logout(...args), "04"),
-    e: $data.deleteForm.password,
-    f: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.password = $event.detail.value, {
+    c: common_vendor.o((...args) => $options.logout && $options.logout(...args), "dc"),
+    d: $data.deleteForm.password,
+    e: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.password = $event.detail.value, {
       trim: true
-    }), "c9"),
-    g: $data.deleteForm.verificationCode,
-    h: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.verificationCode = $event.detail.value, {
+    }), "d7"),
+    f: $data.deleteForm.verificationCode,
+    g: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.verificationCode = $event.detail.value, {
       trim: true
-    }), "e9"),
-    i: common_vendor.t($data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
-    j: $data.countdown > 0,
-    k: common_vendor.o((...args) => $options.sendDeleteCode && $options.sendDeleteCode(...args), "c5"),
-    l: common_vendor.o((...args) => $options.deleteAccount && $options.deleteAccount(...args), "7c")
+    }), "fb"),
+    h: common_vendor.t($data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
+    i: $data.countdown > 0,
+    j: common_vendor.o((...args) => $options.sendDeleteCode && $options.sendDeleteCode(...args), "0a"),
+    k: common_vendor.o((...args) => $options.deleteAccount && $options.deleteAccount(...args), "79")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

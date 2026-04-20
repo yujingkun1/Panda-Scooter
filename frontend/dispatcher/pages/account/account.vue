@@ -16,10 +16,6 @@
     </view>
 
     <view class="action-section">
-      <view class="action-item" @click="goToForgotPassword">
-        <text class="action-text">修改密码</text>
-        <text class="action-arrow">></text>
-      </view>
       <view class="action-item" @click="logout">
         <text class="action-text logout-text">退出登录</text>
       </view>
@@ -106,11 +102,6 @@ export default {
         }
       }
     },
-    goToForgotPassword() {
-      uni.navigateTo({
-        url: `/pages/login/login?mode=forgot-password&email=${encodeURIComponent(this.userInfo.email)}`
-      })
-    },
     async sendDeleteCode() {
       if (!this.userInfo.email || this.userInfo.email === DEFAULT_USER_INFO.email) {
         uni.showToast({
@@ -171,7 +162,7 @@ export default {
           })
           setTimeout(() => {
             uni.reLaunch({
-              url: '/pages/index/index'
+              url: '/pages/login/login?mode=login'
             })
           }, 800)
         }
@@ -213,7 +204,7 @@ export default {
             })
             setTimeout(() => {
               uni.reLaunch({
-                url: '/pages/index/index'
+                url: '/pages/login/login?mode=login'
               })
             }, 800)
           } catch (error) {
@@ -237,15 +228,14 @@ export default {
 .info-value { font-size: 26rpx; color: #0b0e0d; }
 .action-text { flex: 1; font-size: 28rpx; color: #0b0e0d; }
 .logout-text { color: #a67c00; text-align: center; }
-.action-arrow { font-size: 32rpx; color: #d4d4d1; }
 .delete-section { padding: 40rpx 32rpx; }
 .section-title { display: block; font-size: 30rpx; color: #0b0e0d; margin-bottom: 12rpx; }
 .section-desc { display: block; font-size: 22rpx; line-height: 1.7; color: #737373; margin-bottom: 28rpx; }
 .field { margin-bottom: 24rpx; }
 .field-label { display: block; margin-bottom: 12rpx; font-size: 24rpx; color: #0b0e0d; }
-.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx; }
-.code-row { display: flex; gap: 16rpx; }
-.code-input { flex: 1; }
-.code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx; }
+.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx; box-sizing: border-box; }
+.code-row { display: flex; gap: 16rpx; min-width: 0; }
+.code-input { flex: 1; min-width: 0; }
+.code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx; flex-shrink: 0; }
 .delete-btn { margin-top: 16rpx; background-color: #8b0000; color: #ffffff; border: none; border-radius: 0; font-size: 30rpx; letter-spacing: 4rpx; }
 </style>

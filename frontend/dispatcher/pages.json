@@ -41,6 +41,12 @@
       "style": {
         "navigationBarTitleText": "关锁投放"
       }
+    },
+    {
+      "path": "pages/scooterInfo/scooterInfo",
+      "style": {
+        "navigationBarTitleText": "车辆信息"
+      }
     }
   ],
   "globalStyle": {

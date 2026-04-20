@@ -9,6 +9,7 @@ if (!Math) {
   "./pages/history/history.js";
   "./pages/unlock/unlock.js";
   "./pages/lock/lock.js";
+  "./pages/scooterInfo/scooterInfo.js";
 }
 const _sfc_main = {
   onLaunch: function() {

@@ -5,7 +5,7 @@ export const API_ENVS = Object.freeze({
   mock: {
     key: 'mock',
     label: 'Mock开发环境',
-    baseURL: 'http://127.0.0.1:4523/m1/7776188-7522280-7128400'
+    baseURL: 'https://m1.apifoxmock.com/m1/7776188-7522280-7128400'
   },
   test: {
     key: 'test',
