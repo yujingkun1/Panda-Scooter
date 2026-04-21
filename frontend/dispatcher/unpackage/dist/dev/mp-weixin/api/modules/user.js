@@ -58,6 +58,16 @@ const getVerificationCode = (email) => {
     }
   });
 };
+const dispatcherPassword = (data) => {
+  return api_request.request({
+    url: "/user/password",
+    method: "POST",
+    params: {
+      apifoxApiId: USER_API_IDS.password
+    },
+    data
+  });
+};
 const getDispatcherInfo = () => {
   return api_request.request({
     url: "/user/info",
@@ -76,6 +86,7 @@ const getDispatchHistory = () => {
 exports.dispatcherDelete = dispatcherDelete;
 exports.dispatcherLogin = dispatcherLogin;
 exports.dispatcherLogout = dispatcherLogout;
+exports.dispatcherPassword = dispatcherPassword;
 exports.dispatcherSignin = dispatcherSignin;
 exports.getDispatchHistory = getDispatchHistory;
 exports.getDispatcherInfo = getDispatcherInfo;

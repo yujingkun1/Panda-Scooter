@@ -3,55 +3,61 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "熊猫调度"
+        "navigationBarTitleText": "Dispatcher Home"
       }
     },
     {
       "path": "pages/login/login",
       "style": {
-        "navigationBarTitleText": "账号认证"
+        "navigationBarTitleText": "Account Login"
+      }
+    },
+    {
+      "path": "pages/resetPassword/resetPassword",
+      "style": {
+        "navigationBarTitleText": "Reset Password"
       }
     },
     {
       "path": "pages/profile/profile",
       "style": {
-        "navigationBarTitleText": "个人主页"
+        "navigationBarTitleText": "Profile"
       }
     },
     {
       "path": "pages/account/account",
       "style": {
-        "navigationBarTitleText": "账号管理"
+        "navigationBarTitleText": "Account"
       }
     },
     {
       "path": "pages/history/history",
       "style": {
-        "navigationBarTitleText": "调度历史"
+        "navigationBarTitleText": "Dispatch History"
       }
     },
     {
       "path": "pages/unlock/unlock",
       "style": {
-        "navigationBarTitleText": "开锁调度"
+        "navigationBarTitleText": "Unlock Scooter"
       }
     },
     {
       "path": "pages/lock/lock",
       "style": {
-        "navigationBarTitleText": "关锁投放"
+        "navigationBarTitleText": "Lock And Park"
       }
     },
     {
       "path": "pages/scooterInfo/scooterInfo",
       "style": {
-        "navigationBarTitleText": "车辆信息"
+        "navigationBarTitleText": "Scooter Info"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "熊猫调度",
+    "navigationBarTitleText": "Panda Dispatcher",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F8F8F8"
   },

@@ -2,35 +2,11 @@
   <view class="page">
     <view class="hero">
       <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-      <text class="title">{{ pageTitle }}</text>
-      <text class="subtitle">{{ pageSubtitle }}</text>
+      <text class="title">Reset Password</text>
+      <text class="subtitle">Verify your email and set a new dispatcher password</text>
     </view>
 
     <view class="card">
-      <view class="tabs">
-        <view
-          v-for="item in tabs"
-          :key="item.mode"
-          class="tab ui-pressable"
-          :class="{ active: mode === item.mode }"
-          hover-class="ui-pressable-hover"
-          hover-stay-time="70"
-          @click="switchMode(item.mode)"
-        >
-          <text class="tab-text">{{ item.label }}</text>
-        </view>
-      </view>
-
-      <view v-if="mode === 'signup'" class="field">
-        <text class="label">Name</text>
-        <input
-          v-model.trim="form.name"
-          class="input"
-          type="text"
-          placeholder="Enter your real name"
-        />
-      </view>
-
       <view class="field">
         <text class="label">Email</text>
         <input
@@ -42,17 +18,6 @@
       </view>
 
       <view class="field">
-        <text class="label">Password</text>
-        <input
-          v-model.trim="form.password"
-          class="input"
-          password
-          type="text"
-          placeholder="Enter your password"
-        />
-      </view>
-
-      <view v-if="mode === 'signup'" class="field">
         <text class="label">Verification Code</text>
         <view class="inline-field">
           <input
@@ -74,6 +39,17 @@
         </view>
       </view>
 
+      <view class="field">
+        <text class="label">New Password</text>
+        <input
+          v-model.trim="form.newPassword"
+          class="input"
+          password
+          type="text"
+          placeholder="Enter a new password"
+        />
+      </view>
+
       <button
         class="submit-btn"
         hover-class="button-hover"
@@ -82,34 +58,15 @@
         :disabled="isSubmitting"
         @click="submit"
       >
-        {{ isSubmitting ? 'Submitting...' : submitText }}
+        {{ isSubmitting ? 'Submitting...' : 'Reset Password' }}
       </button>
 
       <view class="footer-links">
         <view
-          v-if="mode === 'login'"
           class="link-button ui-pressable-inline"
           hover-class="ui-pressable-inline-hover"
           hover-stay-time="70"
-          @click="switchMode('signup')"
-        >
-          <text class="link">Create Account</text>
-        </view>
-        <view
-          v-if="mode === 'login'"
-          class="link-button ui-pressable-inline"
-          hover-class="ui-pressable-inline-hover"
-          hover-stay-time="70"
-          @click="goResetPassword"
-        >
-          <text class="link">Forgot Password</text>
-        </view>
-        <view
-          v-if="mode !== 'login'"
-          class="link-button ui-pressable-inline"
-          hover-class="ui-pressable-inline-hover"
-          hover-stay-time="70"
-          @click="switchMode('login')"
+          @click="goLogin"
         >
           <text class="link">Back To Login</text>
         </view>
@@ -119,62 +76,33 @@
 </template>
 
 <script>
-import {
-  dispatcherLogin,
-  dispatcherSignin,
-  getVerificationCode
-} from '@/api/index'
-
-const MODE_META = {
-  login: {
-    title: 'Dispatcher Login',
-    subtitle: 'Sign in to manage scooter dispatch tasks',
-    submitText: 'Sign In'
-  },
-  signup: {
-    title: 'Create Dispatcher Account',
-    subtitle: 'Register a new dispatcher account with email verification',
-    submitText: 'Register'
-  }
-}
+import { dispatcherPassword, getVerificationCode } from '@/api/index'
 
 const DEFAULT_FORM = () => ({
-  name: '',
   email: '',
-  password: '',
-  verificationCode: ''
+  verificationCode: '',
+  newPassword: ''
 })
+
+const clearDispatcherSession = () => {
+  uni.removeStorageSync('dispatcherToken')
+  uni.removeStorageSync('dispatcherUserInfo')
+  uni.removeStorageSync('dispatcherCurrentTask')
+}
 
 export default {
   data() {
     return {
-      mode: 'login',
       form: DEFAULT_FORM(),
       countdown: 0,
       timer: null,
       isSendingCode: false,
-      isSubmitting: false,
-      tabs: [
-        { mode: 'login', label: 'Login' },
-        { mode: 'signup', label: 'Sign Up' }
-      ]
-    }
-  },
-  computed: {
-    pageTitle() {
-      return MODE_META[this.mode].title
-    },
-    pageSubtitle() {
-      return MODE_META[this.mode].subtitle
-    },
-    submitText() {
-      return MODE_META[this.mode].submitText
+      isSubmitting: false
     }
   },
   onLoad(options) {
-    if (options && MODE_META[options.mode]) {
-      this.mode = options.mode
-    }
+    this.resetPageState()
+
     if (options && options.email) {
       this.form.email = decodeURIComponent(options.email)
     }
@@ -183,21 +111,16 @@ export default {
     this.clearTimer()
   },
   methods: {
-    switchMode(nextMode) {
-      this.mode = nextMode
-      this.form = {
-        ...DEFAULT_FORM(),
-        email: this.form.email
-      }
+    resetPageState() {
+      this.form = DEFAULT_FORM()
       this.clearTimer()
       this.countdown = 0
       this.isSendingCode = false
       this.isSubmitting = false
     },
-    goResetPassword() {
-      const email = encodeURIComponent(this.form.email || '')
-      uni.navigateTo({
-        url: `/pages/resetPassword/resetPassword${email ? `?email=${email}` : ''}`
+    goLogin() {
+      uni.reLaunch({
+        url: '/pages/login/login?mode=login'
       })
     },
     async sendCode() {
@@ -253,15 +176,7 @@ export default {
         return
       }
 
-      if (!this.form.password) {
-        uni.showToast({
-          title: 'Enter password',
-          icon: 'none'
-        })
-        return
-      }
-
-      if (this.mode === 'signup' && (!this.form.name || !this.form.verificationCode)) {
+      if (!this.form.verificationCode || !this.form.newPassword) {
         uni.showToast({
           title: 'Complete all fields',
           icon: 'none'
@@ -279,48 +194,19 @@ export default {
         uni.showLoading({
           title: 'Submitting...'
         })
-
-        if (this.mode === 'login') {
-          const res = await dispatcherLogin({
-            email: this.form.email,
-            password: this.form.password
-          })
-          const data = res.data || {}
-          if (data.token) {
-            uni.setStorageSync('dispatcherToken', data.token)
-          }
-          uni.setStorageSync('dispatcherUserInfo', {
-            id: data.id || '',
-            name: data.name || 'Dispatcher',
-            email: data.email || this.form.email
-          })
-          uni.hideLoading()
-          uni.showToast({
-            title: 'Login success',
-            icon: 'success'
-          })
-          setTimeout(() => {
-            uni.reLaunch({
-              url: '/pages/index/index'
-            })
-          }, 800)
-          return
-        }
-
-        const email = this.form.email
-        await dispatcherSignin({
-          name: this.form.name,
-          email: this.form.email,
-          password: this.form.password,
-          verificationCode: this.form.verificationCode
+        await dispatcherPassword({
+          verificationCode: this.form.verificationCode,
+          newPassword: this.form.newPassword
         })
         uni.hideLoading()
+        clearDispatcherSession()
         uni.showToast({
-          title: 'Registered',
+          title: 'Password reset',
           icon: 'success'
         })
-        this.switchMode('login')
-        this.form.email = email
+        setTimeout(() => {
+          this.goLogin()
+        }, 800)
       } catch (error) {
         uni.hideLoading()
       } finally {
@@ -368,32 +254,6 @@ export default {
   background-color: #ffffff;
   border: 1rpx solid #e5e5e2;
   padding: 40rpx 32rpx;
-}
-
-.tabs {
-  display: flex;
-  margin-bottom: 32rpx;
-  background: #fafaf8;
-  border: 1rpx solid #e5e5e2;
-}
-
-.tab {
-  flex: 1;
-  padding: 24rpx 0;
-  text-align: center;
-}
-
-.tab.active {
-  background-color: #0b0e0d;
-}
-
-.tab-text {
-  font-size: 24rpx;
-  color: #737373;
-}
-
-.tab.active .tab-text {
-  color: #ffffff;
 }
 
 .field {
@@ -473,10 +333,7 @@ export default {
 
 .footer-links {
   margin-top: 32rpx;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 16rpx;
+  text-align: center;
 }
 
 .link-button {
@@ -488,6 +345,5 @@ export default {
 .link {
   font-size: 24rpx;
   color: #737373;
-  padding: 0 12rpx;
 }
 </style>

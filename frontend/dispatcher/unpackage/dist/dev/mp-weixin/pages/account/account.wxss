@@ -15,9 +15,9 @@
 }
 .info-value { font-size: 26rpx; color: #0b0e0d;
 }
-.action-text { flex: 1; font-size: 28rpx; color: #0b0e0d;
+.action-text { flex: 1; font-size: 28rpx; color: #0b0e0d; text-align: center;
 }
-.logout-text { color: #a67c00; text-align: center;
+.logout-text { color: #a67c00;
 }
 .delete-section { padding: 40rpx 32rpx;
 }
@@ -37,5 +37,9 @@
 }
 .code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx; flex-shrink: 0;
 }
+.code-btn[disabled] { color: #999999; border-color: #e5e5e2;
+}
 .delete-btn { margin-top: 16rpx; background-color: #8b0000; color: #ffffff; border: none; border-radius: 0; font-size: 30rpx; letter-spacing: 4rpx;
+}
+.delete-btn[disabled] { opacity: 0.7;
 }

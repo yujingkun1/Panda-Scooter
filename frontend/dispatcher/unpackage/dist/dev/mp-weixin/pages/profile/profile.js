@@ -65,6 +65,16 @@ const _sfc_main = {
       common_vendor.index.navigateTo({
         url: `/pages/${page}/${page}`
       });
+    },
+    showComingSoon(title) {
+      if (!this.hasToken) {
+        this.goLogin("login");
+        return;
+      }
+      common_vendor.index.showToast({
+        title: `${title}接口开发中`,
+        icon: "none"
+      });
     }
   }
 };
@@ -78,11 +88,11 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     f: common_vendor.t($data.userInfo.todayDispatchedNum),
     g: !$data.hasToken
   }, !$data.hasToken ? {
-    h: common_vendor.o(($event) => $options.goLogin("login"), "b4")
+    h: common_vendor.o(($event) => $options.goLogin("login"), "ac")
   } : {}, {
-    i: common_vendor.o(($event) => $options.navigateTo("unlock"), "11"),
-    j: common_vendor.o(($event) => $options.navigateTo("lock"), "90"),
-    k: common_vendor.o(($event) => $options.navigateTo("history"), "a0")
+    i: common_vendor.o(($event) => $options.showComingSoon("我的收入"), "1d"),
+    j: common_vendor.o(($event) => $options.showComingSoon("调度任务"), "eb"),
+    k: common_vendor.o(($event) => $options.navigateTo("history"), "84")
   });
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

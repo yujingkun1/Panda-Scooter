@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/login/login",
+    "pages/resetPassword/resetPassword",
     "pages/profile/profile",
     "pages/account/account",
     "pages/history/history",
@@ -11,7 +12,7 @@
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "熊猫调度",
+    "navigationBarTitleText": "Panda Dispatcher",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F8F8F8"
   },

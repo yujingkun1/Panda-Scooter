@@ -41,5 +41,3 @@
 }
 .menu-text { flex: 1; font-size: 28rpx; color: #0b0e0d; letter-spacing: 2rpx;
 }
-.menu-arrow { font-size: 32rpx; color: #d4d4d1;
-}

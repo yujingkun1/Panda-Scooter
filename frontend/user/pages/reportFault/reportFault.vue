@@ -48,7 +48,7 @@
             <text class="upload-text">添加图片</text>
           </view>
         </view>
-        <text class="upload-tip">开发阶段图片仅本地预览，不上传服务端</text>
+        <text class="upload-tip">可上传 1 张现场图片，提交时将同步上传到服务端</text>
       </view>
 
       <view class="submit-section">
@@ -77,7 +77,7 @@ export default {
       scooterCode: '',
       faultReason: '',
       photos: [],
-      maxPhotos: 3
+      maxPhotos: 1
     }
   },
   onShow() {
@@ -157,7 +157,7 @@ export default {
             scooterId,
             scooterCode: this.scooterCode.trim(),
             description: this.faultReason.trim(),
-            image: ''
+            image: this.photos[0] || ''
           })
           uni.hideLoading()
           uni.showModal({

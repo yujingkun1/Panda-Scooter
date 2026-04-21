@@ -239,8 +239,8 @@ const _sfc_main = {
         return {
           id: item.id || index + 1,
           points,
-          fillColor: "rgba(255, 77, 79, 0.18)",
-          strokeColor: "rgba(255, 77, 79, 0.45)",
+          fillColor: "#FF4D4F2E",
+          strokeColor: "#FF4D4F73",
           strokeWidth: 2
         };
       }).filter(Boolean);
@@ -256,8 +256,8 @@ const _sfc_main = {
       return {
         id: 999,
         points,
-        fillColor: "rgba(18, 52, 120, 0.14)",
-        strokeColor: "rgba(58, 157, 232, 0.9)",
+        fillColor: "#12347824",
+        strokeColor: "#3A9DE8E6",
         strokeWidth: 3
       };
     },
