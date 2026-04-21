@@ -69,6 +69,7 @@ import {
   userDelete,
   userLogout
 } from '@/api/index'
+import { isUnauthorizedError } from '@/utils/auth'
 import { showUnhandledError } from '@/utils/error'
 
 const DEFAULT_USER_INFO = {
@@ -114,6 +115,13 @@ export default {
           email: data.email || DEFAULT_USER_INFO.email
         }
       } catch (error) {
+        if (isUnauthorizedError(error)) {
+          uni.redirectTo({
+            url: '/pages/login/login?mode=login'
+          })
+          return
+        }
+
         const cached = uni.getStorageSync('userInfo')
         this.userInfo = {
           username: cached.username || DEFAULT_USER_INFO.username,
