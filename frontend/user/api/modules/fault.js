@@ -1,48 +1,120 @@
 import request from '../request'
+import { getApiBaseURL, getApiConfig } from '../env'
 
-const IMAGE_MIME_TYPES = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-  '.bmp': 'image/bmp'
+const isSuccessCode = (code) => ['0', '200'].includes(String(code))
+
+const resolveErrorMessage = (payload, fallback) => {
+  if (payload && typeof payload.msg === 'string' && payload.msg.trim()) {
+    return payload.msg.trim()
+  }
+  if (typeof fallback === 'string' && fallback.trim()) {
+    return fallback.trim()
+  }
+  return '请求失败'
 }
 
-const DATA_URL_PATTERN = /^data:/i
+const showRequestError = (message) => {
+  if (typeof uni.hideLoading === 'function') {
+    uni.hideLoading()
+  }
 
-const getImageMimeType = (filePath = '') => {
-  const normalizedPath = String(filePath).split('?')[0].toLowerCase()
-  const matchedSuffix = Object.keys(IMAGE_MIME_TYPES).find((suffix) => normalizedPath.endsWith(suffix))
-  return matchedSuffix ? IMAGE_MIME_TYPES[matchedSuffix] : 'image/jpeg'
+  setTimeout(() => {
+    uni.showToast({
+      title: message,
+      icon: 'none'
+    })
+  }, 50)
 }
 
-const readImageAsBase64 = (filePath) => {
-  if (!filePath) {
-    return Promise.resolve('')
+const buildUrl = (url, baseURL) => {
+  return `${baseURL}${url.startsWith('/') ? url : `/${url}`}`
+}
+
+const getAuthHeader = () => {
+  const token = uni.getStorageSync('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const parseUploadResponse = (rawData) => {
+  if (typeof rawData !== 'string') {
+    return rawData
   }
 
-  if (DATA_URL_PATTERN.test(filePath)) {
-    return Promise.resolve(filePath)
+  try {
+    return JSON.parse(rawData)
+  } catch (error) {
+    return rawData
   }
+}
 
-  const fileSystemManager =
-    typeof uni !== 'undefined' && typeof uni.getFileSystemManager === 'function'
-      ? uni.getFileSystemManager()
-      : null
+const normalizeFaultPayload = (data = {}) => ({
+  scooterId: data.scooterId,
+  description: data.description || ''
+})
 
-  if (!fileSystemManager || typeof fileSystemManager.readFile !== 'function') {
-    return Promise.resolve(filePath)
+const createHandledError = (message, extra = {}) => {
+  const error = new Error(message)
+  Object.assign(error, { handled: true }, extra)
+  return error
+}
+
+const resolveFaultUrl = () => {
+  const baseURL = getApiBaseURL()
+  if (!baseURL) {
+    const apiConfig = getApiConfig()
+    throw createHandledError(`${apiConfig.label} API 地址未配置`)
   }
+  return buildUrl('/fault', baseURL)
+}
+
+const requestFaultWithoutImage = (data) => {
+  return request({
+    url: '/fault',
+    method: 'POST',
+    header: {
+      'Content-Type': 'multipart/form-data'
+    },
+    data: normalizeFaultPayload(data)
+  })
+}
+
+const uploadFaultWithImage = (data) => {
+  const url = resolveFaultUrl()
+  const formData = normalizeFaultPayload(data)
 
   return new Promise((resolve, reject) => {
-    fileSystemManager.readFile({
-      filePath,
-      encoding: 'base64',
-      success: (res) => {
-        resolve(`data:${getImageMimeType(filePath)};base64,${res.data || ''}`)
+    uni.uploadFile({
+      url,
+      filePath: data.image,
+      name: 'image',
+      formData,
+      header: {
+        ...getAuthHeader()
       },
-      fail: reject
+      success: (res) => {
+        const payload = parseUploadResponse(res.data)
+
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const message = resolveErrorMessage(payload, `请求失败: ${res.statusCode}`)
+          showRequestError(message)
+          reject(createHandledError(message, { statusCode: res.statusCode, data: payload }))
+          return
+        }
+
+        if (payload && typeof payload.code !== 'undefined' && !isSuccessCode(payload.code)) {
+          const message = resolveErrorMessage(payload)
+          showRequestError(message)
+          reject(createHandledError(message, { statusCode: res.statusCode, data: payload, code: payload.code }))
+          return
+        }
+
+        resolve(payload)
+      },
+      fail: (err) => {
+        const message = resolveErrorMessage(null, err && err.errMsg ? err.errMsg : '网络异常')
+        showRequestError(message)
+        reject(createHandledError(message, { cause: err }))
+      }
     })
   })
 }
@@ -54,15 +126,10 @@ export const getFaults = () => {
   })
 }
 
-export const reportFault = async (data = {}) => {
-  const image = await readImageAsBase64(data.image)
+export const reportFault = (data = {}) => {
+  if (data.image) {
+    return uploadFaultWithImage(data)
+  }
 
-  return request({
-    url: '/fault',
-    method: 'POST',
-    data: {
-      ...data,
-      image
-    }
-  })
+  return requestFaultWithoutImage(data)
 }
