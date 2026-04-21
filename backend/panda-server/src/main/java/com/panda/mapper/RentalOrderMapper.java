@@ -15,6 +15,8 @@ public interface RentalOrderMapper {
 
     RentalOrder getRidingOrderByUserId(@Param("userId") Long userId);
 
+    RentalOrder getRidingOrderByScooterId(@Param("scooterId") Long scooterId);
+
     RentalOrder getUnpaidOrderByUserId(@Param("userId") Long userId);
 
     int updateFinishInfo(RentalOrder rentalOrder);

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.panda.mapper.DispatchRecordMapper">
+
+    <resultMap id="dispatchRecordResultMap" type="com.panda.entity.DispatchRecord">
+        <id property="id" column="id"/>
+        <result property="dispatcherId" column="dispatcher_id"/>
+        <result property="scooterId" column="scooter_id"/>
+        <result property="endTime" column="end_time"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.panda.entity.DispatchRecord" useGeneratedKeys="true" keyProperty="id">
+        insert into dispatch_record (dispatcher_id, scooter_id, end_time, create_time)
+        values (#{dispatcherId}, #{scooterId}, #{endTime}, #{createTime})
+    </insert>
+
+    <select id="getActiveRecord" resultMap="dispatchRecordResultMap">
+        select id, dispatcher_id, scooter_id, end_time, create_time
+        from dispatch_record
+        where dispatcher_id = #{dispatcherId}
+          and scooter_id = #{scooterId}
+          and end_time is null
+        order by id desc
+        limit 1
+    </select>
+
+    <select id="getActiveRecordByScooterId" resultMap="dispatchRecordResultMap">
+        select id, dispatcher_id, scooter_id, end_time, create_time
+        from dispatch_record
+        where scooter_id = #{scooterId}
+          and end_time is null
+        order by id desc
+        limit 1
+    </select>
+
+    <update id="finishRecord">
+        update dispatch_record
+        set end_time = now()
+        where id = #{id}
+    </update>
+
+    <select id="countByDispatcherAndDate" resultType="java.lang.Integer">
+        select count(1)
+        from dispatch_record
+        where dispatcher_id = #{dispatcherId}
+          and date(create_time) = #{date}
+    </select>
+
+    <select id="listHistoryByDispatcherId" resultType="com.panda.vo.DispatchHistoryVO">
+        select dr.id,
+               s.code as scooter_code,
+               dr.create_time as start_time,
+               dr.end_time,
+               null as distance,
+               case when dr.end_time is null then 0 else 1 end as status
+        from dispatch_record dr
+                 left join scooter s on s.id = dr.scooter_id
+        where dr.dispatcher_id = #{dispatcherId}
+        order by dr.id desc
+    </select>
+
+</mapper>
