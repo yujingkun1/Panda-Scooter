@@ -26,7 +26,6 @@
             :value="scooterCode"
             class="input code-input"
             type="number"
-            :placeholder="labels.codePlaceholder"
             :maxlength="maxLength"
             confirm-type="done"
             @input="handleCodeInput"
@@ -121,7 +120,6 @@ const LABELS = {
   guestTitle: '登录后可提交故障上报',
   goLogin: '去登录',
   scooterCodeLabel: '车辆编号 *',
-  codePlaceholder: '000001',
   scan: '扫码',
   codeTip: '仅需输入后 6 位编号，扫码后也只会回填后 6 位',
   reasonLabel: '故障原因 *',
@@ -351,7 +349,7 @@ export default {
             content: this.labels.modalContent,
             showCancel: false,
             success: () => {
-              uni.navigateTo({
+              uni.redirectTo({
                 url: '/pages/faults/faults'
               })
             }

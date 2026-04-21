@@ -1,17 +1,19 @@
 import request from '../request'
-import { getApiBaseURL, getApiConfig } from '../env'
 
-const isSuccessCode = (code) => ['0', '200'].includes(String(code))
-
-const resolveErrorMessage = (payload, fallback) => {
-  if (payload && typeof payload.msg === 'string' && payload.msg.trim()) {
-    return payload.msg.trim()
-  }
-  if (typeof fallback === 'string' && fallback.trim()) {
-    return fallback.trim()
-  }
-  return '请求失败'
+const JSON_PART_CONTENT_TYPE = 'application/json'
+const IMAGE_CONTENT_TYPES = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.bmp': 'image/bmp',
+  '.webp': 'image/webp'
 }
+
+const normalizeFaultData = (data = {}) => ({
+  scooterId: data.scooterId,
+  description: data.description || ''
+})
 
 const showRequestError = (message) => {
   if (typeof uni.hideLoading === 'function') {
@@ -26,96 +28,184 @@ const showRequestError = (message) => {
   }, 50)
 }
 
-const buildUrl = (url, baseURL) => {
-  return `${baseURL}${url.startsWith('/') ? url : `/${url}`}`
-}
-
-const getAuthHeader = () => {
-  const token = uni.getStorageSync('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-const parseUploadResponse = (rawData) => {
-  if (typeof rawData !== 'string') {
-    return rawData
-  }
-
-  try {
-    return JSON.parse(rawData)
-  } catch (error) {
-    return rawData
-  }
-}
-
-const normalizeFaultPayload = (data = {}) => ({
-  scooterId: data.scooterId,
-  description: data.description || ''
-})
-
 const createHandledError = (message, extra = {}) => {
   const error = new Error(message)
   Object.assign(error, { handled: true }, extra)
   return error
 }
 
-const resolveFaultUrl = () => {
-  const baseURL = getApiBaseURL()
-  if (!baseURL) {
-    const apiConfig = getApiConfig()
-    throw createHandledError(`${apiConfig.label} API 地址未配置`)
-  }
-  return buildUrl('/fault', baseURL)
+const createMultipartBoundary = () => {
+  return `----PandaScooterBoundary${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`
 }
 
-const requestFaultWithoutImage = (data) => {
+const encodeUtf8 = (value = '') => {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(value)
+  }
+
+  const encoded = unescape(encodeURIComponent(value))
+  const bytes = new Uint8Array(encoded.length)
+
+  for (let index = 0; index < encoded.length; index += 1) {
+    bytes[index] = encoded.charCodeAt(index)
+  }
+
+  return bytes
+}
+
+const toUint8Array = (value) => {
+  if (value instanceof Uint8Array) {
+    return value
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+  }
+
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value)
+  }
+
+  return encodeUtf8(String(value || ''))
+}
+
+const mergeBuffers = (chunks = []) => {
+  const normalizedChunks = chunks.map((chunk) => toUint8Array(chunk))
+  const totalLength = normalizedChunks.reduce((sum, chunk) => sum + chunk.byteLength, 0)
+  const merged = new Uint8Array(totalLength)
+  let offset = 0
+
+  normalizedChunks.forEach((chunk) => {
+    merged.set(chunk, offset)
+    offset += chunk.byteLength
+  })
+
+  return merged.buffer
+}
+
+const buildJsonPartBuffer = (name, value, boundary) => {
+  return mergeBuffers([
+    `--${boundary}\r\n`,
+    `Content-Disposition: form-data; name="${name}"\r\n`,
+    `Content-Type: ${JSON_PART_CONTENT_TYPE}\r\n`,
+    '\r\n',
+    JSON.stringify(value),
+    '\r\n'
+  ])
+}
+
+const resolveFileName = (filePath = '') => {
+  const sanitizedPath = String(filePath).split('?')[0]
+  const segments = sanitizedPath.split(/[\\/]/)
+  return segments[segments.length - 1] || `fault-image-${Date.now()}.jpg`
+}
+
+const resolveImageContentType = (filePath = '') => {
+  const normalizedPath = String(filePath).toLowerCase().split('?')[0]
+  const extensionIndex = normalizedPath.lastIndexOf('.')
+  if (extensionIndex < 0) {
+    return 'application/octet-stream'
+  }
+
+  const extension = normalizedPath.slice(extensionIndex)
+  return IMAGE_CONTENT_TYPES[extension] || 'application/octet-stream'
+}
+
+const buildFilePartBuffer = (name, filePath, fileBuffer, boundary) => {
+  return mergeBuffers([
+    `--${boundary}\r\n`,
+    `Content-Disposition: form-data; name="${name}"; filename="${resolveFileName(filePath)}"\r\n`,
+    `Content-Type: ${resolveImageContentType(filePath)}\r\n`,
+    '\r\n',
+    fileBuffer,
+    '\r\n'
+  ])
+}
+
+const readFileByFileSystemManager = (filePath) => {
+  if (typeof uni.getFileSystemManager !== 'function') {
+    return null
+  }
+
+  return new Promise((resolve, reject) => {
+    uni.getFileSystemManager().readFile({
+      filePath,
+      success: (res) => {
+        resolve(res.data)
+      },
+      fail: (error) => {
+        reject(error)
+      }
+    })
+  })
+}
+
+const readFileByFetch = async (filePath) => {
+  if (typeof fetch !== 'function') {
+    return null
+  }
+
+  const response = await fetch(filePath)
+  if (!response.ok) {
+    throw new Error(`read-file-failed:${response.status}`)
+  }
+
+  return response.arrayBuffer()
+}
+
+const readLocalFileAsArrayBuffer = async (filePath) => {
+  if (!filePath) {
+    return null
+  }
+
+  try {
+    const fileBuffer = await readFileByFileSystemManager(filePath)
+    if (fileBuffer) {
+      return fileBuffer
+    }
+  } catch (error) {
+  }
+
+  try {
+    const fileBuffer = await readFileByFetch(filePath)
+    if (fileBuffer) {
+      return fileBuffer
+    }
+  } catch (error) {
+  }
+
+  const message = '无法读取图片文件'
+  showRequestError(message)
+  throw createHandledError(message)
+}
+
+const buildMultipartBody = async (data = {}, boundary) => {
+  // The backend binds scooterId/description via @RequestPart, so each text part must be JSON.
+  const payload = normalizeFaultData(data)
+  const chunks = Object.keys(payload)
+    .filter((key) => payload[key] !== undefined && payload[key] !== null)
+    .map((key) => buildJsonPartBuffer(key, payload[key], boundary))
+
+  if (data.image) {
+    const fileBuffer = await readLocalFileAsArrayBuffer(data.image)
+    chunks.push(buildFilePartBuffer('image', data.image, fileBuffer, boundary))
+  }
+
+  chunks.push(`--${boundary}--\r\n`)
+  return mergeBuffers(chunks)
+}
+
+const uploadFault = async (data = {}) => {
+  const boundary = createMultipartBoundary()
+  const requestBody = await buildMultipartBody(data, boundary)
+
   return request({
     url: '/fault',
     method: 'POST',
     header: {
-      'Content-Type': 'multipart/form-data'
+      'Content-Type': `multipart/form-data; boundary=${boundary}`
     },
-    data: normalizeFaultPayload(data)
-  })
-}
-
-const uploadFaultWithImage = (data) => {
-  const url = resolveFaultUrl()
-  const formData = normalizeFaultPayload(data)
-
-  return new Promise((resolve, reject) => {
-    uni.uploadFile({
-      url,
-      filePath: data.image,
-      name: 'image',
-      formData,
-      header: {
-        ...getAuthHeader()
-      },
-      success: (res) => {
-        const payload = parseUploadResponse(res.data)
-
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          const message = resolveErrorMessage(payload, `请求失败: ${res.statusCode}`)
-          showRequestError(message)
-          reject(createHandledError(message, { statusCode: res.statusCode, data: payload }))
-          return
-        }
-
-        if (payload && typeof payload.code !== 'undefined' && !isSuccessCode(payload.code)) {
-          const message = resolveErrorMessage(payload)
-          showRequestError(message)
-          reject(createHandledError(message, { statusCode: res.statusCode, data: payload, code: payload.code }))
-          return
-        }
-
-        resolve(payload)
-      },
-      fail: (err) => {
-        const message = resolveErrorMessage(null, err && err.errMsg ? err.errMsg : '网络异常')
-        showRequestError(message)
-        reject(createHandledError(message, { cause: err }))
-      }
-    })
+    data: requestBody
   })
 }
 
@@ -127,9 +217,5 @@ export const getFaults = () => {
 }
 
 export const reportFault = (data = {}) => {
-  if (data.image) {
-    return uploadFaultWithImage(data)
-  }
-
-  return requestFaultWithoutImage(data)
+  return uploadFault(data)
 }
