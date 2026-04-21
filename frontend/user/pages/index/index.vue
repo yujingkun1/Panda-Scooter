@@ -64,8 +64,8 @@
             <text class="subscription-desc">{{ pkg.description || '骑行套餐' }}</text>
             <text class="subscription-price">¥{{ formatAmount(pkg.price) }}</text>
           </view>
-          <button class="subscription-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('viewSubscription')" @click="handleSubscription(pkg)">
-            {{ isActionPending('viewSubscription') ? '处理中...' : '查看详情' }}
+          <button class="subscription-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending(getSubscriptionActionKey(pkg))" @click="handleSubscription(pkg)">
+            <text class="subscription-btn-label">{{ isActionPending(getSubscriptionActionKey(pkg)) ? '处理中...' : '立即购买' }}</text>
           </button>
         </view>
       </view>
@@ -78,7 +78,7 @@
 
 <script>
 import actionGuard from '@/mixins/actionGuard'
-import { getMapData, getScooterInfo, getSubscriptions, unlockScooter } from '@/api/index'
+import { getMapData, getScooterInfo, getSubscriptions, unlockScooter, userBill } from '@/api/index'
 import { showUnhandledError } from '@/utils/error'
 
 const CURRENT_RIDE_STORAGE_KEY = 'currentRide'
@@ -572,12 +572,91 @@ export default {
         return
       }
 
-      this.withAction('viewSubscription', async () => {
+      const amount = Number(pkg && pkg.price)
+      if (!Number.isFinite(amount) || amount <= 0) {
         uni.showToast({
-          title: `${pkg.title} 购买功能暂未开放`,
+          title: '套餐价格异常',
           icon: 'none'
         })
+        return
+      }
+
+      uni.showModal({
+        title: '确认购买',
+        content: `确认立即购买 ${pkg.title || '骑行套餐'}，支付 ¥${this.formatAmount(amount)} 吗？`,
+        success: (res) => {
+          if (!res.confirm) {
+            return
+          }
+
+          this.buySubscription(pkg)
+        }
       })
+    },
+    buySubscription(pkg) {
+      const actionKey = this.getSubscriptionActionKey(pkg)
+
+      this.withAction(actionKey, async () => {
+        const amount = Number(pkg && pkg.price)
+        const subscriptionType = this.normalizeSubscriptionType(pkg)
+
+        if (!Number.isFinite(amount) || amount <= 0) {
+          uni.showToast({
+            title: '套餐价格异常',
+            icon: 'none'
+          })
+          return
+        }
+
+        if (!subscriptionType) {
+          uni.showToast({
+            title: '套餐类型异常',
+            icon: 'none'
+          })
+          return
+        }
+
+        try {
+          uni.showLoading({
+            title: '购买中...'
+          })
+          await userBill({
+            type: 4,
+            amount: -Math.abs(amount),
+            remark: `购买套餐-${pkg.title || '骑行套餐'}`,
+            subscriptionType
+          })
+          uni.hideLoading()
+          uni.showToast({
+            title: '购买成功',
+            icon: 'success'
+          })
+        } catch (error) {
+          uni.hideLoading()
+          showUnhandledError(error, '购买套餐失败，请稍后重试')
+        }
+      })
+    },
+    getSubscriptionActionKey(pkg) {
+      return `buySubscription-${pkg && pkg.id ? pkg.id : 'default'}`
+    },
+    normalizeSubscriptionType(pkg) {
+      const type = Number(pkg && pkg.type)
+      if ([1, 2, 3].includes(type)) {
+        return type
+      }
+
+      const title = String((pkg && pkg.title) || '')
+      if (title.includes('月')) {
+        return 1
+      }
+      if (title.includes('季')) {
+        return 2
+      }
+      if (title.includes('年')) {
+        return 3
+      }
+      return 0
     },
     navigateTo(page) {
       if (!this.ensureLoggedIn()) {
@@ -820,12 +899,25 @@ export default {
   border: 1rpx solid #d4d4d1;
   border-radius: 0;
   padding: 20rpx 40rpx;
+  font-size: 0;
+}
+
+.subscription-btn::after {
+  border: none;
+}
+
+.subscription-btn-label {
   font-size: 24rpx;
+  color: #0b0e0d;
 }
 
 .subscription-btn[disabled] {
   color: #999999;
   border-color: #e5e5e2;
+}
+
+.subscription-btn[disabled] .subscription-btn-label {
+  color: #999999;
 }
 
 .empty-state {

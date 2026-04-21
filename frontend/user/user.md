@@ -40,18 +40,20 @@ POST /user/bill
 {
   "type": -2147483648,
   "amount": 0,
-  "remark": "string"
+  "remark": "string",
+  "subscriptionType": 0
 }
 ```
 
 ### 请求参数
 
-| 名称     | 位置 | 类型    | 必选 | 说明                                             |
-| -------- | ---- | ------- | ---- | ------------------------------------------------ |
-| body     | body | object  | 是   | none                                             |
-| » type   | body | integer | 是   | 流水类型：1-骑行消费，2-充值，3-退款，4-购买套餐 |
-| » amount | body | number  | 是   | 变动金额（正数为进账，负数为支出）               |
-| » remark | body | string  | 否   | 流水备注（如：购买套餐，账户充值，骑行消费）     |
+| 名称               | 位置 | 类型    | 必选 | 说明                                             |
+| ------------------ | ---- | ------- | ---- | ------------------------------------------------ |
+| body               | body | object  | 是   | none                                             |
+| » type             | body | integer | 是   | 流水类型：1-骑行消费，2-充值，3-退款，4-购买套餐 |
+| » amount           | body | number  | 是   | 变动金额（正数为进账，负数为支出）               |
+| » remark           | body | string  | 否   | 流水备注（如：购买套餐，账户充值，骑行消费）     |
+| » subscriptionType | body | integer | 否   | 1-月卡，2-季卡，3-年卡                           |
 
 > 返回示例
 
