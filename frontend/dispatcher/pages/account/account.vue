@@ -1,50 +1,62 @@
 <template>
   <view class="page">
     <view class="header">
-      <text class="title">账号管理</text>
+      <text class="title">Account</text>
     </view>
 
     <view class="info-section">
       <view class="info-item">
-        <text class="info-label">姓名</text>
+        <text class="info-label">Name</text>
         <text class="info-value">{{ userInfo.name }}</text>
       </view>
       <view class="info-item">
-        <text class="info-label">邮箱</text>
+        <text class="info-label">Email</text>
         <text class="info-value">{{ userInfo.email }}</text>
       </view>
     </view>
 
     <view class="action-section">
-      <view class="action-item" @click="goToForgotPassword">
-        <text class="action-text">修改密码</text>
-        <text class="action-arrow">></text>
+      <view class="action-item" @click="navigateToResetPassword">
+        <text class="action-text">Change Password</text>
       </view>
       <view class="action-item" @click="logout">
-        <text class="action-text logout-text">退出登录</text>
+        <text class="action-text logout-text">Log Out</text>
       </view>
     </view>
 
     <view class="delete-section">
-      <text class="section-title">注销账号</text>
-      <text class="section-desc">注销前需要输入当前登录密码与邮箱验证码。</text>
+      <text class="section-title">Delete Account</text>
+      <text class="section-desc">Enter the current password and the email verification code before deleting this account.</text>
 
       <view class="field">
-        <text class="field-label">登录密码</text>
-        <input v-model.trim="deleteForm.password" class="input" password type="text" placeholder="请输入当前密码" />
+        <text class="field-label">Current Password</text>
+        <input
+          v-model.trim="deleteForm.password"
+          class="input"
+          password
+          type="text"
+          placeholder="Enter current password"
+        />
       </view>
 
       <view class="field">
-        <text class="field-label">邮箱验证码</text>
+        <text class="field-label">Verification Code</text>
         <view class="code-row">
-          <input v-model.trim="deleteForm.verificationCode" class="input code-input" type="text" placeholder="请输入验证码" />
-          <button class="code-btn" :disabled="countdown > 0" @click="sendDeleteCode">
-            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+          <input
+            v-model.trim="deleteForm.verificationCode"
+            class="input code-input"
+            type="text"
+            placeholder="Enter verification code"
+          />
+          <button class="code-btn" :disabled="countdown > 0 || isSendingDeleteCode" @click="sendDeleteCode">
+            {{ isSendingDeleteCode ? 'Sending...' : (countdown > 0 ? `${countdown}s` : 'Get Code') }}
           </button>
         </view>
       </view>
 
-      <button class="delete-btn" @click="deleteAccount">确认注销</button>
+      <button class="delete-btn" :disabled="isDeleting" @click="deleteAccount">
+        {{ isDeleting ? 'Deleting...' : 'Delete Account' }}
+      </button>
     </view>
   </view>
 </template>
@@ -58,8 +70,8 @@ import {
 } from '@/api/index'
 
 const DEFAULT_USER_INFO = {
-  name: '访客调度员',
-  email: '未登录'
+  name: 'Guest Dispatcher',
+  email: 'Not Logged In'
 }
 
 const DEFAULT_DELETE_FORM = () => ({
@@ -67,13 +79,21 @@ const DEFAULT_DELETE_FORM = () => ({
   verificationCode: ''
 })
 
+const clearDispatcherSession = () => {
+  uni.removeStorageSync('dispatcherToken')
+  uni.removeStorageSync('dispatcherUserInfo')
+  uni.removeStorageSync('dispatcherCurrentTask')
+}
+
 export default {
   data() {
     return {
       userInfo: { ...DEFAULT_USER_INFO },
       deleteForm: DEFAULT_DELETE_FORM(),
       countdown: 0,
-      timer: null
+      timer: null,
+      isSendingDeleteCode: false,
+      isDeleting: false
     }
   },
   onShow() {
@@ -106,28 +126,36 @@ export default {
         }
       }
     },
-    goToForgotPassword() {
+    navigateToResetPassword() {
+      const email = encodeURIComponent(this.userInfo.email || '')
       uni.navigateTo({
-        url: `/pages/login/login?mode=forgot-password&email=${encodeURIComponent(this.userInfo.email)}`
+        url: `/pages/resetPassword/resetPassword${email ? `?email=${email}` : ''}`
       })
     },
     async sendDeleteCode() {
       if (!this.userInfo.email || this.userInfo.email === DEFAULT_USER_INFO.email) {
         uni.showToast({
-          title: '当前账号没有可用邮箱',
+          title: 'No email available',
           icon: 'none'
         })
         return
       }
 
+      if (this.isSendingDeleteCode) {
+        return
+      }
+
+      this.isSendingDeleteCode = true
       try {
         await getVerificationCode(this.userInfo.email)
         uni.showToast({
-          title: '验证码已发送',
+          title: 'Code sent',
           icon: 'success'
         })
         this.startCountdown()
       } catch (error) {
+      } finally {
+        this.isSendingDeleteCode = false
       }
     },
     startCountdown() {
@@ -150,8 +178,8 @@ export default {
     },
     async logout() {
       uni.showModal({
-        title: '退出登录',
-        content: '确定退出当前调度账号吗？',
+        title: 'Log Out',
+        content: 'Do you want to log out of this dispatcher account?',
         success: async (res) => {
           if (!res.confirm) {
             return
@@ -162,16 +190,14 @@ export default {
           } catch (error) {
           }
 
-          uni.removeStorageSync('dispatcherToken')
-          uni.removeStorageSync('dispatcherUserInfo')
-          uni.removeStorageSync('dispatcherCurrentTask')
+          clearDispatcherSession()
           uni.showToast({
-            title: '已退出登录',
+            title: 'Logged out',
             icon: 'success'
           })
           setTimeout(() => {
             uni.reLaunch({
-              url: '/pages/index/index'
+              url: '/pages/login/login?mode=login'
             })
           }, 800)
         }
@@ -180,44 +206,49 @@ export default {
     async deleteAccount() {
       if (!this.deleteForm.password || !this.deleteForm.verificationCode) {
         uni.showToast({
-          title: '请填写密码和验证码',
+          title: 'Complete all fields',
           icon: 'none'
         })
         return
       }
 
+      if (this.isDeleting) {
+        return
+      }
+
       uni.showModal({
-        title: '账号注销',
-        content: '注销后将退出当前登录状态，确认继续吗？',
+        title: 'Delete Account',
+        content: 'This will remove the account and sign you out. Continue?',
         confirmColor: '#ff4d4f',
         success: async (res) => {
           if (!res.confirm) {
             return
           }
 
+          this.isDeleting = true
           try {
             uni.showLoading({
-              title: '注销中...'
+              title: 'Deleting...'
             })
             await dispatcherDelete({
               password: this.deleteForm.password,
               verificationCode: this.deleteForm.verificationCode
             })
             uni.hideLoading()
-            uni.removeStorageSync('dispatcherToken')
-            uni.removeStorageSync('dispatcherUserInfo')
-            uni.removeStorageSync('dispatcherCurrentTask')
+            clearDispatcherSession()
             uni.showToast({
-              title: '账号已注销',
+              title: 'Account deleted',
               icon: 'success'
             })
             setTimeout(() => {
               uni.reLaunch({
-                url: '/pages/index/index'
+                url: '/pages/login/login?mode=login'
               })
             }, 800)
           } catch (error) {
             uni.hideLoading()
+          } finally {
+            this.isDeleting = false
           }
         }
       })
@@ -235,17 +266,18 @@ export default {
 .info-item:last-child, .action-item:last-child { border-bottom: none; }
 .info-label { font-size: 26rpx; color: #737373; }
 .info-value { font-size: 26rpx; color: #0b0e0d; }
-.action-text { flex: 1; font-size: 28rpx; color: #0b0e0d; }
-.logout-text { color: #a67c00; text-align: center; }
-.action-arrow { font-size: 32rpx; color: #d4d4d1; }
+.action-text { flex: 1; font-size: 28rpx; color: #0b0e0d; text-align: center; }
+.logout-text { color: #a67c00; }
 .delete-section { padding: 40rpx 32rpx; }
 .section-title { display: block; font-size: 30rpx; color: #0b0e0d; margin-bottom: 12rpx; }
 .section-desc { display: block; font-size: 22rpx; line-height: 1.7; color: #737373; margin-bottom: 28rpx; }
 .field { margin-bottom: 24rpx; }
 .field-label { display: block; margin-bottom: 12rpx; font-size: 24rpx; color: #0b0e0d; }
-.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx; }
-.code-row { display: flex; gap: 16rpx; }
-.code-input { flex: 1; }
-.code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx; }
+.input { width: 100%; height: 88rpx; border: 1rpx solid #e5e5e2; background-color: #fafaf8; padding: 0 24rpx; font-size: 28rpx; box-sizing: border-box; }
+.code-row { display: flex; gap: 16rpx; min-width: 0; }
+.code-input { flex: 1; min-width: 0; }
+.code-btn { width: 220rpx; height: 88rpx; border: 1rpx solid #d4d4d1; background-color: transparent; color: #0b0e0d; font-size: 24rpx; flex-shrink: 0; }
+.code-btn[disabled] { color: #999999; border-color: #e5e5e2; }
 .delete-btn { margin-top: 16rpx; background-color: #8b0000; color: #ffffff; border: none; border-radius: 0; font-size: 30rpx; letter-spacing: 4rpx; }
+.delete-btn[disabled] { opacity: 0.7; }
 </style>

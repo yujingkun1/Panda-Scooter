@@ -13,50 +13,68 @@
 
     <view class="panel">
       <view class="section">
-        <text class="section-title">车辆信息</text>
+        <text class="section-title">{{ labels.scooterSection }}</text>
         <view class="info-row">
-          <text class="info-label">车辆编号</text>
+          <text class="info-label">{{ labels.scooterCode }}</text>
           <text class="info-value">{{ ride.scooterCode }}</text>
         </view>
         <view class="info-row">
-          <text class="info-label">车辆状态</text>
+          <text class="info-label">{{ labels.scooterStatus }}</text>
           <text class="info-value">{{ rideStatusText }}</text>
         </view>
         <view class="info-row">
-          <text class="info-label">剩余电量</text>
+          <text class="info-label">{{ labels.battery }}</text>
           <text class="info-value">{{ currentBatteryText }}</text>
         </view>
       </view>
 
       <view class="section">
-        <text class="section-title">骑行信息</text>
+        <text class="section-title">{{ labels.rideSection }}</text>
         <view class="stats-grid">
           <view class="stat-item">
-            <text class="stat-label">骑行距离</text>
+            <text class="stat-label">{{ labels.distance }}</text>
             <text class="stat-value">{{ distanceText }}</text>
           </view>
           <view class="stat-item">
-            <text class="stat-label">骑行时间</text>
+            <text class="stat-label">{{ labels.duration }}</text>
             <text class="stat-value">{{ durationText }}</text>
           </view>
           <view class="stat-item">
-            <text class="stat-label">预计费用</text>
-            <text class="stat-value">￥{{ amountText }}</text>
+            <text class="stat-label">{{ labels.amount }}</text>
+            <text class="stat-value">{{ amountText }}</text>
           </view>
           <view class="stat-item">
-            <text class="stat-label">平均速度</text>
+            <text class="stat-label">{{ labels.avgSpeed }}</text>
             <text class="stat-value">{{ avgSpeedText }}</text>
           </view>
         </view>
         <view class="info-row">
-          <text class="info-label">开始时间</text>
+          <text class="info-label">{{ labels.startTime }}</text>
           <text class="info-value">{{ startTimeText }}</text>
         </view>
       </view>
 
-      <button class="end-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('finishRide')" @click="finishRide">
-        {{ isActionPending('finishRide') ? '结束中...' : '结束用车' }}
-      </button>
+      <view class="action-group">
+        <button
+          class="fault-btn"
+          hover-class="button-hover"
+          hover-start-time="0"
+          hover-stay-time="90"
+          @click="goFaultReport"
+        >
+          {{ labels.reportFault }}
+        </button>
+        <button
+          class="end-btn"
+          hover-class="button-hover"
+          hover-start-time="0"
+          hover-stay-time="90"
+          :disabled="isActionPending('finishRide')"
+          @click="finishRide"
+        >
+          {{ isActionPending('finishRide') ? labels.finishLoading : labels.finishRide }}
+        </button>
+      </view>
     </view>
   </view>
 </template>
@@ -75,10 +93,37 @@ const FEE_PER_KILOMETER = 1
 const BATTERY_COST_PER_KILOMETER = 4
 const DEFAULT_SCALE = 17
 
+const LABELS = {
+  scooterSection: '车辆信息',
+  scooterCode: '车辆编号',
+  scooterStatus: '车辆状态',
+  battery: '剩余电量',
+  rideSection: '骑行信息',
+  distance: '骑行距离',
+  duration: '骑行时间',
+  amount: '预计费用',
+  avgSpeed: '平均速度',
+  startTime: '开始时间',
+  reportFault: '故障上报',
+  finishRide: '结束用车',
+  finishLoading: '结束中...',
+  statusPending: '待骑行',
+  statusRiding: '骑行中',
+  statusEnded: '已结束',
+  finishLocationFallback: '定位失败，将使用上次位置结束用车',
+  finishModalTitle: '骑行结束',
+  finishModalContentPrefix: '本次骑行 ',
+  finishModalContentMiddle: '，预计费用 ',
+  finishError: '结束用车失败，请稍后重试',
+  missingRide: '当前无进行中的骑行',
+  currency: '¥'
+}
+
 export default {
   mixins: [actionGuard],
   data() {
     return {
+      labels: LABELS,
       scale: DEFAULT_SCALE,
       ride: {
         orderId: '',
@@ -110,11 +155,11 @@ export default {
     },
     rideStatusText() {
       const statusMap = {
-        0: '待骑行',
-        1: '骑行中',
-        2: '已结束'
+        0: this.labels.statusPending,
+        1: this.labels.statusRiding,
+        2: this.labels.statusEnded
       }
-      return statusMap[Number(this.ride.rideStatus)] || '骑行中'
+      return statusMap[Number(this.ride.rideStatus)] || this.labels.statusRiding
     },
     currentBattery() {
       const current = Number(this.ride.battery || 0) - this.ride.totalKilometer * BATTERY_COST_PER_KILOMETER
@@ -133,7 +178,7 @@ export default {
       return `${hours}:${minutes}:${seconds}`
     },
     amountText() {
-      return this.ride.amount.toFixed(2)
+      return `${this.labels.currency}${this.ride.amount.toFixed(2)}`
     },
     avgSpeedText() {
       if (!this.elapsedSeconds) {
@@ -198,8 +243,16 @@ export default {
     },
     restoreRide(cachedRide) {
       const routePoints = Array.isArray(cachedRide.routePoints) ? cachedRide.routePoints : []
-      const currentLatitude = Number(cachedRide.currentLatitude || (routePoints[routePoints.length - 1] && routePoints[routePoints.length - 1].latitude) || 39.9042)
-      const currentLongitude = Number(cachedRide.currentLongitude || (routePoints[routePoints.length - 1] && routePoints[routePoints.length - 1].longitude) || 116.4074)
+      const currentLatitude = Number(
+        cachedRide.currentLatitude ||
+        (routePoints[routePoints.length - 1] && routePoints[routePoints.length - 1].latitude) ||
+        39.9042
+      )
+      const currentLongitude = Number(
+        cachedRide.currentLongitude ||
+        (routePoints[routePoints.length - 1] && routePoints[routePoints.length - 1].longitude) ||
+        116.4074
+      )
 
       this.ride = {
         orderId: cachedRide.orderId || '',
@@ -219,6 +272,9 @@ export default {
       }
     },
     startClock() {
+      if (this.clockTimer) {
+        clearInterval(this.clockTimer)
+      }
       this.clockTimer = setInterval(() => {
         this.updateElapsedSeconds()
         this.updateEstimatedAmount()
@@ -226,6 +282,9 @@ export default {
       }, CLOCK_INTERVAL)
     },
     startLocationTracking() {
+      if (this.locationTimer) {
+        clearInterval(this.locationTimer)
+      }
       this.locationTimer = setInterval(() => {
         this.captureCurrentLocation()
       }, DISTANCE_SAMPLE_INTERVAL)
@@ -328,17 +387,30 @@ export default {
       }
       return String(value).replace('T', ' ').replace('Z', '').slice(0, 19)
     },
+    goFaultReport() {
+      if (!this.ride.orderId) {
+        uni.showToast({
+          title: this.labels.missingRide,
+          icon: 'none'
+        })
+        return
+      }
+
+      uni.navigateTo({
+        url: `/pages/reportFault/reportFault?rideMode=1&code=${encodeURIComponent(this.ride.scooterCode || '')}`
+      })
+    },
     async finishRide() {
       await this.withAction('finishRide', async () => {
         try {
           await this.captureCurrentLocation()
         } catch (error) {
-          showUnhandledError(error, '定位失败，将使用上次位置结束用车')
+          showUnhandledError(error, this.labels.finishLocationFallback)
         }
 
         try {
           uni.showLoading({
-            title: '结束用车中...'
+            title: this.labels.finishLoading
           })
           const endTime = new Date().toISOString()
           const payload = {
@@ -357,8 +429,8 @@ export default {
           this.clearTimers()
           uni.removeStorageSync(CURRENT_RIDE_STORAGE_KEY)
           uni.showModal({
-            title: '骑行结束',
-            content: `本次骑行 ${this.distanceText}，预计费用 ￥${this.amountText}`,
+            title: this.labels.finishModalTitle,
+            content: `${this.labels.finishModalContentPrefix}${this.distanceText}${this.labels.finishModalContentMiddle}${this.amountText}`,
             showCancel: false,
             success: () => {
               uni.reLaunch({
@@ -368,7 +440,7 @@ export default {
           })
         } catch (error) {
           uni.hideLoading()
-          showUnhandledError(error, '结束用车失败，请稍后重试')
+          showUnhandledError(error, this.labels.finishError)
         }
       })
     }
@@ -460,6 +532,25 @@ export default {
   display: block;
   font-size: 30rpx;
   color: #0b0e0d;
+}
+
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.fault-btn {
+  background-color: #ffffff;
+  color: #0b0e0d;
+  border: 1rpx solid #d4d4d1;
+  border-radius: 0;
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
+}
+
+.fault-btn::after {
+  border: none;
 }
 
 .end-btn {

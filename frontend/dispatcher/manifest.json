@@ -1,6 +1,6 @@
 {
     "name" : "dispatcher",
-    "appid" : "",
+    "appid" : "wxb0ca900326caa93d",
     "description" : "",
     "versionName" : "1.0.0",
     "versionCode" : "100",
@@ -50,11 +50,19 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "",
+        "appid" : "wxb0ca900326caa93d",
         "setting" : {
             "urlCheck" : false
         },
-        "usingComponents" : true
+        "usingComponents" : true,
+        "permission" : {
+            "scope.camera" : {
+                "desc" : "用于打开补光灯，方便在暗光环境下输入或识别车辆编号"
+            },
+            "scope.userLocation" : {
+                "desc" : "用于获取您的位置信息，以便在地图上展示当前位置和附近车辆"
+            }
+        }
     },
     "mp-alipay" : {
         "usingComponents" : true

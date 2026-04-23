@@ -1,4 +1,5 @@
 import { getApiBaseURL, getApiConfig } from './env'
+import { clearUserSession, isAuthErrorMessage } from '../utils/auth'
 
 const isAbsoluteUrl = (url) => /^https?:\/\//.test(url)
 
@@ -47,10 +48,20 @@ const showRequestError = (message) => {
   }, 50)
 }
 
+const isUnauthorizedResponse = (message, statusCode) => {
+  return statusCode === 401 || statusCode === 403 || isAuthErrorMessage(message)
+}
+
 const rejectWithMessage = (reject, message, extra = {}) => {
+  const unauthorized = isUnauthorizedResponse(message, extra.statusCode)
+
+  if (unauthorized) {
+    clearUserSession()
+  }
+
   showRequestError(message)
   const error = new Error(message)
-  Object.assign(error, { handled: true }, extra)
+  Object.assign(error, { handled: true, unauthorized }, extra)
   reject(error)
 }
 

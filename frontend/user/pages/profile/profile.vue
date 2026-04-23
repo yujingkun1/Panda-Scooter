@@ -48,6 +48,7 @@
 
 <script>
 import { getUserInfo } from '@/api/index'
+import { isUnauthorizedError } from '@/utils/auth'
 import { showUnhandledError } from '@/utils/error'
 
 const DEFAULT_USER_INFO = {
@@ -85,6 +86,12 @@ export default {
           totalTime: this.formatNumber(data.totalTime)
         }
       } catch (error) {
+        if (isUnauthorizedError(error)) {
+          this.hasToken = false
+          this.userInfo = { ...DEFAULT_USER_INFO }
+          return
+        }
+
         const cached = uni.getStorageSync('userInfo')
         this.userInfo = {
           username: cached.username || DEFAULT_USER_INFO.username,

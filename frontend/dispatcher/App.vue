@@ -13,5 +13,40 @@
 </script>
 
 <style>
-	/*每个页面公共css */
+	/* 每个页面公共 css */
+	button,
+	.ui-pressable,
+	.ui-pressable-inline,
+	.ui-pressable-media {
+		transition:
+			transform 0.18s ease,
+			opacity 0.18s ease,
+			box-shadow 0.18s ease,
+			filter 0.18s ease,
+			background-color 0.18s ease,
+			border-color 0.18s ease;
+		transform: translate3d(0, 0, 0) scale(1);
+		will-change: transform, opacity;
+	}
+
+	button.button-hover,
+	.ui-pressable-hover {
+		transform: translate3d(0, 6rpx, 0) scale(0.968);
+		opacity: 0.9;
+		filter: saturate(0.92);
+		box-shadow: inset 0 0 0 9999px rgba(11, 14, 13, 0.04);
+	}
+
+	.ui-pressable-inline-hover {
+		transform: translate3d(0, 2rpx, 0) scale(0.95);
+		opacity: 0.6;
+	}
+
+	button[disabled],
+	button[disabled].button-hover {
+		transform: none;
+		opacity: 1;
+		filter: none;
+		box-shadow: none;
+	}
 </style>

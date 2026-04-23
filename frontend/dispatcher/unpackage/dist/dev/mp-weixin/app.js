@@ -4,11 +4,13 @@ const common_vendor = require("./common/vendor.js");
 if (!Math) {
   "./pages/index/index.js";
   "./pages/login/login.js";
+  "./pages/resetPassword/resetPassword.js";
   "./pages/profile/profile.js";
   "./pages/account/account.js";
   "./pages/history/history.js";
   "./pages/unlock/unlock.js";
   "./pages/lock/lock.js";
+  "./pages/scooterInfo/scooterInfo.js";
 }
 const _sfc_main = {
   onLaunch: function() {

@@ -25,22 +25,19 @@
 
     <view v-if="!hasToken" class="guest-card">
       <text class="guest-title">当前为访客模式</text>
-      <text class="guest-desc">登录后可进入调度流程、查看调度历史与个人辖区信息。</text>
+      <text class="guest-desc">登录后可查看收入、调度任务和调度历史。</text>
       <button class="login-btn" @click="goLogin('login')">去登录</button>
     </view>
 
     <view class="menu-section">
-      <view class="menu-item" @click="navigateTo('unlock')">
-        <text class="menu-text">开锁调度</text>
-        <text class="menu-arrow">></text>
+      <view class="menu-item" @click="showComingSoon('我的收入')">
+        <text class="menu-text">我的收入</text>
       </view>
-      <view class="menu-item" @click="navigateTo('lock')">
-        <text class="menu-text">关锁投放</text>
-        <text class="menu-arrow">></text>
+      <view class="menu-item" @click="showComingSoon('调度任务')">
+        <text class="menu-text">调度任务</text>
       </view>
       <view class="menu-item" @click="navigateTo('history')">
         <text class="menu-text">调度历史</text>
-        <text class="menu-arrow">></text>
       </view>
     </view>
   </view>
@@ -116,6 +113,17 @@ export default {
       uni.navigateTo({
         url: `/pages/${page}/${page}`
       })
+    },
+    showComingSoon(title) {
+      if (!this.hasToken) {
+        this.goLogin('login')
+        return
+      }
+
+      uni.showToast({
+        title: `${title}接口开发中`,
+        icon: 'none'
+      })
     }
   }
 }
@@ -143,5 +151,4 @@ export default {
 .menu-item { display: flex; align-items: center; padding: 40rpx 32rpx; border-bottom: 1rpx solid #e5e5e2; }
 .menu-item:last-child { border-bottom: none; }
 .menu-text { flex: 1; font-size: 28rpx; color: #0b0e0d; letter-spacing: 2rpx; }
-.menu-arrow { font-size: 32rpx; color: #d4d4d1; }
 </style>

@@ -1,7 +1,5 @@
 import request from '../request'
 
-const LOCK_URL = 'https://m1.apifoxmock.com/m1/7776188-7522280-7128400/scooter/lock'
-
 export const unlockScooter = (code) => {
   return request({
     url: '/scooter/unlock',
@@ -17,7 +15,7 @@ export const unlockScooter = (code) => {
 
 export const lockScooter = (data) => {
   return request({
-    url: LOCK_URL,
+    url: '/scooter/lock',
     method: 'POST',
     params: {
       apifoxApiId: '431532462'

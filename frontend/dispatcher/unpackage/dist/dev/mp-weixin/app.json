@@ -2,17 +2,27 @@
   "pages": [
     "pages/index/index",
     "pages/login/login",
+    "pages/resetPassword/resetPassword",
     "pages/profile/profile",
     "pages/account/account",
     "pages/history/history",
     "pages/unlock/unlock",
-    "pages/lock/lock"
+    "pages/lock/lock",
+    "pages/scooterInfo/scooterInfo"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "熊猫调度",
+    "navigationBarTitleText": "Panda Dispatcher",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F8F8F8"
+  },
+  "permission": {
+    "scope.camera": {
+      "desc": "用于打开补光灯，方便在暗光环境下输入或识别车辆编号"
+    },
+    "scope.userLocation": {
+      "desc": "用于获取您的位置信息，以便在地图上展示当前位置和附近车辆"
+    }
   },
   "usingComponents": {}
 }

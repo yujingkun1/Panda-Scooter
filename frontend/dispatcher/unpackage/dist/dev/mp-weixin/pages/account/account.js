@@ -2,20 +2,27 @@
 const common_vendor = require("../../common/vendor.js");
 const api_modules_user = require("../../api/modules/user.js");
 const DEFAULT_USER_INFO = {
-  name: "访客调度员",
-  email: "未登录"
+  name: "Guest Dispatcher",
+  email: "Not Logged In"
 };
 const DEFAULT_DELETE_FORM = () => ({
   password: "",
   verificationCode: ""
 });
+const clearDispatcherSession = () => {
+  common_vendor.index.removeStorageSync("dispatcherToken");
+  common_vendor.index.removeStorageSync("dispatcherUserInfo");
+  common_vendor.index.removeStorageSync("dispatcherCurrentTask");
+};
 const _sfc_main = {
   data() {
     return {
       userInfo: { ...DEFAULT_USER_INFO },
       deleteForm: DEFAULT_DELETE_FORM(),
       countdown: 0,
-      timer: null
+      timer: null,
+      isSendingDeleteCode: false,
+      isDeleting: false
     };
   },
   onShow() {
@@ -48,27 +55,34 @@ const _sfc_main = {
         };
       }
     },
-    goToForgotPassword() {
+    navigateToResetPassword() {
+      const email = encodeURIComponent(this.userInfo.email || "");
       common_vendor.index.navigateTo({
-        url: `/pages/login/login?mode=forgot-password&email=${encodeURIComponent(this.userInfo.email)}`
+        url: `/pages/resetPassword/resetPassword${email ? `?email=${email}` : ""}`
       });
     },
     async sendDeleteCode() {
       if (!this.userInfo.email || this.userInfo.email === DEFAULT_USER_INFO.email) {
         common_vendor.index.showToast({
-          title: "当前账号没有可用邮箱",
+          title: "No email available",
           icon: "none"
         });
         return;
       }
+      if (this.isSendingDeleteCode) {
+        return;
+      }
+      this.isSendingDeleteCode = true;
       try {
         await api_modules_user.getVerificationCode(this.userInfo.email);
         common_vendor.index.showToast({
-          title: "验证码已发送",
+          title: "Code sent",
           icon: "success"
         });
         this.startCountdown();
       } catch (error) {
+      } finally {
+        this.isSendingDeleteCode = false;
       }
     },
     startCountdown() {
@@ -91,8 +105,8 @@ const _sfc_main = {
     },
     async logout() {
       common_vendor.index.showModal({
-        title: "退出登录",
-        content: "确定退出当前调度账号吗？",
+        title: "Log Out",
+        content: "Do you want to log out of this dispatcher account?",
         success: async (res) => {
           if (!res.confirm) {
             return;
@@ -101,16 +115,14 @@ const _sfc_main = {
             await api_modules_user.dispatcherLogout();
           } catch (error) {
           }
-          common_vendor.index.removeStorageSync("dispatcherToken");
-          common_vendor.index.removeStorageSync("dispatcherUserInfo");
-          common_vendor.index.removeStorageSync("dispatcherCurrentTask");
+          clearDispatcherSession();
           common_vendor.index.showToast({
-            title: "已退出登录",
+            title: "Logged out",
             icon: "success"
           });
           setTimeout(() => {
             common_vendor.index.reLaunch({
-              url: "/pages/index/index"
+              url: "/pages/login/login?mode=login"
             });
           }, 800);
         }
@@ -119,42 +131,46 @@ const _sfc_main = {
     async deleteAccount() {
       if (!this.deleteForm.password || !this.deleteForm.verificationCode) {
         common_vendor.index.showToast({
-          title: "请填写密码和验证码",
+          title: "Complete all fields",
           icon: "none"
         });
         return;
       }
+      if (this.isDeleting) {
+        return;
+      }
       common_vendor.index.showModal({
-        title: "账号注销",
-        content: "注销后将退出当前登录状态，确认继续吗？",
+        title: "Delete Account",
+        content: "This will remove the account and sign you out. Continue?",
         confirmColor: "#ff4d4f",
         success: async (res) => {
           if (!res.confirm) {
             return;
           }
+          this.isDeleting = true;
           try {
             common_vendor.index.showLoading({
-              title: "注销中..."
+              title: "Deleting..."
             });
             await api_modules_user.dispatcherDelete({
               password: this.deleteForm.password,
               verificationCode: this.deleteForm.verificationCode
             });
             common_vendor.index.hideLoading();
-            common_vendor.index.removeStorageSync("dispatcherToken");
-            common_vendor.index.removeStorageSync("dispatcherUserInfo");
-            common_vendor.index.removeStorageSync("dispatcherCurrentTask");
+            clearDispatcherSession();
             common_vendor.index.showToast({
-              title: "账号已注销",
+              title: "Account deleted",
               icon: "success"
             });
             setTimeout(() => {
               common_vendor.index.reLaunch({
-                url: "/pages/index/index"
+                url: "/pages/login/login?mode=login"
               });
             }, 800);
           } catch (error) {
             common_vendor.index.hideLoading();
+          } finally {
+            this.isDeleting = false;
           }
         }
       });
@@ -165,20 +181,22 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return {
     a: common_vendor.t($data.userInfo.name),
     b: common_vendor.t($data.userInfo.email),
-    c: common_vendor.o((...args) => $options.goToForgotPassword && $options.goToForgotPassword(...args), "c1"),
-    d: common_vendor.o((...args) => $options.logout && $options.logout(...args), "04"),
+    c: common_vendor.o((...args) => $options.navigateToResetPassword && $options.navigateToResetPassword(...args), "99"),
+    d: common_vendor.o((...args) => $options.logout && $options.logout(...args), "96"),
     e: $data.deleteForm.password,
     f: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.password = $event.detail.value, {
       trim: true
-    }), "c9"),
+    }), "c1"),
     g: $data.deleteForm.verificationCode,
     h: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.verificationCode = $event.detail.value, {
       trim: true
-    }), "e9"),
-    i: common_vendor.t($data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
-    j: $data.countdown > 0,
-    k: common_vendor.o((...args) => $options.sendDeleteCode && $options.sendDeleteCode(...args), "c5"),
-    l: common_vendor.o((...args) => $options.deleteAccount && $options.deleteAccount(...args), "7c")
+    }), "13"),
+    i: common_vendor.t($data.isSendingDeleteCode ? "Sending..." : $data.countdown > 0 ? `${$data.countdown}s` : "Get Code"),
+    j: $data.countdown > 0 || $data.isSendingDeleteCode,
+    k: common_vendor.o((...args) => $options.sendDeleteCode && $options.sendDeleteCode(...args), "38"),
+    l: common_vendor.t($data.isDeleting ? "Deleting..." : "Delete Account"),
+    m: $data.isDeleting,
+    n: common_vendor.o((...args) => $options.deleteAccount && $options.deleteAccount(...args), "0d")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

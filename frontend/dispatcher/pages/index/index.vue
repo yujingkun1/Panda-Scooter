@@ -5,10 +5,12 @@
         <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
         <view class="brand-text">
           <text class="brand-title">熊猫调度</text>
-          <text class="brand-subtitle">{{ dispatcherInfo.areaName || '调度控制台' }}</text>
+          <text class="brand-subtitle">{{ headerSubtitle }}</text>
         </view>
       </view>
-      <image class="avatar" src="/static/avatar.png" mode="aspectFit" @click="navigateToProfile"></image>
+      <view class="avatar-hit ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateToProfile">
+        <image class="avatar" src="/static/avatar.png" mode="aspectFit"></image>
+      </view>
     </view>
 
     <view class="map-container">
@@ -24,53 +26,55 @@
       ></map>
     </view>
 
-    <view v-if="!hasToken" class="guest-card">
-      <text class="guest-title">登录后可查看个人辖区并执行开锁调度、关锁投放等任务。</text>
-      <button class="login-btn" @click="goLogin">去登录</button>
+    <view class="unlock-section">
+      <button
+        class="unlock-btn"
+        hover-class="button-hover"
+        hover-start-time="0"
+        hover-stay-time="90"
+        :disabled="isScanning"
+        @click="scanUnlock"
+      >
+        <text class="unlock-btn-text">{{ isScanning ? '处理中...' : '扫码开锁' }}</text>
+      </button>
     </view>
 
-    <template v-else>
-      <view class="summary-card">
-        <view class="summary-item">
-          <text class="summary-label">调度员</text>
-          <text class="summary-value">{{ dispatcherInfo.name }}</text>
-        </view>
-        <view class="summary-divider"></view>
-        <view class="summary-item">
-          <text class="summary-label">今日调度</text>
-          <text class="summary-value">{{ dispatcherInfo.todayDispatchedNum }}</text>
-        </view>
-        <view class="summary-divider"></view>
-        <view class="summary-item">
-          <text class="summary-label">可用车辆</text>
-          <text class="summary-value">{{ availableScooterCount }}</text>
-        </view>
+    <view class="function-area">
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="openVehicleLookup">
+        <text class="function-text">车辆查询</text>
       </view>
+      <text class="function-divider">|</text>
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('unlock')">
+        <text class="function-text">编号开锁</text>
+      </view>
+      <text class="function-divider">|</text>
+      <view class="function-item ui-pressable" hover-class="ui-pressable-hover" hover-stay-time="70" @click="navigateTo('history')">
+        <text class="function-text">调度历史</text>
+      </view>
+    </view>
 
-      <view class="function-area">
-        <view class="function-item" @click="navigateTo('unlock')">
-          <text class="function-text">开锁调度</text>
+    <view class="panel-area">
+      <view v-if="!hasToken" class="guest-card">
+        <text class="guest-title">登录后可执行扫码开锁、编号开锁和查看调度记录。</text>
+        <button class="login-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" @click="goLogin">去登录</button>
+      </view>
+      <view v-else class="stats-card">
+        <view class="stats-item">
+          <text class="stats-label">辖区名称</text>
+          <text class="stats-value">{{ currentAreaName }}</text>
         </view>
-        <text class="function-divider">|</text>
-        <view class="function-item" @click="navigateTo('lock')">
-          <text class="function-text">关锁投放</text>
-        </view>
-        <text class="function-divider">|</text>
-        <view class="function-item" @click="navigateTo('history')">
-          <text class="function-text">调度历史</text>
+        <view class="stats-divider"></view>
+        <view class="stats-item">
+          <text class="stats-label">今日调度数量</text>
+          <text class="stats-value">{{ todayDispatchedNum }}</text>
         </view>
       </view>
-
-      <view class="tip-card">
-        <text class="tip-title">地图说明</text>
-        <text class="tip-desc">蓝色范围为调度辖区，红色透明区域为禁停区，图标用于标示车辆、停车点与禁停区中心。</text>
-      </view>
-    </template>
+    </view>
   </view>
 </template>
 
 <script>
-import { getDispatcherInfo, getMapData } from '@/api/index'
+import { getDispatcherInfo, getMapData, unlockScooter } from '@/api/index'
 
 const DEFAULT_LOCATION = {
   latitude: 30.75953206821905,
@@ -83,57 +87,237 @@ const MARKER_ICONS = {
   noParking: '/static/no-parking.svg'
 }
 
-const DEFAULT_DISPATCHER = {
-  name: '调度员',
-  email: '未登录',
-  areaName: '未分配辖区',
-  todayDispatchedNum: '0'
-}
-
 export default {
   data() {
     return {
       hasToken: false,
+      currentDispatcherName: '访客调度员',
+      headerSubtitle: '调度控制台',
+      currentAreaName: '未分配辖区',
+      todayDispatchedNum: '0',
+      isScanning: false,
       latitude: DEFAULT_LOCATION.latitude,
       longitude: DEFAULT_LOCATION.longitude,
+      hasCurrentLocation: false,
       scale: 16,
       markers: [],
       polygons: [],
-      availableScooterCount: 0,
-      dispatcherInfo: { ...DEFAULT_DISPATCHER },
       scooterLookup: {}
     }
   },
   onShow() {
-    this.hasToken = Boolean(uni.getStorageSync('dispatcherToken'))
-    this.loadPageData()
+    if (!uni.getStorageSync('dispatcherToken')) {
+      uni.reLaunch({
+        url: '/pages/login/login?mode=login'
+      })
+      return
+    }
+    this.initPage()
   },
   methods: {
-    async loadPageData() {
-      await Promise.all([this.loadMapData(), this.loadDispatcherInfo()])
+    async initPage() {
+      this.loadDispatcherInfo()
+      await this.loadCurrentLocation()
+      this.loadMapData()
     },
     async loadDispatcherInfo() {
+      const cached = uni.getStorageSync('dispatcherUserInfo') || {}
+      this.hasToken = Boolean(uni.getStorageSync('dispatcherToken'))
+
       if (!this.hasToken) {
-        const cached = uni.getStorageSync('dispatcherUserInfo') || {}
-        this.dispatcherInfo = {
-          ...DEFAULT_DISPATCHER,
-          ...cached
-        }
+        this.currentDispatcherName = '访客调度员'
+        this.headerSubtitle = '调度控制台'
+        this.currentAreaName = '未分配辖区'
+        this.todayDispatchedNum = '0'
         return
       }
+
+      this.applyDispatcherInfo(cached)
 
       try {
         const res = await getDispatcherInfo()
         const data = res.data || {}
-        this.dispatcherInfo = {
-          name: data.name || DEFAULT_DISPATCHER.name,
-          email: data.email || DEFAULT_DISPATCHER.email,
-          areaName: data.areaName || DEFAULT_DISPATCHER.areaName,
-          todayDispatchedNum: String(data.todayDispatchedNum || '0')
+        const nextInfo = {
+          ...cached,
+          name: data.name || cached.name || '',
+          email: data.email || cached.email || '',
+          areaName: data.areaName || cached.areaName || '',
+          todayDispatchedNum: String(data.todayDispatchedNum || cached.todayDispatchedNum || '0')
         }
-        uni.setStorageSync('dispatcherUserInfo', this.dispatcherInfo)
+        uni.setStorageSync('dispatcherUserInfo', nextInfo)
+        this.applyDispatcherInfo(nextInfo)
       } catch (error) {
       }
+    },
+    applyDispatcherInfo(info = {}) {
+      this.currentDispatcherName = info.name || info.email || '已登录调度员'
+      this.headerSubtitle = this.currentDispatcherName
+      this.currentAreaName = info.areaName || '未分配辖区'
+      this.todayDispatchedNum = String(info.todayDispatchedNum || '0')
+    },
+    ensureLoggedIn() {
+      if (this.hasToken) {
+        return true
+      }
+
+      this.goLogin()
+      return false
+    },
+    getLocation() {
+      return new Promise((resolve, reject) => {
+        uni.getLocation({
+          type: 'gcj02',
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    async loadCurrentLocation() {
+      try {
+        const location = await this.getLocation()
+        this.latitude = Number(location.latitude)
+        this.longitude = Number(location.longitude)
+        this.hasCurrentLocation = true
+      } catch (error) {
+        this.hasCurrentLocation = false
+        uni.showToast({
+          title: '定位失败，将使用默认位置',
+          icon: 'none'
+        })
+      }
+    },
+    scanUnlock() {
+      if (!this.ensureLoggedIn() || this.isScanning) {
+        return
+      }
+
+      this.isScanning = true
+      uni.scanCode({
+        success: (res) => {
+          const code = this.extractScooterCode(res.result)
+          if (!code) {
+            uni.showToast({
+              title: '未识别到车辆编号',
+              icon: 'none'
+            })
+            return
+          }
+
+          this.handleScanUnlock(code)
+        },
+        fail: () => {
+          uni.showToast({
+            title: '扫码失败，请重试',
+            icon: 'none'
+          })
+        },
+        complete: () => {
+          this.isScanning = false
+        }
+      })
+    },
+    async handleScanUnlock(code) {
+      try {
+        uni.showLoading({
+          title: '开锁中...'
+        })
+        const normalizedCode = this.normalizeScooterCode(code)
+        if (!normalizedCode) {
+          uni.hideLoading()
+          uni.showToast({
+            title: '未识别到车辆编号',
+            icon: 'none'
+          })
+          return
+        }
+
+        const res = await unlockScooter(normalizedCode)
+        uni.hideLoading()
+        uni.setStorageSync('dispatcherCurrentTask', {
+          ...(res.data || {}),
+          scooterCode: normalizedCode,
+          taskType: 'unlock'
+        })
+        uni.navigateTo({
+          url: `/pages/scooterInfo/scooterInfo?code=${encodeURIComponent(normalizedCode)}`
+        })
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: '开锁失败，请稍后重试',
+          icon: 'none'
+        })
+      }
+    },
+    extractScooterCode(rawCode) {
+      const value = String(rawCode || '').trim()
+      if (!value) {
+        return ''
+      }
+
+      const matchedCode = value.match(/PDSC\d+/i)
+      if (matchedCode && matchedCode[0]) {
+        return matchedCode[0].toUpperCase()
+      }
+
+      if (value.includes('code=')) {
+        const query = value.split('?')[1] || ''
+        const params = {}
+        query.split('&').forEach((item) => {
+          const [key, val] = item.split('=')
+          if (key) {
+            params[decodeURIComponent(key)] = decodeURIComponent(val || '')
+          }
+        })
+        return params.code || value
+      }
+
+      const segments = value.split('/')
+      return segments[segments.length - 1] || value
+    },
+    normalizeScooterCode(rawCode) {
+      const value = String(rawCode || '').trim().toUpperCase()
+      if (!value) {
+        return ''
+      }
+      if (value.startsWith('PDSC')) {
+        return value
+      }
+      const numericPart = value.replace(/\D/g, '')
+      return numericPart ? `PDSC${numericPart.padStart(6, '0')}` : value
+    },
+    openVehicleLookup() {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
+      uni.showToast({
+        title: '车辆查询接口开发中',
+        icon: 'none'
+      })
+    },
+    navigateTo(page) {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
+      uni.navigateTo({
+        url: `/pages/${page}/${page}`
+      })
+    },
+    navigateToProfile() {
+      if (!this.ensureLoggedIn()) {
+        return
+      }
+
+      uni.navigateTo({
+        url: '/pages/profile/profile'
+      })
+    },
+    goLogin() {
+      uni.navigateTo({
+        url: '/pages/login/login?mode=login'
+      })
     },
     async loadMapData() {
       try {
@@ -149,7 +333,6 @@ export default {
         const areaPolygon = this.mapDispatcherArea(data.area)
         const noParkingMarkers = this.mapNoParkingAreaMarkers(data.noParkingAreas || [], noParkingAreas)
 
-        this.availableScooterCount = scooters.length
         this.polygons = [...(areaPolygon ? [areaPolygon] : []), ...noParkingAreas]
         this.markers = [
           ...scooters,
@@ -216,8 +399,8 @@ export default {
           return {
             id: item.id || index + 1,
             points,
-            fillColor: 'rgba(255, 77, 79, 0.18)',
-            strokeColor: 'rgba(255, 77, 79, 0.45)',
+            fillColor: '#FF4D4F2E',
+            strokeColor: '#FF4D4F73',
             strokeWidth: 2
           }
         })
@@ -236,9 +419,9 @@ export default {
       return {
         id: 999,
         points,
-        fillColor: 'rgba(24, 144, 255, 0.08)',
-        strokeColor: 'rgba(24, 144, 255, 0.45)',
-        strokeWidth: 2
+        fillColor: '#12347824',
+        strokeColor: '#3A9DE8E6',
+        strokeWidth: 3
       }
     },
     mapNoParkingAreaMarkers(sourceAreas, polygons) {
@@ -358,6 +541,10 @@ export default {
       }
     },
     syncMapCenter(data, parkingPoints, noParkingMarkers) {
+      if (this.hasCurrentLocation) {
+        return
+      }
+
       const firstPoint =
         this.normalizePoint(Array.isArray(data.scooters) ? data.scooters[0] : null) ||
         parkingPoints[0] ||
@@ -388,56 +575,199 @@ export default {
         3: '调度中'
       }
       return statusMap[Number(status)] || '--'
-    },
-    navigateTo(page) {
-      if (!this.hasToken) {
-        this.goLogin()
-        return
-      }
-
-      uni.navigateTo({
-        url: `/pages/${page}/${page}`
-      })
-    },
-    navigateToProfile() {
-      uni.navigateTo({
-        url: '/pages/profile/profile'
-      })
-    },
-    goLogin() {
-      uni.navigateTo({
-        url: '/pages/login/login?mode=login'
-      })
     }
   }
 }
 </script>
 
 <style>
-.page { display: flex; flex-direction: column; min-height: 100vh; background-color: #fafaf8; }
-.header { display: flex; justify-content: space-between; align-items: center; padding: 20rpx 32rpx; background-color: #ffffff; border-bottom: 1rpx solid #e5e5e2; }
-.brand { display: flex; align-items: center; }
-.logo { width: 84rpx; height: 84rpx; margin-right: 20rpx; }
-.brand-text { display: flex; flex-direction: column; }
-.brand-title { font-size: 30rpx; color: #0b0e0d; letter-spacing: 4rpx; }
-.brand-subtitle { margin-top: 8rpx; font-size: 22rpx; color: #737373; }
-.avatar { width: 64rpx; height: 64rpx; }
-.map-container { width: 100%; height: 560rpx; background-color: #ffffff; border-bottom: 1rpx solid #e5e5e2; }
-.map { width: 100%; height: 100%; }
-.guest-card, .summary-card, .tip-card { margin: 32rpx; background-color: #ffffff; border: 1rpx solid #e5e5e2; }
-.guest-card { padding: 40rpx 32rpx; }
-.guest-title { display: block; margin-bottom: 24rpx; font-size: 28rpx; color: #0b0e0d; line-height: 1.6; }
-.login-btn { background-color: #0b0e0d; color: #ffffff; border: none; border-radius: 0; }
-.summary-card { display: flex; align-items: center; }
-.summary-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40rpx 0; }
-.summary-label { font-size: 22rpx; color: #737373; margin-bottom: 12rpx; }
-.summary-value { font-size: 34rpx; color: #0b0e0d; text-align: center; padding: 0 16rpx; }
-.summary-divider { width: 1rpx; align-self: stretch; background-color: #e5e5e2; }
-.function-area { display: flex; justify-content: center; align-items: center; margin: 0 32rpx 32rpx; padding: 28rpx 0; background-color: #ffffff; border: 1rpx solid #e5e5e2; }
-.function-item { display: flex; align-items: center; }
-.function-text { font-size: 26rpx; color: #525252; letter-spacing: 2rpx; }
-.function-divider { margin: 0 16rpx; font-size: 20rpx; color: #d4d4d1; }
-.tip-card { padding: 36rpx 32rpx; }
-.tip-title { display: block; margin-bottom: 16rpx; font-size: 28rpx; color: #0b0e0d; }
-.tip-desc { display: block; font-size: 24rpx; color: #737373; line-height: 1.7; }
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #fafaf8;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 32rpx;
+  background-color: #ffffff;
+  border-bottom: 1rpx solid #e5e5e2;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 80rpx;
+  height: 80rpx;
+  margin-right: 20rpx;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 30rpx;
+  color: #0b0e0d;
+  letter-spacing: 4rpx;
+}
+
+.brand-subtitle {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #737373;
+}
+
+.avatar {
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.avatar-hit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-container {
+  width: 100%;
+  height: 520rpx;
+  background-color: #ffffff;
+  border-bottom: 1rpx solid #e5e5e2;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+.unlock-section {
+  padding-top: 32rpx;
+  background-color: #ffffff;
+  display: flex;
+  justify-content: center;
+}
+
+.unlock-btn {
+  width: 85%;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background-color: #0b0e0d;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+  font-size: 32rpx;
+  letter-spacing: 4rpx;
+  line-height: 1;
+}
+
+.unlock-btn-text {
+  display: block;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.unlock-btn:disabled {
+  background-color: #d4d4d1;
+}
+
+.function-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24rpx 0 32rpx;
+  background-color: #ffffff;
+}
+
+.function-item {
+  display: flex;
+  align-items: center;
+}
+
+.function-text {
+  font-size: 26rpx;
+  color: #525252;
+  letter-spacing: 2rpx;
+}
+
+.function-divider {
+  font-size: 20rpx;
+  color: #e5e5e2;
+  margin: 0 16rpx;
+}
+
+.panel-area {
+  background-color: #ffffff;
+  padding: 32rpx;
+  flex: 1;
+}
+
+.guest-card,
+.stats-card {
+  border: 1rpx solid #e5e5e2;
+  background-color: #fafaf8;
+  padding: 40rpx 32rpx;
+}
+
+.guest-title {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  color: #0b0e0d;
+}
+
+.stats-card {
+  display: flex;
+  align-items: stretch;
+}
+
+.stats-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.stats-label {
+  display: block;
+  margin-bottom: 14rpx;
+  font-size: 22rpx;
+  color: #737373;
+}
+
+.stats-value {
+  display: block;
+  font-size: 30rpx;
+  color: #0b0e0d;
+  text-align: center;
+  word-break: break-word;
+}
+
+.stats-divider {
+  width: 1rpx;
+  background-color: #e5e5e2;
+  margin: 0 24rpx;
+}
+
+.login-btn {
+  margin-top: 12rpx;
+  background-color: #0b0e0d;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
+}
 </style>

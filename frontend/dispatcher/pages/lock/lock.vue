@@ -61,7 +61,16 @@ export default {
   },
   onLoad(options) {
     if (options && options.code) {
-      this.form.code = options.code
+      this.form.code = decodeURIComponent(options.code)
+    }
+    if (options && typeof options.battery !== 'undefined') {
+      this.form.battery = String(options.battery)
+    }
+    if (options && typeof options.latitude !== 'undefined') {
+      this.form.latitude = String(options.latitude)
+    }
+    if (options && typeof options.longitude !== 'undefined') {
+      this.form.longitude = String(options.longitude)
     }
   },
   methods: {
