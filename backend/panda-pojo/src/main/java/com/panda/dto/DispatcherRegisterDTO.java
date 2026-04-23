@@ -7,6 +7,9 @@ import lombok.Data;
 @Data
 public class DispatcherRegisterDTO {
 
+    @NotBlank
+    private String name;
+
     @Email
     @NotBlank
     private String email;

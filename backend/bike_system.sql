@@ -41,6 +41,7 @@ CREATE TABLE `dispatch_record`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `dispatcher_id` bigint NOT NULL COMMENT '调度员ID',
   `scooter_id` bigint NOT NULL COMMENT '单车ID',
+  `status` tinyint NULL DEFAULT 0 COMMENT '状态：0-调度中，1-已完成',
   `end_time` datetime NULL DEFAULT NULL COMMENT '结束时间',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,

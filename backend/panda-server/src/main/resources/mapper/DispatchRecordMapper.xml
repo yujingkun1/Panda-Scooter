@@ -8,37 +8,39 @@
         <id property="id" column="id"/>
         <result property="dispatcherId" column="dispatcher_id"/>
         <result property="scooterId" column="scooter_id"/>
+        <result property="status" column="status"/>
         <result property="endTime" column="end_time"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.panda.entity.DispatchRecord" useGeneratedKeys="true" keyProperty="id">
-        insert into dispatch_record (dispatcher_id, scooter_id, end_time, create_time)
-        values (#{dispatcherId}, #{scooterId}, #{endTime}, #{createTime})
+        insert into dispatch_record (dispatcher_id, scooter_id, status, end_time, create_time)
+        values (#{dispatcherId}, #{scooterId}, #{status}, #{endTime}, #{createTime})
     </insert>
 
     <select id="getActiveRecord" resultMap="dispatchRecordResultMap">
-        select id, dispatcher_id, scooter_id, end_time, create_time
+        select id, dispatcher_id, scooter_id, status, end_time, create_time
         from dispatch_record
         where dispatcher_id = #{dispatcherId}
           and scooter_id = #{scooterId}
-          and end_time is null
+          and status = 0
         order by id desc
         limit 1
     </select>
 
     <select id="getActiveRecordByScooterId" resultMap="dispatchRecordResultMap">
-        select id, dispatcher_id, scooter_id, end_time, create_time
+        select id, dispatcher_id, scooter_id, status, end_time, create_time
         from dispatch_record
         where scooter_id = #{scooterId}
-          and end_time is null
+          and status = 0
         order by id desc
         limit 1
     </select>
 
     <update id="finishRecord">
         update dispatch_record
-        set end_time = now()
+        set status = 1,
+            end_time = now()
         where id = #{id}
     </update>
 
@@ -54,8 +56,10 @@
                s.code as scooter_code,
                dr.create_time as start_time,
                dr.end_time,
-               null as distance,
-               case when dr.end_time is null then 0 else 1 end as status
+               dr.status,
+               s.ride_status,
+               s.fault_status,
+               s.battery
         from dispatch_record dr
                  left join scooter s on s.id = dr.scooter_id
         where dr.dispatcher_id = #{dispatcherId}

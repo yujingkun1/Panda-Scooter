@@ -7,17 +7,22 @@ import com.panda.dto.UserLoginDTO;
 import com.panda.dto.UserRegisterDTO;
 import com.panda.dto.UserResetPasswordDTO;
 import com.panda.entity.FaultReport;
+import com.panda.entity.PackageOrder;
 import com.panda.entity.RentalOrder;
+import com.panda.entity.SubscriptionPackage;
 import com.panda.entity.User;
 import com.panda.entity.UserBill;
+import com.panda.entity.UserSubscription;
 import com.panda.entity.UserWallet;
 import com.panda.exception.BaseException;
 import com.panda.mapper.FaultReportMapper;
+import com.panda.mapper.PackageOrderMapper;
 import com.panda.mapper.RentalOrderMapper;
 import com.panda.mapper.ScooterMapper;
 import com.panda.mapper.SubscriptionPackageMapper;
 import com.panda.mapper.UserBillMapper;
 import com.panda.mapper.UserMapper;
+import com.panda.mapper.UserSubscriptionMapper;
 import com.panda.mapper.UserWalletMapper;
 import com.panda.properties.JwtProperties;
 import com.panda.properties.MinioProperties;
@@ -44,13 +49,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Collections;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -68,6 +75,8 @@ public class UserServiceImpl implements UserService {
     private final FaultReportMapper faultReportMapper;
     private final ScooterMapper scooterMapper;
     private final SubscriptionPackageMapper subscriptionPackageMapper;
+    private final PackageOrderMapper packageOrderMapper;
+    private final UserSubscriptionMapper userSubscriptionMapper;
     private final RentalOrderMapper rentalOrderMapper;
     private final JwtProperties jwtProperties;
     private final MinioProperties minioProperties;
@@ -81,7 +90,7 @@ public class UserServiceImpl implements UserService {
         validateVerificationCode(userRegisterDTO.getEmail(), userRegisterDTO.getVerificationCode());
         User existUser = userMapper.getByEmail(userRegisterDTO.getEmail());
         if (existUser != null) {
-            throw new BaseException("邮箱已注册");
+            throw new BaseException("邮箱已存在");
         }
 
         User user = new User();
@@ -152,7 +161,7 @@ public class UserServiceImpl implements UserService {
         message.setFrom("1105554311@qq.com");
         message.setTo(email);
         message.setSubject("Panda Scooter 验证码");
-        message.setText("您的验证码为：" + code + "，" + VERIFICATION_CODE_EXPIRE_MINUTES + "分钟内有效。");
+        message.setText("您的验证码为：" + code + "，有效期 " + VERIFICATION_CODE_EXPIRE_MINUTES + " 分钟。");
         javaMailSender.send(message);
         stringRedisTemplate.opsForValue().set(buildVerificationCodeKey(email), code, Duration.ofMinutes(VERIFICATION_CODE_EXPIRE_MINUTES));
         return code;
@@ -174,9 +183,15 @@ public class UserServiceImpl implements UserService {
     public UserWalletVO getWallet() {
         Long userId = currentUserId();
         UserWallet userWallet = userWalletMapper.getByUserId(userId);
+        LocalDateTime now = LocalDateTime.now();
+        userSubscriptionMapper.expireByUserIdAndEndTimeBefore(userId, now);
+        List<UserWalletVO.PackageItem> packages = userSubscriptionMapper.listActiveByUserId(userId, now).stream()
+                .map(item -> buildPackageItem(item, now))
+                .filter(Objects::nonNull)
+                .toList();
         return UserWalletVO.builder()
                 .balance(userWallet == null ? BigDecimal.ZERO : userWallet.getBalance())
-                .packages(Collections.emptyList())
+                .packages(packages)
                 .build();
     }
 
@@ -189,11 +204,16 @@ public class UserServiceImpl implements UserService {
             throw new BaseException("钱包不存在");
         }
 
-        BigDecimal changeAmount = userBillOperateDTO.getAmount();
-        if (userBillOperateDTO.getType() == 1 || userBillOperateDTO.getType() == 4) {
+        if (Integer.valueOf(4).equals(userBillOperateDTO.getType())) {
+            purchaseSubscription(userId, userWallet, userBillOperateDTO);
+            return;
+        }
+
+        BigDecimal changeAmount = requirePositiveAmount(userBillOperateDTO.getAmount());
+        if (Integer.valueOf(1).equals(userBillOperateDTO.getType())) {
             changeAmount = changeAmount.negate();
         }
-        BigDecimal newBalance = userWallet.getBalance().add(changeAmount);
+        BigDecimal newBalance = userWallet.getBalance().add(changeAmount).setScale(2, RoundingMode.HALF_UP);
         if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new BaseException("余额不足");
         }
@@ -205,7 +225,7 @@ public class UserServiceImpl implements UserService {
         userBill.setType(userBillOperateDTO.getType());
         userBill.setAmount(changeAmount);
         userBill.setBalanceAfter(newBalance);
-        userBill.setRemark(userBillOperateDTO.getRemark());
+        userBill.setRemark(resolveBillRemark(userBillOperateDTO));
         userBill.setCreateTime(LocalDateTime.now());
         userBillMapper.insert(userBill);
     }
@@ -284,7 +304,7 @@ public class UserServiceImpl implements UserService {
     private Long currentUserId() {
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
-            throw new BaseException("未登录");
+            throw new BaseException("用户未登录");
         }
         return userId;
     }
@@ -292,7 +312,7 @@ public class UserServiceImpl implements UserService {
     private void validateVerificationCode(String email, String verificationCode) {
         String cacheCode = stringRedisTemplate.opsForValue().get(buildVerificationCodeKey(email));
         if (!StringUtils.hasText(cacheCode)) {
-            throw new BaseException("请先获取验证码");
+            throw new BaseException("验证码已过期");
         }
         if (!cacheCode.equals(verificationCode)) {
             throw new BaseException("验证码错误");
@@ -303,8 +323,117 @@ public class UserServiceImpl implements UserService {
         stringRedisTemplate.delete(buildVerificationCodeKey(email));
     }
 
+    private void purchaseSubscription(Long userId, UserWallet userWallet, UserBillOperateDTO userBillOperateDTO) {
+        if (userBillOperateDTO.getPackageId() == null) {
+            throw new BaseException("套餐ID不能为空");
+        }
+
+        SubscriptionPackage subscriptionPackage = subscriptionPackageMapper.getById(userBillOperateDTO.getPackageId());
+        if (subscriptionPackage == null) {
+            throw new BaseException("套餐不存在");
+        }
+
+        BigDecimal packagePrice = subscriptionPackage.getPrice().setScale(2, RoundingMode.HALF_UP);
+        if (userBillOperateDTO.getAmount() != null) {
+            BigDecimal requestAmount = userBillOperateDTO.getAmount().setScale(2, RoundingMode.HALF_UP);
+            if (requestAmount.compareTo(packagePrice) != 0) {
+                throw new BaseException("支付金额与套餐价格不一致");
+            }
+        }
+        if (userWallet.getBalance().compareTo(packagePrice) < 0) {
+            throw new BaseException("余额不足");
+        }
+
+        BigDecimal balanceAfter = userWallet.getBalance().subtract(packagePrice).setScale(2, RoundingMode.HALF_UP);
+        userWalletMapper.updateBalanceByUserId(userId, balanceAfter);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        PackageOrder packageOrder = new PackageOrder();
+        packageOrder.setUserId(userId);
+        packageOrder.setPackageId(subscriptionPackage.getId());
+        packageOrder.setPrice(packagePrice);
+        packageOrder.setOrderStatus(1);
+        packageOrder.setPayStatus(1);
+        packageOrder.setCreateTime(now);
+        packageOrderMapper.insert(packageOrder);
+
+        UserSubscription userSubscription = new UserSubscription();
+        userSubscription.setUserId(userId);
+        userSubscription.setPackageId(subscriptionPackage.getId());
+        userSubscription.setStartTime(now);
+        userSubscription.setEndTime(resolveSubscriptionEndTime(now, subscriptionPackage.getType()));
+        userSubscription.setStatus(1);
+        userSubscription.setCreateTime(now);
+        userSubscriptionMapper.insert(userSubscription);
+
+        UserBill userBill = new UserBill();
+        userBill.setUserId(userId);
+        userBill.setType(4);
+        userBill.setAmount(packagePrice.negate());
+        userBill.setBalanceAfter(balanceAfter);
+        userBill.setOrderId(packageOrder.getId());
+        userBill.setRemark(resolvePackageRemark(subscriptionPackage));
+        userBill.setCreateTime(now);
+        userBillMapper.insert(userBill);
+    }
+
     private String buildVerificationCodeKey(String email) {
         return VERIFICATION_CODE_KEY_PREFIX + email;
+    }
+
+    private BigDecimal requirePositiveAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BaseException("金额必须大于0");
+        }
+        return amount.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String resolveBillRemark(UserBillOperateDTO userBillOperateDTO) {
+        if (StringUtils.hasText(userBillOperateDTO.getRemark())) {
+            return userBillOperateDTO.getRemark().trim();
+        }
+        return switch (userBillOperateDTO.getType()) {
+            case 1 -> "骑行消费";
+            case 2 -> "账户充值";
+            case 3 -> "退款";
+            default -> "账单变动";
+        };
+    }
+
+    private String resolvePackageRemark(SubscriptionPackage subscriptionPackage) {
+        return "购买" + subscriptionPackage.getTitle();
+    }
+
+    private LocalDateTime resolveSubscriptionEndTime(LocalDateTime startTime, Integer packageType) {
+        if (packageType == null) {
+            return startTime.plusMonths(1);
+        }
+        return switch (packageType) {
+            case 1 -> startTime.plusMonths(1);
+            case 2 -> startTime.plusMonths(3);
+            case 3 -> startTime.plusYears(1);
+            default -> startTime.plusMonths(1);
+        };
+    }
+
+    private UserWalletVO.PackageItem buildPackageItem(UserSubscription userSubscription, LocalDateTime now) {
+        SubscriptionPackage subscriptionPackage = subscriptionPackageMapper.getById(userSubscription.getPackageId());
+        if (subscriptionPackage == null) {
+            return null;
+        }
+
+        long restDays = userSubscription.getEndTime() == null
+                ? 0
+                : Math.max(0, ChronoUnit.DAYS.between(now.toLocalDate(), userSubscription.getEndTime().toLocalDate()));
+        return UserWalletVO.PackageItem.builder()
+                .id(subscriptionPackage.getId())
+                .title(subscriptionPackage.getTitle())
+                .description(subscriptionPackage.getDescription())
+                .type(subscriptionPackage.getType())
+                .expireDate(userSubscription.getEndTime())
+                .restDay((int) restDays)
+                .build();
     }
 
     private String buildUsername(String email) {
@@ -349,12 +478,12 @@ public class UserServiceImpl implements UserService {
 
     private String resolveImageSuffix(String originalFilename) {
         if (!StringUtils.hasText(originalFilename) || !originalFilename.contains(".")) {
-            throw new BaseException("图片后缀不合法");
+            throw new BaseException("图片文件名不合法");
         }
 
         String suffix = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
         if (!IMAGE_SUFFIXES.contains(suffix)) {
-            throw new BaseException("仅支持图片类型后缀上传");
+            throw new BaseException("图片格式不支持");
         }
         return suffix;
     }

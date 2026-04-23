@@ -41,7 +41,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -71,7 +70,7 @@ public class DispatcherServiceImpl implements DispatcherService {
         }
 
         Dispatcher dispatcher = new Dispatcher();
-        dispatcher.setName(buildDispatcherName(dispatcherRegisterDTO.getEmail()));
+        dispatcher.setName(dispatcherRegisterDTO.getName().trim());
         dispatcher.setEmail(dispatcherRegisterDTO.getEmail());
         dispatcher.setPassword(encrypt(dispatcherRegisterDTO.getPassword()));
         dispatcher.setStatus(0);
@@ -243,6 +242,7 @@ public class DispatcherServiceImpl implements DispatcherService {
         DispatchRecord record = new DispatchRecord();
         record.setDispatcherId(dispatcherId);
         record.setScooterId(scooter.getId());
+        record.setStatus(0);
         record.setCreateTime(LocalDateTime.now());
         dispatchRecordMapper.insert(record);
 
@@ -318,12 +318,6 @@ public class DispatcherServiceImpl implements DispatcherService {
 
     private String buildVerificationCodeKey(String email) {
         return VERIFICATION_CODE_KEY_PREFIX + email;
-    }
-
-    private String buildDispatcherName(String email) {
-        String emailPrefix = email.substring(0, email.indexOf("@"));
-        String uuidSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
-        return "dispatcher_" + emailPrefix + "_" + uuidSuffix;
     }
 
     private String buildVerificationCode() {

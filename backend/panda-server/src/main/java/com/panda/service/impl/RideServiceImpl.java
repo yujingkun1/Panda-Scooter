@@ -15,6 +15,7 @@ import com.panda.mapper.RentalOrderMapper;
 import com.panda.mapper.ScooterMapper;
 import com.panda.mapper.UserBillMapper;
 import com.panda.mapper.UserMapper;
+import com.panda.mapper.UserSubscriptionMapper;
 import com.panda.mapper.UserWalletMapper;
 import com.panda.service.RideService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class RideServiceImpl implements RideService {
     private final UserMapper userMapper;
     private final UserWalletMapper userWalletMapper;
     private final UserBillMapper userBillMapper;
+    private final UserSubscriptionMapper userSubscriptionMapper;
     private final DispatchRecordMapper dispatchRecordMapper;
     private final NoParkingAreaMapper noParkingAreaMapper;
     private final ParkingPointMapper parkingPointMapper;
@@ -48,7 +50,7 @@ public class RideServiceImpl implements RideService {
     @Transactional
     public Map<String, Object> unlockScooter(String code) {
         Long userId = currentUserId();
-        log.info("开始解锁单车，userId={}, code={}", userId, code);
+        log.info("开始解锁车辆，userId={}, code={}", userId, code);
         RentalOrder unpaidOrder = rentalOrderMapper.getUnpaidOrderByUserId(userId);
         if (unpaidOrder != null) {
             log.warn("解锁失败，存在未支付订单，userId={}, orderId={}", userId, unpaidOrder.getId());
@@ -56,8 +58,8 @@ public class RideServiceImpl implements RideService {
         }
         RentalOrder ridingOrder = rentalOrderMapper.getRidingOrderByUserId(userId);
         if (ridingOrder != null) {
-            log.warn("解锁失败，存在进行中订单，userId={}, orderId={}", userId, ridingOrder.getId());
-            throw new BaseException("已有进行中的订单");
+            log.warn("解锁失败，存在进行中的订单，userId={}, orderId={}", userId, ridingOrder.getId());
+            throw new BaseException("当前已有进行中的订单");
         }
 
         Scooter scooter = scooterMapper.getByCode(code);
@@ -67,15 +69,15 @@ public class RideServiceImpl implements RideService {
         }
         if (Integer.valueOf(1).equals(scooter.getFaultStatus())) {
             log.warn("解锁失败，车辆故障中，code={}, scooterId={}", code, scooter.getId());
-            throw new BaseException("车辆故障中");
+            throw new BaseException("车辆故障中，暂不可用");
         }
         if (dispatchRecordMapper.getActiveRecordByScooterId(scooter.getId()) != null) {
-            log.warn("解锁失败，车辆调度中，code={}, scooterId={}", code, scooter.getId());
-            throw new BaseException("车辆调度中");
+            log.warn("解锁失败，车辆正在调度中，code={}, scooterId={}", code, scooter.getId());
+            throw new BaseException("车辆正在调度中");
         }
         if (!Integer.valueOf(0).equals(scooter.getRideStatus())) {
-            log.warn("解锁失败，车辆不可用，code={}, scooterId={}, rideStatus={}", code, scooter.getId(), scooter.getRideStatus());
-            throw new BaseException("车辆当前不可用");
+            log.warn("解锁失败，车辆状态不可用，code={}, scooterId={}, rideStatus={}", code, scooter.getId(), scooter.getRideStatus());
+            throw new BaseException("车辆当前不可解锁");
         }
 
         RentalOrder rentalOrder = new RentalOrder();
@@ -103,15 +105,15 @@ public class RideServiceImpl implements RideService {
     @Transactional
     public Map<String, Object> lockScooter(LockScooterDTO lockScooterDTO) {
         Long userId = currentUserId();
-        log.info("开始结束骑行，userId={}, orderId={}", userId, lockScooterDTO.getOrderId());
+        log.info("开始锁车结算，userId={}, orderId={}", userId, lockScooterDTO.getOrderId());
         RentalOrder rentalOrder = rentalOrderMapper.getById(lockScooterDTO.getOrderId());
         if (rentalOrder == null || !userId.equals(rentalOrder.getUserId())) {
-            log.warn("结束骑行失败，订单不存在，userId={}, orderId={}", userId, lockScooterDTO.getOrderId());
+            log.warn("锁车失败，订单不存在，userId={}, orderId={}", userId, lockScooterDTO.getOrderId());
             throw new BaseException("订单不存在");
         }
         if (!Integer.valueOf(0).equals(rentalOrder.getOrderStatus())) {
-            log.warn("结束骑行失败，订单已结束，orderId={}", rentalOrder.getId());
-            throw new BaseException("订单已结束");
+            log.warn("锁车失败，订单状态不正确，orderId={}", rentalOrder.getId());
+            throw new BaseException("订单不是进行中状态");
         }
 
         LocalDateTime startTime = lockScooterDTO.getStartTime() == null ? rentalOrder.getStartTime() : lockScooterDTO.getStartTime();
@@ -123,15 +125,22 @@ public class RideServiceImpl implements RideService {
                 : lockScooterDTO.getAmount().setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalKilometer = lockScooterDTO.getTotalKilometer() == null ? BigDecimal.ZERO : lockScooterDTO.getTotalKilometer();
 
+        boolean hasActiveSubscription = hasActiveSubscription(userId, endTime);
+        if (hasActiveSubscription) {
+            amount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
         UserWallet userWallet = userWalletMapper.getByUserId(userId);
         if (userWallet == null) {
-            log.warn("结束骑行失败，钱包不存在，userId={}", userId);
+            log.warn("锁车失败，钱包不存在，userId={}", userId);
             throw new BaseException("钱包不存在");
         }
 
-        boolean paid = userWallet.getBalance().compareTo(amount) >= 0;
+        boolean paid = hasActiveSubscription || userWallet.getBalance().compareTo(amount) >= 0;
         BigDecimal balanceAfter = userWallet.getBalance();
-        if (paid) {
+        if (hasActiveSubscription) {
+            saveRideBill(userId, rentalOrder.getId(), BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP), balanceAfter, "套餐抵扣");
+        } else if (paid) {
             balanceAfter = deductBalance(userId, userWallet.getBalance(), amount);
             saveRideBill(userId, rentalOrder.getId(), amount.negate(), balanceAfter, "骑行消费");
         }
@@ -156,7 +165,8 @@ public class RideServiceImpl implements RideService {
                     lockScooterDTO.getLongitude() == null ? scooter.getLongitude() : lockScooterDTO.getLongitude()
             );
         }
-        log.info("结束骑行成功，orderId={}, totalMinutes={}, amount={}, totalKilometer={}, paid={}", rentalOrder.getId(), totalMinutes, amount, totalKilometer, paid);
+        log.info("锁车结算完成，orderId={}, totalMinutes={}, amount={}, totalKilometer={}, paid={}, hasActiveSubscription={}",
+                rentalOrder.getId(), totalMinutes, amount, totalKilometer, paid, hasActiveSubscription);
 
         Map<String, Object> data = new HashMap<>();
         data.put("id", rentalOrder.getId());
@@ -166,7 +176,7 @@ public class RideServiceImpl implements RideService {
         data.put("totalTime", totalMinutes + "分钟");
         data.put("totalKilometer", rentalOrder.getTotalKilometer());
         data.put("balanceAfter", balanceAfter);
-        data.put("message", paid ? "扣费成功" : "余额不足，订单待支付");
+        data.put("message", hasActiveSubscription ? "套餐生效中，本次骑行免费" : (paid ? "扣费成功" : "余额不足，订单待支付"));
         return data;
     }
 
@@ -222,7 +232,7 @@ public class RideServiceImpl implements RideService {
 
     @Override
     public Object getScooterByCode(String code) {
-        log.info("扫码查询单车，code={}", code);
+        log.info("查询车辆，code={}", code);
         return scooterMapper.getByCode(code);
     }
 
@@ -263,7 +273,7 @@ public class RideServiceImpl implements RideService {
         BigDecimal minLatitude = latitude.subtract(latitudeOffset);
         BigDecimal maxLatitude = latitude.add(latitudeOffset);
 
-        log.info("地图查车，longitude={}, latitude={}, scale={}, radiusInMeters={}, minLongitude={}, maxLongitude={}, minLatitude={}, maxLatitude={}",
+        log.info("查询地图数据，longitude={}, latitude={}, scale={}, radiusInMeters={}, minLongitude={}, maxLongitude={}, minLatitude={}, maxLatitude={}",
                 longitude, latitude, mapScale, radiusInMeters, minLongitude, maxLongitude, minLatitude, maxLatitude);
 
         Map<String, Object> data = new HashMap<>();
@@ -395,11 +405,16 @@ public class RideServiceImpl implements RideService {
         userBillMapper.insert(userBill);
     }
 
+    private boolean hasActiveSubscription(Long userId, LocalDateTime now) {
+        userSubscriptionMapper.expireByUserIdAndEndTimeBefore(userId, now);
+        return !userSubscriptionMapper.listActiveByUserId(userId, now).isEmpty();
+    }
+
     private Long currentUserId() {
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
-            log.warn("获取当前用户失败，未登录");
-            throw new BaseException("未登录");
+            log.warn("未获取到当前登录用户");
+            throw new BaseException("用户未登录");
         }
         return userId;
     }

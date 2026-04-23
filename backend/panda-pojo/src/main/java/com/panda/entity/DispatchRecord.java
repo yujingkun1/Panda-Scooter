@@ -9,6 +9,7 @@ public class DispatchRecord {
     private Long id;
     private Long dispatcherId;
     private Long scooterId;
+    private Integer status;
     private LocalDateTime endTime;
     private LocalDateTime createTime;
 }
