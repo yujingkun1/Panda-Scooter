@@ -17,6 +17,7 @@ import com.panda.mapper.UserBillMapper;
 import com.panda.mapper.UserMapper;
 import com.panda.mapper.UserSubscriptionMapper;
 import com.panda.mapper.UserWalletMapper;
+import com.panda.mqtt.ScooterMqttPublisher;
 import com.panda.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,7 @@ public class RideServiceImpl implements RideService {
     private final DispatchRecordMapper dispatchRecordMapper;
     private final NoParkingAreaMapper noParkingAreaMapper;
     private final ParkingPointMapper parkingPointMapper;
+    private final ScooterMqttPublisher scooterMqttPublisher;
 
     @Override
     @Transactional
@@ -93,6 +95,7 @@ public class RideServiceImpl implements RideService {
         rentalOrderMapper.insert(rentalOrder);
 
         scooterMapper.updateRideStatus(scooter.getId(), 1);
+        scooterMqttPublisher.publishUnlock(scooter.getCode(), rentalOrder.getId());
         log.info("解锁成功，userId={}, scooterId={}, orderId={}", userId, scooter.getId(), rentalOrder.getId());
 
         Map<String, Object> data = new HashMap<>();
@@ -164,6 +167,7 @@ public class RideServiceImpl implements RideService {
                     lockScooterDTO.getLatitude() == null ? scooter.getLatitude() : lockScooterDTO.getLatitude(),
                     lockScooterDTO.getLongitude() == null ? scooter.getLongitude() : lockScooterDTO.getLongitude()
             );
+            scooterMqttPublisher.publishLock(scooter.getCode(), rentalOrder.getId());
         }
         log.info("锁车结算完成，orderId={}, totalMinutes={}, amount={}, totalKilometer={}, paid={}, hasActiveSubscription={}",
                 rentalOrder.getId(), totalMinutes, amount, totalKilometer, paid, hasActiveSubscription);
