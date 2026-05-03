@@ -27,5 +27,15 @@ public class LogController {
         return Result.success(adminLoginVO);
     }
 
+    /**
+     * 管理员登出
+     */
+    @PostMapping("/logout")
+    public Result<Void> logout() {
+        log.info("管理员登出请求");
+        adminService.logout();
+        return Result.success();
+    }
+
 
 }

@@ -26,7 +26,7 @@ panda:
     ttl: 604800000
     token-name: Authorization
   mqtt:
-    enabled: ${PANDA_MQTT_ENABLED:true}
+    enabled: ${PANDA_MQTT_ENABLED:false}
     server-uri: ${PANDA_MQTT_SERVER_URI:tcp://172.20.10.2:1883}
     client-id: ${PANDA_MQTT_CLIENT_ID:panda-server}
     username: ${PANDA_MQTT_USERNAME:}
