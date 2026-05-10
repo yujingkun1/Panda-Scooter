@@ -41,21 +41,23 @@ const form = ref({
 
 const pageTitle = computed(() => (editing.value ? '编辑停车点' : '新增停车点'))
 
+const resolveLongitude = (item = {}) => item.longtitude ?? item.longitude ?? ''
+
 const pointModel = computed({
   get() {
     return {
       latitude: form.value.latitude,
-      longtitude: form.value.longtitude
+      longtitude: resolveLongitude(form.value)
     }
   },
   set(value) {
     form.value.latitude = value?.latitude ?? ''
-    form.value.longtitude = value?.longtitude ?? ''
+    form.value.longtitude = resolveLongitude(value)
   }
 })
 
 const coordinateText = computed(() => {
-  const longitude = Number(form.value.longtitude)
+  const longitude = Number(resolveLongitude(form.value))
   const latitude = Number(form.value.latitude)
 
   if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
@@ -78,7 +80,7 @@ const applyRecord = (item) => {
     id: item.id,
     name: item.name || '',
     latitude: item.latitude ?? '',
-    longtitude: item.longtitude ?? '',
+    longtitude: resolveLongitude(item),
     status: Number(item.status ?? 1),
     createTime: item.create_time || item.createTime || ''
   }

@@ -244,10 +244,11 @@ const submit = async () => {
   saving.value = true
 
   try {
+    const normalizedAreaId = form.value.areaId ? Number(form.value.areaId) : null
     const payload = {
       name: form.value.name.trim(),
       email: form.value.email.trim(),
-      areaId: form.value.areaId ? Number(form.value.areaId) : undefined
+      areaId: normalizedAreaId ?? undefined
     }
 
     if (password) {
@@ -257,7 +258,8 @@ const submit = async () => {
     if (editing.value) {
       await editDispatcher({
         ...payload,
-        id: Number(form.value.id)
+        id: Number(form.value.id),
+        areaId: normalizedAreaId
       })
     } else {
       await addDispatcher(payload)

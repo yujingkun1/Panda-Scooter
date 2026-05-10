@@ -25,7 +25,7 @@ const enabledCount = computed(() => points.value.filter((item) => Number(item.st
 const disabledCount = computed(() => points.value.filter((item) => Number(item.status) === 0).length)
 
 const formatPointText = (item) => {
-  const longitude = Number(item.longtitude)
+  const longitude = Number(item.longtitude ?? item.longitude)
   const latitude = Number(item.latitude)
 
   if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
