@@ -13,6 +13,7 @@ export const ALL_MAP_LAYERS = [
 export const MAP_ICON_PATHS = {
   scooter: '/map-icons/scooter.svg',
   parkingPoint: '/map-icons/parking.svg',
+  parkingPointActive: '/map-icons/parking-active.svg',
   noParkingZone: '/map-icons/no-parking.svg'
 }
 

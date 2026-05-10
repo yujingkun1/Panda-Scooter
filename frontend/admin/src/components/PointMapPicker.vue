@@ -123,11 +123,14 @@ const createIconMarker = ({ position, iconType, active = false, badgeColor = '',
   const size = MAP_ICON_SIZE[iconType]
   const width = active ? size.activeWidth : size.width
   const height = active ? size.activeHeight : size.height
+  const iconPath = active && iconType === 'parkingPoint'
+    ? MAP_ICON_PATHS.parkingPointActive
+    : MAP_ICON_PATHS[iconType]
 
   return new AMap.Marker({
     position,
     content: buildIconMarkerContent({
-      src: MAP_ICON_PATHS[iconType],
+      src: iconPath,
       width,
       height,
       badgeColor
@@ -600,7 +603,7 @@ watch(
       return
     }
 
-    syncMarkerFromModel()
+    syncMarkerFromModel({ center: true })
   }
 )
 
