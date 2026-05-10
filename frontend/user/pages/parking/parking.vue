@@ -2,6 +2,7 @@
   <view class="page">
     <view class="map-container">
       <map
+        v-if="mapVisible"
         class="map"
         :latitude="latitude"
         :longitude="longitude"
@@ -72,7 +73,9 @@ export default {
       scale: 17,
       keyword: '',
       selectedParkingId: null,
-      parkingPoints: []
+      parkingPoints: [],
+      mapVisible: true,
+      mapRefreshTimer: null
     }
   },
   computed: {
@@ -114,7 +117,30 @@ export default {
 
     await this.loadLocationAndParkingPoints()
   },
+  onShow() {
+    this.refreshMapView()
+  },
+  onUnload() {
+    this.clearMapRefreshTimer()
+  },
   methods: {
+    clearMapRefreshTimer() {
+      if (this.mapRefreshTimer) {
+        clearTimeout(this.mapRefreshTimer)
+        this.mapRefreshTimer = null
+      }
+    },
+    refreshMapView() {
+      this.clearMapRefreshTimer()
+      this.mapVisible = false
+      this.$nextTick(() => {
+        this.mapRefreshTimer = setTimeout(async () => {
+          this.mapVisible = true
+          await this.$nextTick()
+          this.mapRefreshTimer = null
+        }, 30)
+      })
+    },
     getLocation() {
       return new Promise((resolve, reject) => {
         uni.getLocation({
@@ -136,6 +162,7 @@ export default {
       }
 
       await this.loadParkingPoints()
+      this.refreshMapView()
     },
     async loadParkingPoints() {
       try {
@@ -196,6 +223,7 @@ export default {
       if (adjustScale) {
         this.scale = this.normalizeMapScale(18)
       }
+      this.refreshMapView()
     },
     clearKeyword() {
       this.keyword = ''
