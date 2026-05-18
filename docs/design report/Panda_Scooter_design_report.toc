@@ -1,0 +1,34 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {section}{\numberline {2}Overall Overview}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Project Positioning}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Users and Runtime Environments}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Technology Profile}{4}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Deployment Model and Constraints}{4}{subsection.2.4}%
+\contentsline {section}{\numberline {3}System Architecture Design}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Architecture Overview}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Client Layer Design}{6}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Backend Service Design}{7}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Data and Integration Layer Design}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Security and Access Isolation}{7}{subsection.3.5}%
+\contentsline {section}{\numberline {4}Module Design}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Rider Module}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Dispatcher Module}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Admin Module}{10}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Shared Backend Services}{11}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Database Design}{12}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Main tables}{12}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Relationship and indexing design}{14}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Interface Design}{14}{section.6}%
+\contentsline {subsection}{\numberline {6.1}API inventory compiled from the documentation}{15}{subsection.6.1}%
+\contentsline {subsubsection}{\numberline {6.1.1}Rider API inventory}{15}{subsubsection.6.1.1}%
+\contentsline {subsubsection}{\numberline {6.1.2}Dispatcher API inventory}{16}{subsubsection.6.1.2}%
+\contentsline {subsubsection}{\numberline {6.1.3}Admin API inventory}{17}{subsubsection.6.1.3}%
+\contentsline {subsection}{\numberline {6.2}Authorization}{18}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Response format}{18}{subsection.6.3}%
+\contentsline {section}{\numberline {7}Non-functional Design}{19}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Security design}{19}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Performance design}{19}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Maintainability design}{19}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Reliability design}{20}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}Known limitations}{20}{subsection.7.5}%
+\contentsline {section}{\numberline {8}Summary}{20}{section.8}%

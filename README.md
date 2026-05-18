@@ -76,6 +76,51 @@ flowchart LR
   API --> MAP[地图服务]
 ```
 
+### 🚢 部署图
+
+```mermaid
+flowchart TB
+  subgraph Client[客户端]
+    U[User App]
+    D[Dispatcher App]
+    A[Admin App]
+  end
+
+  subgraph Frontend[前端部署]
+    UF[uni-app 用户端]
+    DF[uni-app 调度端]
+    AF[Vue 3 管理端]
+  end
+
+  subgraph Server[服务端部署]
+    N[Nginx / 反向代理]
+    B[Spring Boot 后端]
+    M[MQTT 服务]
+  end
+
+  subgraph Data[数据层]
+    DB[(MySQL)]
+  end
+
+  subgraph Device[车端设备]
+    S[小车硬件（模拟）]
+  end
+
+  U --> UF
+  D --> DF
+  A --> AF
+
+  UF --> N
+  DF --> N
+  AF --> N
+
+  N --> B
+  B --> DB
+  B --> M
+  B --> MAP[地图服务]
+  S --> M
+```
+
 ### 🖼️ 截图预留
 
 你可以在这里补充项目截图，让 GitHub 首页更直观。
@@ -174,6 +219,51 @@ flowchart LR
   API --> DB[(MySQL)]
   API --> MQTT[(MQTT / Realtime Messaging)]
   API --> MAP[Map Services]
+```
+
+### 🚢 Deployment Diagram
+
+```mermaid
+flowchart TB
+  subgraph Client[Clients]
+    U[User App]
+    D[Dispatcher App]
+    A[Admin App]
+  end
+
+  subgraph Frontend[Frontend Deployment]
+    UF[uni-app User App]
+    DF[uni-app Dispatcher App]
+    AF[Vue 3 Admin App]
+  end
+
+  subgraph Server[Server Deployment]
+    N[Nginx / Reverse Proxy]
+    B[Spring Boot Backend]
+    M[MQTT Service]
+  end
+
+  subgraph Data[Data Layer]
+    DB[(MySQL)]
+  end
+
+  subgraph Device[Vehicle Device]
+    S[Scooter Hardware (Simulated)]
+  end
+
+  U --> UF
+  D --> DF
+  A --> AF
+
+  UF --> N
+  DF --> N
+  AF --> N
+
+  N --> B
+  B --> DB
+  B --> M
+  B --> MAP[Map Services]
+  S --> M
 ```
 
 ### 🖼️ Screenshots
