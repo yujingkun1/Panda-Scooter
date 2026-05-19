@@ -211,7 +211,7 @@ npm run dev
 
 Run each uni-app project from a uni-app-compatible IDE, such as **HBuilderX**, then build and run the project.
 
-![](./docs/run-weixin.png)
+![](./static/run-weixin.png)
 
 ## 📝 Notes
 
