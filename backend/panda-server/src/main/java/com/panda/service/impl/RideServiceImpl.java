@@ -18,7 +18,6 @@ import com.panda.mapper.UserMapper;
 import com.panda.mapper.UserSubscriptionMapper;
 import com.panda.mapper.UserWalletMapper;
 import com.panda.mqtt.ScooterMqttPublisher;
-import com.panda.mqtt.ScooterOnlineService;
 import com.panda.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +47,6 @@ public class RideServiceImpl implements RideService {
     private final NoParkingAreaMapper noParkingAreaMapper;
     private final ParkingPointMapper parkingPointMapper;
     private final ScooterMqttPublisher scooterMqttPublisher;
-    private final ScooterOnlineService scooterOnlineService;
 
     @Override
     @Transactional
@@ -293,7 +291,6 @@ public class RideServiceImpl implements RideService {
                     scooter.put("battery", item.getBattery());
                     scooter.put("latitude", item.getLatitude());
                     scooter.put("longitude", item.getLongitude());
-                    scooter.put("online", scooterOnlineService.isOnline(item.getCode()));
                     return scooter;
                 }).toList());
         data.put("noParkingAreas", noParkingAreaMapper.listEnabled().stream()

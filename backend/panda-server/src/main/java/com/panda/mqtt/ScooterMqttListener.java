@@ -33,7 +33,6 @@ public class ScooterMqttListener implements ApplicationRunner, MqttCallbackExten
     private final ObjectMapper objectMapper;
     private final ScooterMapper scooterMapper;
     private final ScooterCommandMapper scooterCommandMapper;
-    private final ScooterOnlineService scooterOnlineService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -68,9 +67,7 @@ public class ScooterMqttListener implements ApplicationRunner, MqttCallbackExten
     public void messageArrived(String topic, MqttMessage message) {
         String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
         try {
-            if (isAckTopic(topic)) {
-                handleCommandAck(topic, payload);
-            } else if (isTelemetryTopic(topic)) {
+            if (isTelemetryTopic(topic)) {
                 handleTelemetry(topic, payload);
             } else {
                 log.warn("Ignore unknown MQTT message, topic={}, payload={}", topic, payload);
@@ -87,7 +84,6 @@ public class ScooterMqttListener implements ApplicationRunner, MqttCallbackExten
 
     private void subscribeTopics() {
         subscribeTopic(mqttProperties.getTelemetryTopic(), "telemetry");
-        subscribeTopic(mqttProperties.getAckTopic(), "ack");
     }
 
     private void subscribeTopic(String topic, String topicName) {
@@ -115,7 +111,6 @@ public class ScooterMqttListener implements ApplicationRunner, MqttCallbackExten
             return;
         }
 
-        scooterOnlineService.refreshOnline(scooterCode);
         scooterMapper.updateStatusAndLocation(
                 scooter.getId(),
                 resolveRideStatus(telemetry, scooter),
@@ -128,34 +123,8 @@ public class ScooterMqttListener implements ApplicationRunner, MqttCallbackExten
                 scooterCode, telemetry.getOrderId(), telemetry.getLatitude(), telemetry.getLongitude(), telemetry.getBattery());
     }
 
-    private void handleCommandAck(String topic, String payload) throws Exception {
-        ScooterCommandAckMessage ackMessage = objectMapper.readValue(payload, ScooterCommandAckMessage.class);
-        if (ackMessage.getCommandId() == null || ackMessage.getCommandId().isBlank()) {
-            log.warn("Ignore scooter command ack because commandId is empty, topic={}, payload={}", topic, payload);
-            return;
-        }
-
-        LocalDateTime ackTime = LocalDateTime.now();
-        boolean success = Boolean.TRUE.equals(ackMessage.getSuccess());
-        int affectedRows = success
-                ? scooterCommandMapper.markAcked(ackMessage.getCommandId(), ackTime)
-                : scooterCommandMapper.markAckFailed(ackMessage.getCommandId(), ackTime, truncate(ackMessage.getMessage()));
-
-        if (affectedRows == 0) {
-            log.warn("Ignore scooter command ack because command is not found or already finished, commandId={}, topic={}, success={}",
-                    ackMessage.getCommandId(), topic, success);
-            return;
-        }
-        log.info("Handled scooter command ack, commandId={}, command={}, orderId={}, success={}, message={}",
-                ackMessage.getCommandId(), ackMessage.getCommand(), ackMessage.getOrderId(), success, ackMessage.getMessage());
-    }
-
     private boolean isTelemetryTopic(String topic) {
         return hasTopicSuffix(topic, "telemetry");
-    }
-
-    private boolean isAckTopic(String topic) {
-        return hasTopicSuffix(topic, "ack");
     }
 
     private boolean hasTopicSuffix(String topic, String suffix) {
