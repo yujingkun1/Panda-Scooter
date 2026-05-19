@@ -1,5 +1,7 @@
 package com.panda.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panda.context.BaseContext;
 import com.panda.dto.DispatcherDeleteDTO;
 import com.panda.dto.DispatcherLockScooterDTO;
@@ -39,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +53,7 @@ public class DispatcherServiceImpl implements DispatcherService {
 
     private static final long VERIFICATION_CODE_EXPIRE_MINUTES = 5L;
     private static final String VERIFICATION_CODE_KEY_PREFIX = "panda:verification:dispatcher:";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final DispatcherMapper dispatcherMapper;
     private final DispatchRecordMapper dispatchRecordMapper;
@@ -173,19 +177,13 @@ public class DispatcherServiceImpl implements DispatcherService {
 
     @Override
     public Map<String, Object> mapData(BigDecimal longitude, BigDecimal latitude, Integer scale) {
-        int mapScale = scale == null ? 16 : Math.max(3, Math.min(20, scale));
-        int radiusInMeters = resolveRadiusByScale(mapScale);
-
-        BigDecimal latitudeOffset = metersToLatitudeDegrees(radiusInMeters);
-        BigDecimal longitudeOffset = metersToLongitudeDegrees(radiusInMeters, latitude);
-        BigDecimal minLongitude = longitude.subtract(longitudeOffset);
-        BigDecimal maxLongitude = longitude.add(longitudeOffset);
-        BigDecimal minLatitude = latitude.subtract(latitudeOffset);
-        BigDecimal maxLatitude = latitude.add(latitudeOffset);
+        Area dispatcherArea = resolveCurrentDispatcherArea();
+        List<GeoPoint> dispatcherPolygon = dispatcherArea == null ? new ArrayList<>() : parsePolygon(dispatcherArea.getPolygon());
 
         Map<String, Object> data = new HashMap<>();
-        data.put("area", resolveCurrentDispatcherArea());
-        data.put("scooters", scooterMapper.listNearby(minLongitude, maxLongitude, minLatitude, maxLatitude).stream()
+        data.put("area", buildAreaData(dispatcherArea));
+        data.put("scooters", scooterMapper.listLocated().stream()
+                .filter(item -> isScooterInArea(item, dispatcherPolygon))
                 .map(item -> {
                     Map<String, Object> scooter = new HashMap<>();
                     scooter.put("id", item.getId());
@@ -217,12 +215,16 @@ public class DispatcherServiceImpl implements DispatcherService {
         return data;
     }
 
-    private Map<String, Object> resolveCurrentDispatcherArea() {
+
+    private Area resolveCurrentDispatcherArea() {
         Dispatcher dispatcher = dispatcherMapper.getById(currentDispatcherId());
         if (dispatcher == null || dispatcher.getAreaId() == null) {
             return null;
         }
-        Area area = areaMapper.getById(dispatcher.getAreaId());
+        return areaMapper.getById(dispatcher.getAreaId());
+    }
+
+    private Map<String, Object> buildAreaData(Area area) {
         if (area == null) {
             return null;
         }
@@ -233,6 +235,102 @@ public class DispatcherServiceImpl implements DispatcherService {
         return areaData;
     }
 
+    private boolean isScooterInArea(Scooter scooter, List<GeoPoint> polygon) {
+        if (scooter == null || scooter.getLatitude() == null || scooter.getLongitude() == null || polygon.size() < 3) {
+            return false;
+        }
+        return isPointInPolygon(new GeoPoint(scooter.getLatitude().doubleValue(), scooter.getLongitude().doubleValue()), polygon);
+    }
+
+    private List<GeoPoint> parsePolygon(String polygon) {
+        if (polygon == null || polygon.isBlank()) {
+            return new ArrayList<>();
+        }
+        try {
+            List<List<Double>> points = OBJECT_MAPPER.readValue(polygon, new TypeReference<List<List<Double>>>() {});
+            List<GeoPoint> geoPoints = new ArrayList<>();
+            for (List<Double> point : points) {
+                GeoPoint geoPoint = parseGeoPoint(point);
+                if (geoPoint != null) {
+                    geoPoints.add(geoPoint);
+                }
+            }
+            return geoPoints;
+        } catch (Exception e) {
+            throw new BaseException("invalid area polygon");
+        }
+    }
+
+    private GeoPoint parseGeoPoint(List<Double> point) {
+        if (point == null || point.size() < 2 || point.get(0) == null || point.get(1) == null) {
+            return null;
+        }
+
+        double first = point.get(0);
+        double second = point.get(1);
+        if (isLatitude(first) && isLongitude(second)) {
+            return new GeoPoint(first, second);
+        }
+        if (isLongitude(first) && isLatitude(second)) {
+            return new GeoPoint(second, first);
+        }
+        return null;
+    }
+
+    private boolean isLatitude(double value) {
+        return value >= -90D && value <= 90D;
+    }
+
+    private boolean isLongitude(double value) {
+        return value >= -180D && value <= 180D;
+    }
+
+    private boolean isPointInPolygon(GeoPoint point, List<GeoPoint> polygon) {
+        boolean inside = false;
+        int pointCount = polygon.size();
+        for (int i = 0, j = pointCount - 1; i < pointCount; j = i++) {
+            GeoPoint current = polygon.get(i);
+            GeoPoint previous = polygon.get(j);
+            if (current == null || previous == null) {
+                return false;
+            }
+
+            if (isPointOnSegment(point, previous, current)) {
+                return true;
+            }
+
+            boolean intersects = ((current.latitude > point.latitude) != (previous.latitude > point.latitude))
+                    && (point.longitude < (previous.longitude - current.longitude) * (point.latitude - current.latitude)
+                    / (previous.latitude - current.latitude) + current.longitude);
+            if (intersects) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    private boolean isPointOnSegment(GeoPoint point, GeoPoint start, GeoPoint end) {
+        double cross = (point.longitude - start.longitude) * (end.latitude - start.latitude)
+                - (point.latitude - start.latitude) * (end.longitude - start.longitude);
+        if (Math.abs(cross) > 1e-10) {
+            return false;
+        }
+
+        return point.latitude >= Math.min(start.latitude, end.latitude)
+                && point.latitude <= Math.max(start.latitude, end.latitude)
+                && point.longitude >= Math.min(start.longitude, end.longitude)
+                && point.longitude <= Math.max(start.longitude, end.longitude);
+    }
+
+    private static class GeoPoint {
+        private final double latitude;
+        private final double longitude;
+
+        private GeoPoint(double latitude, double longitude) {
+            this.latitude = latitude;
+            this.longitude = longitude;
+        }
+    }
     @Override
     @Transactional
     public Map<String, Object> unlockScooter(DispatcherUnlockScooterDTO dispatcherUnlockScooterDTO) {
