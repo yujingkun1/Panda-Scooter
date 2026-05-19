@@ -251,7 +251,7 @@ const _sfc_main = {
         const noParkingAreas = this.mapNoParkingAreas(data.noParkingAreas || []);
         const areaPolygon = this.mapDispatcherArea(data.area || data.dispatcherArea);
         const noParkingMarkers = this.mapNoParkingAreaMarkers(data.noParkingAreas || [], noParkingAreas);
-        this.polygons = [...areaPolygon ? [areaPolygon] : [], ...noParkingAreas];
+        this.polygons = [...noParkingAreas, ...areaPolygon ? [areaPolygon] : []];
         this.markers = [
           ...scooters,
           ...this.mapParkingPointMarkers(parkingPoints),
@@ -319,19 +319,20 @@ const _sfc_main = {
       }).filter(Boolean);
     },
     mapDispatcherArea(area) {
-      if (!area || !area.polygon) {
+      if (!area) {
         return null;
       }
-      const points = this.parsePolygon(area.polygon);
+      const polygonSource = area.polygon || area.points || area.coordinates || area.path;
+      const points = this.parsePolygon(polygonSource);
       if (!points.length) {
         return null;
       }
       return {
         id: 999,
         points,
-        fillColor: "#12347824",
-        strokeColor: "#3A9DE8E6",
-        strokeWidth: 3
+        fillColor: "#2FB46E33",
+        strokeColor: "#1F8A57FF",
+        strokeWidth: 4
       };
     },
     mapNoParkingAreaMarkers(sourceAreas, polygons) {

@@ -72,6 +72,16 @@
   color: #0b0e0d;
   box-sizing: border-box;
 }
+.field-tip {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #737373;
+  line-height: 1.5;
+}
+.field-tip.ok {
+  color: #1f8a57;
+}
 .inline-field {
   display: flex;
   align-items: center;
@@ -116,6 +126,27 @@
 }
 .submit-btn[disabled] {
   background-color: #d4d4d1;
+}
+.agreement-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 24rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #737373;
+}
+.agreement-check {
+  display: flex;
+  align-items: center;
+}
+.agreement-text {
+  color: #737373;
+}
+.agreement-link {
+  color: #0b0e0d;
+  text-decoration: underline;
 }
 .footer-links {
   margin-top: 32rpx;

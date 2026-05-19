@@ -3,7 +3,7 @@
     <view class="hero">
       <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
       <text class="title">重置密码</text>
-      <text class="subtitle">验证邮箱并设置新的调度员密码</text>
+      <text class="subtitle">验证邮箱后设置新的调度员密码</text>
     </view>
 
     <view class="card">
@@ -26,14 +26,7 @@
             type="text"
             placeholder="请输入验证码"
           />
-          <button
-            class="code-btn"
-            hover-class="button-hover"
-            hover-start-time="0"
-            hover-stay-time="90"
-            :disabled="countdown > 0 || isSendingCode"
-            @click="sendCode"
-          >
+          <button class="code-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="countdown > 0 || isSendingCode" @click="sendCode">
             {{ isSendingCode ? '发送中...' : (countdown > 0 ? `${countdown}s` : '获取验证码') }}
           </button>
         </view>
@@ -48,26 +41,17 @@
           type="text"
           placeholder="请输入新密码"
         />
+        <text class="field-tip" :class="{ ok: isStrongPassword(form.newPassword) }">
+          {{ getPasswordStatusText(form.newPassword) }}
+        </text>
       </view>
 
-      <button
-        class="submit-btn"
-        hover-class="button-hover"
-        hover-start-time="0"
-        hover-stay-time="90"
-        :disabled="isSubmitting"
-        @click="submit"
-      >
-        {{ isSubmitting ? '提交中...' : '重置密码' }}
+      <button class="submit-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isSubmitting" @click="submit">
+        {{ isSubmitting ? '提交中...' : '确认重置' }}
       </button>
 
       <view class="footer-links">
-        <view
-          class="link-button ui-pressable-inline"
-          hover-class="ui-pressable-inline-hover"
-          hover-stay-time="70"
-          @click="goLogin"
-        >
+        <view class="link-button ui-pressable-inline" hover-class="ui-pressable-inline-hover" hover-stay-time="70" @click="goLogin">
           <text class="link">返回登录</text>
         </view>
       </view>
@@ -126,7 +110,7 @@ export default {
     async sendCode() {
       if (!this.form.email) {
         uni.showToast({
-          title: '请先输入邮箱',
+          title: '请输入邮箱',
           icon: 'none'
         })
         return
@@ -184,6 +168,14 @@ export default {
         return
       }
 
+      if (!this.isStrongPassword(this.form.newPassword)) {
+        uni.showToast({
+          title: '密码至少 6 位，且必须包含字母和数字',
+          icon: 'none'
+        })
+        return
+      }
+
       if (this.isSubmitting) {
         return
       }
@@ -212,6 +204,15 @@ export default {
       } finally {
         this.isSubmitting = false
       }
+    },
+    isStrongPassword(password) {
+      const value = String(password || '').trim()
+      return value.length >= 6 && /[A-Za-z]/.test(value) && /\d/.test(value)
+    },
+    getPasswordStatusText(password) {
+      return this.isStrongPassword(password)
+        ? '密码格式已通过'
+        : '密码至少 6 位，且必须同时包含字母和数字'
     }
   }
 }
@@ -277,6 +278,18 @@ export default {
   font-size: 28rpx;
   color: #0b0e0d;
   box-sizing: border-box;
+}
+
+.field-tip {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #737373;
+  line-height: 1.5;
+}
+
+.field-tip.ok {
+  color: #1f8a57;
 }
 
 .inline-field {
@@ -345,5 +358,6 @@ export default {
 .link {
   font-size: 24rpx;
   color: #737373;
+  padding: 0 12rpx;
 }
 </style>

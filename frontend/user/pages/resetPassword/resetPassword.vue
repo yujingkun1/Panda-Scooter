@@ -41,6 +41,9 @@
           type="text"
           placeholder="请输入新密码"
         />
+        <text class="field-tip" :class="{ ok: isStrongPassword(form.newPassword) }">
+          {{ getPasswordStatusText(form.newPassword) }}
+        </text>
       </view>
 
       <button class="submit-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('submit')" @click="submit">
@@ -96,7 +99,7 @@ export default {
     async sendCode() {
       if (!this.form.email) {
         uni.showToast({
-          title: '请先输入邮箱',
+          title: '请输入邮箱',
           icon: 'none'
         })
         return
@@ -150,6 +153,14 @@ export default {
         return
       }
 
+      if (!this.isStrongPassword(this.form.newPassword)) {
+        uni.showToast({
+          title: '密码至少 6 位，且必须包含字母和数字',
+          icon: 'none'
+        })
+        return
+      }
+
       await this.withAction('submit', async () => {
         try {
           uni.showLoading({
@@ -172,6 +183,15 @@ export default {
           showUnhandledError(error, '重置密码失败，请稍后重试')
         }
       })
+    },
+    isStrongPassword(password) {
+      const value = String(password || '').trim()
+      return value.length >= 6 && /[A-Za-z]/.test(value) && /\d/.test(value)
+    },
+    getPasswordStatusText(password) {
+      return this.isStrongPassword(password)
+        ? '密码格式已通过'
+        : '密码至少 6 位，且必须同时包含字母和数字'
     }
   }
 }
@@ -237,6 +257,18 @@ export default {
   font-size: 28rpx;
   color: #0b0e0d;
   box-sizing: border-box;
+}
+
+.field-tip {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #737373;
+  line-height: 1.5;
+}
+
+.field-tip.ok {
+  color: #1f8a57;
 }
 
 .inline-field {
@@ -305,5 +337,6 @@ export default {
 .link {
   font-size: 24rpx;
   color: #737373;
+  padding: 0 12rpx;
 }
 </style>
