@@ -47,7 +47,7 @@ const _sfc_main = {
     async sendCode() {
       if (!this.form.email) {
         common_vendor.index.showToast({
-          title: "请先输入邮箱",
+          title: "请输入邮箱",
           icon: "none"
         });
         return;
@@ -101,6 +101,13 @@ const _sfc_main = {
         });
         return;
       }
+      if (!this.isStrongPassword(this.form.newPassword)) {
+        common_vendor.index.showToast({
+          title: "密码至少 6 位，且必须包含字母和数字",
+          icon: "none"
+        });
+        return;
+      }
       if (this.isSubmitting) {
         return;
       }
@@ -127,6 +134,13 @@ const _sfc_main = {
       } finally {
         this.isSubmitting = false;
       }
+    },
+    isStrongPassword(password) {
+      const value = String(password || "").trim();
+      return value.length >= 6 && /[A-Za-z]/.test(value) && /\d/.test(value);
+    },
+    getPasswordStatusText(password) {
+      return this.isStrongPassword(password) ? "密码格式已通过" : "密码至少 6 位，且必须同时包含字母和数字";
     }
   }
 };
@@ -143,15 +157,17 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     }), "f3"),
     f: common_vendor.t($data.isSendingCode ? "发送中..." : $data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
     g: $data.countdown > 0 || $data.isSendingCode,
-    h: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "f6"),
+    h: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "a9"),
     i: $data.form.newPassword,
     j: common_vendor.o(common_vendor.m(($event) => $data.form.newPassword = $event.detail.value, {
       trim: true
-    }), "38"),
-    k: common_vendor.t($data.isSubmitting ? "提交中..." : "重置密码"),
-    l: $data.isSubmitting,
-    m: common_vendor.o((...args) => $options.submit && $options.submit(...args), "45"),
-    n: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "80")
+    }), "f5"),
+    k: common_vendor.t($options.getPasswordStatusText($data.form.newPassword)),
+    l: $options.isStrongPassword($data.form.newPassword) ? 1 : "",
+    m: common_vendor.t($data.isSubmitting ? "提交中..." : "确认重置"),
+    n: $data.isSubmitting,
+    o: common_vendor.o((...args) => $options.submit && $options.submit(...args), "59"),
+    p: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "98")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

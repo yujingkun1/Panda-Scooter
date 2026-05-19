@@ -19,6 +19,12 @@
       }
     },
     {
+      "path": "pages/privacy/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私政策"
+      }
+    },
+    {
       "path": "pages/profile/profile",
       "style": {
         "navigationBarTitleText": "\u4e2a\u4eba\u4e3b\u9875"

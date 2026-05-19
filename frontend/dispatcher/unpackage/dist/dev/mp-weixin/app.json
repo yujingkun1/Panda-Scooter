@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/login/login",
     "pages/resetPassword/resetPassword",
+    "pages/privacy/privacy",
     "pages/profile/profile",
     "pages/account/account",
     "pages/history/history",

@@ -40,6 +40,13 @@
           type="text"
           placeholder="请输入密码"
         />
+        <text
+          v-if="mode === 'signup'"
+          class="field-tip"
+          :class="{ ok: isStrongPassword(form.password) }"
+        >
+          {{ getPasswordStatusText(form.password) }}
+        </text>
       </view>
 
       <view v-if="mode === 'signup'" class="field">
@@ -51,15 +58,37 @@
             type="text"
             placeholder="请输入验证码"
           />
-          <button class="code-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="countdown > 0 || isActionPending('sendCode')" @click="sendCode">
+          <button
+            class="code-btn"
+            hover-class="button-hover"
+            hover-start-time="0"
+            hover-stay-time="90"
+            :disabled="countdown > 0 || isActionPending('sendCode')"
+            @click="sendCode"
+          >
             {{ isActionPending('sendCode') ? '发送中...' : (countdown > 0 ? `${countdown}s` : '获取验证码') }}
           </button>
         </view>
       </view>
 
-      <button class="submit-btn" hover-class="button-hover" hover-start-time="0" hover-stay-time="90" :disabled="isActionPending('submit')" @click="submit">
+      <button
+        class="submit-btn"
+        hover-class="button-hover"
+        hover-start-time="0"
+        hover-stay-time="90"
+        :disabled="isActionPending('submit')"
+        @click="submit"
+      >
         {{ isActionPending('submit') ? '提交中...' : submitText }}
       </button>
+
+      <view v-if="mode === 'signup'" class="agreement-row">
+        <checkbox-group class="agreement-check" @change="togglePrivacyAgreement">
+          <checkbox :checked="form.agreedPrivacy" value="privacy"></checkbox>
+        </checkbox-group>
+        <text class="agreement-text">我已阅读并同意</text>
+        <text class="agreement-link" @click="openPrivacyPolicy">《隐私政策》</text>
+      </view>
 
       <view class="footer-links">
         <view
@@ -120,7 +149,8 @@ const MODE_META = {
 const DEFAULT_FORM = () => ({
   email: '',
   password: '',
-  verificationCode: ''
+  verificationCode: '',
+  agreedPrivacy: false
 })
 
 export default {
@@ -170,6 +200,14 @@ export default {
       }
       this.clearTimer()
       this.countdown = 0
+    },
+    openPrivacyPolicy() {
+      uni.navigateTo({
+        url: '/pages/privacy/privacy'
+      })
+    },
+    togglePrivacyAgreement(event) {
+      this.form.agreedPrivacy = Boolean(event && event.detail && Array.isArray(event.detail.value) && event.detail.value.length)
     },
     goResetPassword() {
       uni.navigateTo({
@@ -241,6 +279,22 @@ export default {
         return
       }
 
+      if (this.mode === 'signup' && !this.isStrongPassword(this.form.password)) {
+        uni.showToast({
+          title: '密码至少 6 位，且必须包含字母和数字',
+          icon: 'none'
+        })
+        return
+      }
+
+      if (this.mode === 'signup' && !this.form.agreedPrivacy) {
+        uni.showToast({
+          title: '请先勾选同意隐私政策',
+          icon: 'none'
+        })
+        return
+      }
+
       await this.withAction('submit', async () => {
         try {
           uni.showLoading({
@@ -292,6 +346,15 @@ export default {
           showUnhandledError(error, '提交失败，请稍后重试')
         }
       })
+    },
+    isStrongPassword(password) {
+      const value = String(password || '').trim()
+      return value.length >= 6 && /[A-Za-z]/.test(value) && /\d/.test(value)
+    },
+    getPasswordStatusText(password) {
+      return this.isStrongPassword(password)
+        ? '密码格式已通过'
+        : '密码至少 6 位，且必须同时包含字母和数字'
     }
   }
 }
@@ -385,6 +448,18 @@ export default {
   box-sizing: border-box;
 }
 
+.field-tip {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #737373;
+  line-height: 1.5;
+}
+
+.field-tip.ok {
+  color: #1f8a57;
+}
+
 .inline-field {
   display: flex;
   align-items: center;
@@ -435,6 +510,31 @@ export default {
 
 .submit-btn[disabled] {
   background-color: #d4d4d1;
+}
+
+.agreement-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 24rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #737373;
+}
+
+.agreement-check {
+  display: flex;
+  align-items: center;
+}
+
+.agreement-text {
+  color: #737373;
+}
+
+.agreement-link {
+  color: #0b0e0d;
+  text-decoration: underline;
 }
 
 .footer-links {
