@@ -1,303 +1,221 @@
 # Panda Scooter
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Vue-3.0-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue 3" />
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.2.x-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot" />
   <img src="https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white" alt="Java 17" />
+  <img src="https://img.shields.io/badge/MyBatis-Data%20Access-00546B?logo=databricks&logoColor=white" alt="MyBatis" />
   <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white" alt="MySQL" />
-  <img src="https://img.shields.io/badge/uni--app-Framework-2C405A?logo=unity&logoColor=white" alt="uni-app" />
+  <img src="https://img.shields.io/badge/Redis-Cache-DC382D?logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/MQTT-Messaging-660066?logo=mqtt&logoColor=white" alt="MQTT" />
+  <img src="https://img.shields.io/badge/MinIO-Object%20Storage-C72E49?logo=minio&logoColor=white" alt="MinIO" />
+  <img src="https://img.shields.io/badge/Vue%203-Frontend-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue 3" />
+  <img src="https://img.shields.io/badge/uni--app-Mobile%20Clients-2C405A?logo=unity&logoColor=white" alt="uni-app" />
 </p>
 
-<p align="center">
-  <a href="#chinese">简体中文</a> · <a href="#english">English</a>
-</p>
+**Panda Scooter** is a full-stack shared scooter platform for riders, dispatchers, and administrators. The repository includes the backend service, three frontend applications, and the project documentation used for final handover and acceptance.
 
----
+> This repository is organized for final project handover and acceptance.
+> It includes the source code, database script, and documentation required for deployment and evaluation.
 
-<a id="chinese"></a>
-## 简体中文
+## 📦 Repository Contents
 
-> 一个面向骑行用户、调度员和管理员的共享电单车全栈系统。
+- `backend/` - Spring Boot backend project with shared modules and the main API service
+- `frontend/admin/` - Vue 3 + Vite admin dashboard
+- `frontend/dispatcher/` - uni-app dispatcher client
+- `frontend/user/` - uni-app rider client
+- `backend/bike_system.sql` - database initialization script
+- `docs/` - design report, process materials, personal reports, screenshots, and acceptance notice
 
-### ✨ 项目介绍
+## ✨ Project Overview
 
-Panda Scooter 将骑行、调度和管理统一到一套系统中，支持地图找车、骑行流程、停车点管理、片区管理和车队监控。
+The platform provides three main roles:
 
-### 🧩 项目结构
+- **Riders** can find scooters on the map, unlock a scooter, and manage ride-related actions.
+- **Dispatchers** can inspect operational data and handle dispatch workflows.
+- **Administrators** can manage scooters, parking points, zones, and other operational data.
+
+## 🧰 Tech Stack
+
+> The stack is split into backend services, data infrastructure, map integration, and multi-client frontends.
+
+- **Backend:** Spring Boot 3.2.x, Java 17, MyBatis, JWT, SpringDoc, MQTT
+- **Database:** MySQL
+- **Cache:** Redis
+- **Object storage:** MinIO
+- **Map service:** AMap JSAPI
+- **Admin frontend:** Vue 3, Vite, Pinia
+- **Rider and dispatcher clients:** uni-app
+
+## 🧱 Project Structure
 
 ```text
 Panda-Scooter
-├── backend
-│   ├── panda-common
-│   ├── panda-pojo
-│   └── panda-server
-└── frontend
-    ├── admin
-    ├── dispatcher
-    └── user
+|-- backend
+|   |-- panda-common
+|   |-- panda-pojo
+|   |-- panda-server
+|   `-- bike_system.sql
+|-- frontend
+|   |-- admin
+|   |-- dispatcher
+|   `-- user
+`-- docs
 ```
 
-### 🖥️ 前端应用
+## ⚙️ Backend Modules
 
-- 🚀 `frontend/user` - 骑行端，支持登录、地图找车、解锁和骑行使用。
-- 🧭 `frontend/dispatcher` - 调度端，支持地图查看和运营工作流。
-- 🛠️ `frontend/admin` - 管理端，支持停车点、片区、车辆和调度管理。
+- **`backend/panda-common`** - shared constants, utilities, and common code
+- **`backend/panda-pojo`** - entities, DTOs, and VOs
+- **`backend/panda-server`** - Spring Boot application, controllers, services, persistence, and MQTT integration
 
-### 🧠 后端模块
+## 🖥️ Frontend Apps
 
-- 📦 `backend/panda-common` - 公共常量、工具类和共享代码。
-- 🧱 `backend/panda-pojo` - 实体类、DTO 和 VO。
-- ⚙️ `backend/panda-server` - Spring Boot 应用、控制器、服务和持久化逻辑。
+- **`frontend/user`** - rider app for login, map lookup, unlocking, and ride usage
+- **`frontend/dispatcher`** - dispatcher app for map inspection and operational workflows
+- **`frontend/admin`** - admin dashboard for parking point, zone, vehicle, and fleet management
 
-### 🛠️ 技术栈
+## 📚 Delivery Materials
 
-- ☕ 后端：Spring Boot 3.2.x、Java 17、MyBatis、JWT、SpringDoc、MQTT
-- 🎨 管理端：Vue 3、Vite、Pinia、AMap JSAPI
-- 📱 用户端和调度端：uni-app
-- 🗄️ 数据库：MySQL
+This repository is prepared for the final project handover and acceptance. It includes:
 
-### 🔥 核心功能
+- **Source code** for all project modules
+- **Database script** for initialization
+- **Readme instructions** for setup and environment configuration
+- **Design report** and process materials under `docs/`
+- **Personal report materials** under `docs/`
+- **Screenshot and presentation-related supporting files** where available
 
-- 🗺️ 基于地图的车辆和停车点查询
-- 🔓 车辆解锁与骑行流程管理
-- 🅿️ 停车点与禁停区管理
-- 👥 片区与调度员分配管理
-- 📊 管理端地图分层展示
+## 🧰 Prerequisites
 
-### 🏗️ 架构示意
+- **Java 17**
+- **Maven 3.9 or later**
+- **Node.js 20.19+ or 22.12+**
+- **npm**
+- **MySQL 8**
+- **Redis**
+- **A running MQTT broker** if MQTT features are required
+- **MinIO** if file storage features are required
+- **AMap Web service credentials** for the admin map features
 
-```mermaid
-flowchart LR
-  U[用户端] --> API[Spring Boot API]
-  D[调度端] --> API
-  A[管理端] --> API
-  API --> DB[(MySQL)]
-  API --> MQTT[(MQTT / 实时消息)]
-  API --> MAP[地图服务]
+## 🛠️ Configuration
+
+### 1. Database 🗄️
+
+> The database script is included in the repository and should be imported before running the backend.
+
+Import the database script:
+
+```bash
+backend/bike_system.sql
 ```
 
-### 🚢 部署图
+Then update the MySQL connection settings in:
 
-```mermaid
-flowchart TB
-  subgraph Client[客户端]
-    U[User App]
-    D[Dispatcher App]
-    A[Admin App]
-  end
-
-  subgraph Frontend[前端部署]
-    UF[uni-app 用户端]
-    DF[uni-app 调度端]
-    AF[Vue 3 管理端]
-  end
-
-  subgraph Server[服务端部署]
-    N[Nginx / 反向代理]
-    B[Spring Boot 后端]
-    M[MQTT 服务]
-  end
-
-  subgraph Data[数据层]
-    DB[(MySQL)]
-  end
-
-  subgraph Device[车端设备]
-    S[小车硬件（模拟）]
-  end
-
-  U --> UF
-  D --> DF
-  A --> AF
-
-  UF --> N
-  DF --> N
-  AF --> N
-
-  N --> B
-  B --> DB
-  B --> M
-  B --> MAP[地图服务]
-  S --> M
+```text
+backend/panda-server/src/main/resources/application-dev.yml
 ```
 
-### 🖼️ 截图预留
+> The development profile also contains Redis, mail, and MinIO settings.
+> Adjust them to match your local environment.
 
-你可以在这里补充项目截图，让 GitHub 首页更直观。
+### 2. Backend Runtime Settings 🔧
 
-- 📷 用户端首页和地图
-- 📷 调度端地图和运营视图
-- 📷 管理端仪表盘和停车点编辑页
+Backend runtime settings are defined in:
 
-### 🚀 快速开始
+```text
+backend/panda-server/src/main/resources/application.yml
+```
 
-#### 后端
+Key items include:
+
+- **Server port**
+- **JWT settings**
+- **MQTT connection settings**
+- **Swagger UI path**
+
+> If MQTT is not needed in your environment, disable it through the `panda.mqtt.enabled` setting or environment variables.
+
+### 3. Admin Frontend Environment 🎨
+
+The admin frontend uses Vite environment variables. Copy or update:
+
+```text
+frontend/admin/.env.example
+frontend/admin/.env
+```
+
+Required values:
+
+- **`VITE_AMAP_WEB_KEY`**
+- **`VITE_AMAP_SECURITY_JS_CODE`**
+- **`VITE_AMAP_JSAPI_VERSION`**
+
+Optional values can be added for API base URLs and CDN overrides if needed.
+
+### 4. Rider and Dispatcher API Environments 📡
+
+The rider and dispatcher clients support mock, test, and production API environments in:
+
+```text
+frontend/user/api/env.js
+frontend/dispatcher/api/env.js
+```
+
+> The default test endpoints point to the backend service address used by this project.
+> Update them if you deploy the backend elsewhere.
+
+## 🚀 Installation
+
+### Backend ☕
 
 ```bash
 cd backend
-mvn spring-boot:run
+mvn clean install
 ```
 
-#### 管理端
+> This installs the parent project and all backend modules.
+
+### Admin Frontend 🖥️
 
 ```bash
 cd frontend/admin
 npm install
-npm run dev
 ```
 
-#### 用户端 / 调度端
+> Use the Vite environment files before running the admin client.
 
-这两个应用基于 uni-app，进入对应目录后按项目常规方式运行即可。
+### Rider and Dispatcher Clients 📱
 
-### 📝 说明
+These clients are built with uni-app. Open `frontend/user` and `frontend/dispatcher` in a uni-app-compatible IDE, then install any required dependencies for your toolchain.
 
-- 🌍 地图展示依赖已配置的地图服务和环境变量。
-- 🧩 本仓库是多端系统，各端可以独立开发和部署。
+## ▶️ Run Locally
 
-[返回顶部](#-panda-scooter)
+### Backend 🏗️
 
----
-
-<a id="english"></a>
-## English
-
-> A full-stack shared scooter platform for riders, dispatchers, and administrators.
-
-### ✨ Overview
-
-Panda Scooter combines rider operations, dispatch workflows, and admin management in one system. It supports map-based scooter discovery, ride lifecycle handling, parking point control, zone management, and fleet monitoring.
-
-### 🧩 Project Structure
-
-```text
-Panda-Scooter
-├── backend
-│   ├── panda-common
-│   ├── panda-pojo
-│   └── panda-server
-└── frontend
-    ├── admin
-    ├── dispatcher
-    └── user
-```
-
-### 🖥️ Frontend Apps
-
-- 🚀 `frontend/user` - Rider app for login, map lookup, unlocking, and ride usage.
-- 🧭 `frontend/dispatcher` - Dispatcher app for map inspection and operational workflows.
-- 🛠️ `frontend/admin` - Admin dashboard for parking point, zone, vehicle, and fleet management.
-
-### 🧠 Backend Modules
-
-- 📦 `backend/panda-common` - Shared constants, utilities, and common code.
-- 🧱 `backend/panda-pojo` - Entities, DTOs, and VOs.
-- ⚙️ `backend/panda-server` - Spring Boot application, controllers, services, and persistence logic.
-
-### 🛠️ Tech Stack
-
-- ☕ Backend: Spring Boot 3.2.x, Java 17, MyBatis, JWT, SpringDoc, MQTT
-- 🎨 Admin frontend: Vue 3, Vite, Pinia, AMap JSAPI
-- 📱 User and dispatcher frontends: uni-app
-- 🗄️ Database: MySQL
-
-### 🔥 Highlights
-
-- 🗺️ Map-based scooter and parking point discovery
-- 🔓 Scooter unlock and ride lifecycle tracking
-- 🅿️ Parking point and no-parking area management
-- 👥 Zone assignment and dispatcher management
-- 📊 Layered map visualization on the admin side
-
-### 🏗️ Architecture
-
-```mermaid
-flowchart LR
-  U[User App] --> API[Spring Boot API]
-  D[Dispatcher App] --> API
-  A[Admin App] --> API
-  API --> DB[(MySQL)]
-  API --> MQTT[(MQTT / Realtime Messaging)]
-  API --> MAP[Map Services]
-```
-
-### 🚢 Deployment Diagram
-
-```mermaid
-flowchart TB
-  subgraph Client[Clients]
-    U[User App]
-    D[Dispatcher App]
-    A[Admin App]
-  end
-
-  subgraph Frontend[Frontend Deployment]
-    UF[uni-app User App]
-    DF[uni-app Dispatcher App]
-    AF[Vue 3 Admin App]
-  end
-
-  subgraph Server[Server Deployment]
-    N[Nginx / Reverse Proxy]
-    B[Spring Boot Backend]
-    M[MQTT Service]
-  end
-
-  subgraph Data[Data Layer]
-    DB[(MySQL)]
-  end
-
-  subgraph Device[Vehicle Device]
-    S[Scooter Hardware (Simulated)]
-  end
-
-  U --> UF
-  D --> DF
-  A --> AF
-
-  UF --> N
-  DF --> N
-  AF --> N
-
-  N --> B
-  B --> DB
-  B --> M
-  B --> MAP[Map Services]
-  S --> M
-```
-
-### 🖼️ Screenshots
-
-Add screenshots here to make the GitHub homepage more visual.
-
-- 📷 User app home and map
-- 📷 Dispatcher map and operational view
-- 📷 Admin dashboard and parking point editor
-
-### 🚀 Quick Start
-
-#### Backend
+From the `backend` directory, run:
 
 ```bash
-cd backend
-mvn spring-boot:run
+mvn -pl panda-server -am spring-boot:run
 ```
 
-#### Admin Frontend
+> The backend application listens on the port defined in `application.yml`, which is `8080` by default.
+
+### Admin Frontend 🎛️
 
 ```bash
 cd frontend/admin
-npm install
 npm run dev
 ```
 
-#### User / Dispatcher Frontends
+### Rider and Dispatcher Clients 📲
 
-These apps are built with uni-app. Open the corresponding directory in your uni-app workflow and run the project from there.
+Run each uni-app project from a uni-app-compatible IDE, such as **HBuilderX**, then build and run the project.
 
-### 📝 Notes
+![](./docs/run-weixin.png)
 
-- 🌍 Map behavior depends on the configured map provider and environment variables.
-- 🧩 This repository is a multi-app system, so each frontend can be developed and deployed independently.
+## 📝 Notes
 
-[Back to top](#-panda-scooter)
+> The repository is a multi-app system, so each frontend can be developed and deployed independently.
+> Map-related features depend on a valid AMap key and the configured runtime environment.
+> MQTT-based scooter communication depends on a reachable broker and the corresponding backend settings.
+> Before final delivery, verify that the database, backend configuration, frontend environment variables, and external service credentials are all consistent.

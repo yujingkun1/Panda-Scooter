@@ -20,7 +20,8 @@ const DEFAULT_FORM = () => ({
   email: "",
   password: "",
   verificationCode: "",
-  agreedPrivacy: false
+  agreedPrivacy: false,
+  showPassword: false
 });
 const _sfc_main = {
   data() {
@@ -70,6 +71,9 @@ const _sfc_main = {
       this.countdown = 0;
       this.isSendingCode = false;
       this.isSubmitting = false;
+    },
+    togglePasswordVisibility() {
+      this.form.showPassword = !this.form.showPassword;
     },
     openPrivacyPolicy() {
       common_vendor.index.navigateTo({
@@ -249,45 +253,48 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     i: common_vendor.o(common_vendor.m(($event) => $data.form.email = $event.detail.value, {
       trim: true
     }), "e7"),
-    j: $data.form.password,
-    k: common_vendor.o(common_vendor.m(($event) => $data.form.password = $event.detail.value, {
+    j: !$data.form.showPassword,
+    k: $data.form.password,
+    l: common_vendor.o(common_vendor.m(($event) => $data.form.password = $event.detail.value, {
       trim: true
-    }), "cf"),
-    l: $data.mode === "signup"
-  }, $data.mode === "signup" ? {
-    m: common_vendor.t($options.getPasswordStatusText($data.form.password)),
-    n: $options.isStrongPassword($data.form.password) ? 1 : ""
-  } : {}, {
+    }), "26"),
+    m: $data.form.showPassword ? "/static/eye-open.svg" : "/static/eye-closed.svg",
+    n: common_vendor.o((...args) => $options.togglePasswordVisibility && $options.togglePasswordVisibility(...args), "e3"),
     o: $data.mode === "signup"
   }, $data.mode === "signup" ? {
-    p: $data.form.verificationCode,
-    q: common_vendor.o(common_vendor.m(($event) => $data.form.verificationCode = $event.detail.value, {
-      trim: true
-    }), "b3"),
-    r: common_vendor.t($data.isSendingCode ? "发送中..." : $data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
-    s: $data.countdown > 0 || $data.isSendingCode,
-    t: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "d3")
+    p: common_vendor.t($options.getPasswordStatusText($data.form.password)),
+    q: $options.isStrongPassword($data.form.password) ? 1 : ""
   } : {}, {
-    v: common_vendor.t($data.isSubmitting ? "提交中..." : $options.submitText),
-    w: $data.isSubmitting,
-    x: common_vendor.o((...args) => $options.submit && $options.submit(...args), "bc"),
-    y: $data.mode === "signup"
+    r: $data.mode === "signup"
   }, $data.mode === "signup" ? {
-    z: $data.form.agreedPrivacy,
-    A: common_vendor.o((...args) => $options.togglePrivacyAgreement && $options.togglePrivacyAgreement(...args), "bb"),
-    B: common_vendor.o((...args) => $options.openPrivacyPolicy && $options.openPrivacyPolicy(...args), "e4")
+    s: $data.form.verificationCode,
+    t: common_vendor.o(common_vendor.m(($event) => $data.form.verificationCode = $event.detail.value, {
+      trim: true
+    }), "0f"),
+    v: common_vendor.t($data.isSendingCode ? "发送中..." : $data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
+    w: $data.countdown > 0 || $data.isSendingCode,
+    x: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "31")
   } : {}, {
-    C: $data.mode === "login"
+    y: common_vendor.t($data.isSubmitting ? "提交中..." : $options.submitText),
+    z: $data.isSubmitting,
+    A: common_vendor.o((...args) => $options.submit && $options.submit(...args), "77"),
+    B: $data.mode === "signup"
+  }, $data.mode === "signup" ? {
+    C: $data.form.agreedPrivacy,
+    D: common_vendor.o((...args) => $options.togglePrivacyAgreement && $options.togglePrivacyAgreement(...args), "77"),
+    E: common_vendor.o((...args) => $options.openPrivacyPolicy && $options.openPrivacyPolicy(...args), "bf")
+  } : {}, {
+    F: $data.mode === "login"
   }, $data.mode === "login" ? {
-    D: common_vendor.o(($event) => $options.switchMode("signup"), "4e")
+    G: common_vendor.o(($event) => $options.switchMode("signup"), "7c")
   } : {}, {
-    E: $data.mode === "login"
+    H: $data.mode === "login"
   }, $data.mode === "login" ? {
-    F: common_vendor.o((...args) => $options.goResetPassword && $options.goResetPassword(...args), "ff")
+    I: common_vendor.o((...args) => $options.goResetPassword && $options.goResetPassword(...args), "1d")
   } : {}, {
-    G: $data.mode !== "login"
+    J: $data.mode !== "login"
   }, $data.mode !== "login" ? {
-    H: common_vendor.o(($event) => $options.switchMode("login"), "66")
+    K: common_vendor.o(($event) => $options.switchMode("login"), "5c")
   } : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

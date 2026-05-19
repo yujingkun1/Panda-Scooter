@@ -30,13 +30,27 @@
 
       <view class="field">
         <text class="field-label">登录密码</text>
-        <input
-          v-model.trim="deleteForm.password"
-          class="input"
-          password
-          type="text"
-          placeholder="请输入当前密码"
-        />
+        <view class="password-field">
+          <input
+            v-model.trim="deleteForm.password"
+            class="input password-input"
+            :password="!deleteForm.showPassword"
+            type="text"
+            placeholder="请输入当前密码"
+          />
+          <view
+            class="password-toggle ui-pressable"
+            hover-class="ui-pressable-hover"
+            hover-stay-time="70"
+            @click="togglePasswordVisibility"
+          >
+            <image
+              class="password-toggle-icon"
+              :src="deleteForm.showPassword ? '/static/eye-open.svg' : '/static/eye-closed.svg'"
+              mode="aspectFit"
+            ></image>
+          </view>
+        </view>
       </view>
 
       <view class="field">
@@ -79,7 +93,8 @@ const DEFAULT_USER_INFO = {
 
 const DEFAULT_DELETE_FORM = () => ({
   password: '',
-  verificationCode: ''
+  verificationCode: '',
+  showPassword: false
 })
 
 export default {
@@ -173,6 +188,9 @@ export default {
         clearInterval(this.timer)
         this.timer = null
       }
+    },
+    togglePasswordVisibility() {
+      this.deleteForm.showPassword = !this.deleteForm.showPassword
     },
     async logout() {
       await this.withAction('logout', () => new Promise((resolve) => {
@@ -364,6 +382,35 @@ export default {
   padding: 0 24rpx;
   font-size: 28rpx;
   box-sizing: border-box;
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.password-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.password-toggle {
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid #d9d9d4;
+  background-color: #f7f7f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.password-toggle-icon {
+  width: 30rpx;
+  height: 30rpx;
 }
 
 .code-row {

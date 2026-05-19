@@ -167,7 +167,8 @@ const _sfc_main = {
         const parkingPoints = this.mapParkingPoints(data.parkingPoints || []);
         const noParkingAreas = this.mapNoParkingAreas(data.noParkingAreas || []);
         const areaPolygon = this.mapDispatcherArea(data.area || data.dispatcherArea);
-        const noParkingMarkers = this.mapNoParkingAreaMarkers(data.noParkingAreas || [], noParkingAreas);
+        const noParkingMarkers = this.mapNoParkingAreaMarkers(noParkingAreas);
+        const areaCenter = this.resolveAreaCenter(data.area || data.dispatcherArea, areaPolygon ? areaPolygon.points : []);
         this.polygons = [...areaPolygon ? [areaPolygon] : [], ...noParkingAreas];
         this.markers = [
           ...scooters,
@@ -178,7 +179,7 @@ const _sfc_main = {
           result[item.id] = item.meta;
           return result;
         }, {});
-        this.syncMapCenter(data, parkingPoints, noParkingMarkers);
+        this.syncMapCenter(data, parkingPoints, noParkingMarkers, areaCenter);
       } catch (error) {
         this.markers = [];
         this.polygons = [];
@@ -263,9 +264,9 @@ const _sfc_main = {
         strokeWidth: 3
       };
     },
-    mapNoParkingAreaMarkers(sourceAreas, polygons) {
+    mapNoParkingAreaMarkers(polygons) {
       return polygons.map((polygon, index) => {
-        const center = this.resolveAreaCenter(sourceAreas[index], polygon.points);
+        const center = this.resolveAreaCenter(null, polygon.points);
         if (!center) {
           return null;
         }
@@ -353,14 +354,14 @@ const _sfc_main = {
         longitude: total.longitude / points.length
       };
     },
-    syncMapCenter(data, parkingPoints, noParkingMarkers) {
+    syncMapCenter(data, parkingPoints, noParkingMarkers, areaCenter = null) {
       const currentScooterPoint = this.findCurrentScooterPoint(Array.isArray(data && data.scooters) ? data.scooters : []) || this.findCurrentScooterPoint([this.scooterInfo]);
       if (currentScooterPoint) {
         this.latitude = currentScooterPoint.latitude;
         this.longitude = currentScooterPoint.longitude;
         return;
       }
-      const fallbackPoint = parkingPoints && parkingPoints[0] ? parkingPoints[0] : this.normalizePoint(noParkingMarkers && noParkingMarkers[0]);
+      const fallbackPoint = parkingPoints && parkingPoints[0] ? parkingPoints[0] : this.normalizePoint(noParkingMarkers && noParkingMarkers[0]) || areaCenter;
       if (fallbackPoint) {
         this.latitude = fallbackPoint.latitude;
         this.longitude = fallbackPoint.longitude;

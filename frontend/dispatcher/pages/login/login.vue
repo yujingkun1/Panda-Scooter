@@ -43,13 +43,27 @@
 
       <view class="field">
         <text class="label">密码</text>
-        <input
-          v-model.trim="form.password"
-          class="input"
-          password
-          type="text"
-          placeholder="请输入密码"
-        />
+        <view class="password-field">
+          <input
+            v-model.trim="form.password"
+            class="input password-input"
+            :password="!form.showPassword"
+            type="text"
+            placeholder="请输入密码"
+          />
+          <view
+            class="password-toggle ui-pressable"
+            hover-class="ui-pressable-hover"
+            hover-stay-time="70"
+            @click="togglePasswordVisibility"
+          >
+            <image
+              class="password-toggle-icon"
+              :src="form.showPassword ? '/static/eye-open.svg' : '/static/eye-closed.svg'"
+              mode="aspectFit"
+            ></image>
+          </view>
+        </view>
         <text
           v-if="mode === 'signup'"
           class="field-tip"
@@ -159,7 +173,8 @@ const DEFAULT_FORM = () => ({
   email: '',
   password: '',
   verificationCode: '',
-  agreedPrivacy: false
+  agreedPrivacy: false,
+  showPassword: false
 })
 
 export default {
@@ -210,6 +225,9 @@ export default {
       this.countdown = 0
       this.isSendingCode = false
       this.isSubmitting = false
+    },
+    togglePasswordVisibility() {
+      this.form.showPassword = !this.form.showPassword
     },
     openPrivacyPolicy() {
       uni.navigateTo({
@@ -466,6 +484,35 @@ export default {
   font-size: 28rpx;
   color: #0b0e0d;
   box-sizing: border-box;
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.password-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.password-toggle {
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid #d9d9d4;
+  background-color: #f7f7f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.password-toggle-icon {
+  width: 30rpx;
+  height: 30rpx;
 }
 
 .field-tip {
