@@ -9,7 +9,8 @@ const DEFAULT_USER_INFO = {
 };
 const DEFAULT_DELETE_FORM = () => ({
   password: "",
-  verificationCode: ""
+  verificationCode: "",
+  showPassword: false
 });
 const _sfc_main = {
   data() {
@@ -108,6 +109,9 @@ const _sfc_main = {
         this.timer = null;
       }
     },
+    togglePasswordVisibility() {
+      this.deleteForm.showPassword = !this.deleteForm.showPassword;
+    },
     async logout() {
       common_vendor.index.showModal({
         title: "退出登录",
@@ -188,20 +192,23 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     b: common_vendor.t($data.userInfo.email || "未登录"),
     c: common_vendor.o((...args) => $options.navigateToResetPassword && $options.navigateToResetPassword(...args), "0c"),
     d: common_vendor.o((...args) => $options.logout && $options.logout(...args), "4d"),
-    e: $data.deleteForm.password,
-    f: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.password = $event.detail.value, {
+    e: !$data.deleteForm.showPassword,
+    f: $data.deleteForm.password,
+    g: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.password = $event.detail.value, {
       trim: true
-    }), "84"),
-    g: $data.deleteForm.verificationCode,
-    h: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.verificationCode = $event.detail.value, {
+    }), "df"),
+    h: $data.deleteForm.showPassword ? "/static/eye-open.svg" : "/static/eye-closed.svg",
+    i: common_vendor.o((...args) => $options.togglePasswordVisibility && $options.togglePasswordVisibility(...args), "6e"),
+    j: $data.deleteForm.verificationCode,
+    k: common_vendor.o(common_vendor.m(($event) => $data.deleteForm.verificationCode = $event.detail.value, {
       trim: true
-    }), "44"),
-    i: common_vendor.t($data.isSendingDeleteCode ? "发送中..." : $data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
-    j: $data.countdown > 0 || $data.isSendingDeleteCode,
-    k: common_vendor.o((...args) => $options.sendDeleteCode && $options.sendDeleteCode(...args), "c8"),
-    l: common_vendor.t($data.isDeleting ? "注销中..." : "确认注销"),
-    m: $data.isDeleting,
-    n: common_vendor.o((...args) => $options.deleteAccount && $options.deleteAccount(...args), "40")
+    }), "56"),
+    l: common_vendor.t($data.isSendingDeleteCode ? "发送中..." : $data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
+    m: $data.countdown > 0 || $data.isSendingDeleteCode,
+    n: common_vendor.o((...args) => $options.sendDeleteCode && $options.sendDeleteCode(...args), "05"),
+    o: common_vendor.t($data.isDeleting ? "注销中..." : "确认注销"),
+    p: $data.isDeleting,
+    q: common_vendor.o((...args) => $options.deleteAccount && $options.deleteAccount(...args), "d8")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

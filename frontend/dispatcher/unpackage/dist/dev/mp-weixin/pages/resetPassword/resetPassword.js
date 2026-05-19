@@ -5,7 +5,8 @@ const common_assets = require("../../common/assets.js");
 const DEFAULT_FORM = () => ({
   email: "",
   verificationCode: "",
-  newPassword: ""
+  newPassword: "",
+  showPassword: false
 });
 const clearDispatcherSession = () => {
   common_vendor.index.removeStorageSync("dispatcherToken");
@@ -38,6 +39,9 @@ const _sfc_main = {
       this.countdown = 0;
       this.isSendingCode = false;
       this.isSubmitting = false;
+    },
+    togglePasswordVisibility() {
+      this.form.showPassword = !this.form.showPassword;
     },
     goLogin() {
       common_vendor.index.reLaunch({
@@ -158,16 +162,19 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     f: common_vendor.t($data.isSendingCode ? "发送中..." : $data.countdown > 0 ? `${$data.countdown}s` : "获取验证码"),
     g: $data.countdown > 0 || $data.isSendingCode,
     h: common_vendor.o((...args) => $options.sendCode && $options.sendCode(...args), "a9"),
-    i: $data.form.newPassword,
-    j: common_vendor.o(common_vendor.m(($event) => $data.form.newPassword = $event.detail.value, {
+    i: !$data.form.showPassword,
+    j: $data.form.newPassword,
+    k: common_vendor.o(common_vendor.m(($event) => $data.form.newPassword = $event.detail.value, {
       trim: true
-    }), "f5"),
-    k: common_vendor.t($options.getPasswordStatusText($data.form.newPassword)),
-    l: $options.isStrongPassword($data.form.newPassword) ? 1 : "",
-    m: common_vendor.t($data.isSubmitting ? "提交中..." : "确认重置"),
-    n: $data.isSubmitting,
-    o: common_vendor.o((...args) => $options.submit && $options.submit(...args), "59"),
-    p: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "98")
+    }), "c8"),
+    l: $data.form.showPassword ? "/static/eye-open.svg" : "/static/eye-closed.svg",
+    m: common_vendor.o((...args) => $options.togglePasswordVisibility && $options.togglePasswordVisibility(...args), "c5"),
+    n: common_vendor.t($options.getPasswordStatusText($data.form.newPassword)),
+    o: $options.isStrongPassword($data.form.newPassword) ? 1 : "",
+    p: common_vendor.t($data.isSubmitting ? "提交中..." : "确认重置"),
+    q: $data.isSubmitting,
+    r: common_vendor.o((...args) => $options.submit && $options.submit(...args), "5c"),
+    s: common_vendor.o((...args) => $options.goLogin && $options.goLogin(...args), "32")
   };
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);

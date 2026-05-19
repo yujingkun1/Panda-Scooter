@@ -34,13 +34,27 @@
 
       <view class="field">
         <text class="label">新密码</text>
-        <input
-          v-model.trim="form.newPassword"
-          class="input"
-          password
-          type="text"
-          placeholder="请输入新密码"
-        />
+        <view class="password-field">
+          <input
+            v-model.trim="form.newPassword"
+            class="input password-input"
+            :password="!form.showPassword"
+            type="text"
+            placeholder="请输入新密码"
+          />
+          <view
+            class="password-toggle ui-pressable"
+            hover-class="ui-pressable-hover"
+            hover-stay-time="70"
+            @click="togglePasswordVisibility"
+          >
+            <image
+              class="password-toggle-icon"
+              :src="form.showPassword ? '/static/eye-open.svg' : '/static/eye-closed.svg'"
+              mode="aspectFit"
+            ></image>
+          </view>
+        </view>
         <text class="field-tip" :class="{ ok: isStrongPassword(form.newPassword) }">
           {{ getPasswordStatusText(form.newPassword) }}
         </text>
@@ -67,7 +81,8 @@ import { showUnhandledError } from '@/utils/error'
 const DEFAULT_FORM = () => ({
   email: '',
   verificationCode: '',
-  newPassword: ''
+  newPassword: '',
+  showPassword: false
 })
 
 export default {
@@ -90,6 +105,9 @@ export default {
       this.form = DEFAULT_FORM()
       this.clearTimer()
       this.countdown = 0
+    },
+    togglePasswordVisibility() {
+      this.form.showPassword = !this.form.showPassword
     },
     goLogin() {
       uni.redirectTo({
@@ -257,6 +275,35 @@ export default {
   font-size: 28rpx;
   color: #0b0e0d;
   box-sizing: border-box;
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.password-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.password-toggle {
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid #d9d9d4;
+  background-color: #f7f7f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.password-toggle-icon {
+  width: 30rpx;
+  height: 30rpx;
 }
 
 .field-tip {

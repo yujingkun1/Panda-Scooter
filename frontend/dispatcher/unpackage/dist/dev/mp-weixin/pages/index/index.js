@@ -250,7 +250,8 @@ const _sfc_main = {
         const parkingPoints = this.mapParkingPoints(data.parkingPoints || []);
         const noParkingAreas = this.mapNoParkingAreas(data.noParkingAreas || []);
         const areaPolygon = this.mapDispatcherArea(data.area || data.dispatcherArea);
-        const noParkingMarkers = this.mapNoParkingAreaMarkers(data.noParkingAreas || [], noParkingAreas);
+        const noParkingMarkers = this.mapNoParkingAreaMarkers(noParkingAreas);
+        const areaCenter = this.resolveAreaCenter(data.area || data.dispatcherArea, areaPolygon ? areaPolygon.points : []);
         this.polygons = [...noParkingAreas, ...areaPolygon ? [areaPolygon] : []];
         this.markers = [
           ...scooters,
@@ -261,7 +262,7 @@ const _sfc_main = {
           result[item.id] = item.meta;
           return result;
         }, {});
-        this.syncMapCenter(data, parkingPoints, noParkingMarkers);
+        this.syncMapCenter(data, parkingPoints, noParkingMarkers, areaCenter);
       } catch (error) {
         this.markers = [];
         this.polygons = [];
@@ -335,9 +336,9 @@ const _sfc_main = {
         strokeWidth: 4
       };
     },
-    mapNoParkingAreaMarkers(sourceAreas, polygons) {
+    mapNoParkingAreaMarkers(polygons) {
       return polygons.map((polygon, index) => {
-        const center = this.resolveAreaCenter(sourceAreas[index], polygon.points);
+        const center = this.resolveAreaCenter(null, polygon.points);
         if (!center) {
           return null;
         }
@@ -425,11 +426,11 @@ const _sfc_main = {
         longitude: total.longitude / points.length
       };
     },
-    syncMapCenter(data, parkingPoints, noParkingMarkers) {
+    syncMapCenter(data, parkingPoints, noParkingMarkers, areaCenter = null) {
       if (this.hasCurrentLocation) {
         return;
       }
-      const firstPoint = this.normalizePoint(Array.isArray(data.scooters) ? data.scooters[0] : null) || parkingPoints[0] || this.normalizePoint(noParkingMarkers[0]);
+      const firstPoint = this.normalizePoint(Array.isArray(data.scooters) ? data.scooters[0] : null) || parkingPoints[0] || this.normalizePoint(noParkingMarkers[0]) || areaCenter;
       if (firstPoint) {
         this.latitude = firstPoint.latitude;
         this.longitude = firstPoint.longitude;
