@@ -29,17 +29,11 @@ panda:
     ttl: 604800000
     token-name: Authorization
   mqtt:
-    enabled: ${PANDA_MQTT_ENABLED:false}
+    enabled: ${PANDA_MQTT_ENABLED:true}
     server-uri: ${PANDA_MQTT_SERVER_URI:tcp://8.137.181.89:1883}
     client-id: ${PANDA_MQTT_CLIENT_ID:panda-server}
     username: ${PANDA_MQTT_USERNAME:}
     password: ${PANDA_MQTT_PASSWORD:}
     qos: ${PANDA_MQTT_QOS:1}
     telemetry-topic: ${PANDA_MQTT_TELEMETRY_TOPIC:panda/scooter/+/telemetry}
-    ack-topic: ${PANDA_MQTT_ACK_TOPIC:panda/scooter/+/ack}
     command-topic-prefix: ${PANDA_MQTT_COMMAND_TOPIC_PREFIX:panda/scooter}
-    command-ack-timeout-seconds: ${PANDA_MQTT_COMMAND_ACK_TIMEOUT_SECONDS:10}
-    command-retry-scan-delay-seconds: ${PANDA_MQTT_COMMAND_RETRY_SCAN_DELAY_SECONDS:60}
-    command-retry-batch-size: ${PANDA_MQTT_COMMAND_RETRY_BATCH_SIZE:50}
-    command-max-retry-count: ${PANDA_MQTT_COMMAND_MAX_RETRY_COUNT:3}
-    scooter-online-ttl-seconds: ${PANDA_MQTT_SCOOTER_ONLINE_TTL_SECONDS:60}

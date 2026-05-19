@@ -72,8 +72,6 @@ public class ScooterMqttPublisher {
         String commandId = buildCommandId();
         ScooterCommandMessage commandMessage = new ScooterCommandMessage(commandId, command, orderId);
         String payload = writePayload(commandMessage);
-        ScooterCommand scooterCommand = buildScooterCommand(commandId, scooterCode, orderId, command, payload);
-        savePendingCommand(scooterCommand);
 
         if (!Boolean.TRUE.equals(mqttProperties.getEnabled())) {
             markFailed(commandId, "MQTT is disabled");
@@ -105,35 +103,6 @@ public class ScooterMqttPublisher {
         mqttMessage.setRetained(false);
         mqttClient.publish(topic, mqttMessage);
         return topic;
-    }
-
-    private ScooterCommand buildScooterCommand(String commandId,
-                                               String scooterCode,
-                                               Long orderId,
-                                               String command,
-                                               String payload) {
-        LocalDateTime now = LocalDateTime.now();
-        ScooterCommand scooterCommand = new ScooterCommand();
-        scooterCommand.setCommandId(commandId);
-        scooterCommand.setScooterCode(scooterCode);
-        scooterCommand.setOrderId(orderId);
-        scooterCommand.setCommandType(command);
-        scooterCommand.setPayload(payload);
-        scooterCommand.setStatus(ScooterCommand.STATUS_PENDING);
-        scooterCommand.setRetryCount(0);
-        scooterCommand.setMaxRetryCount(mqttProperties.getCommandMaxRetryCount());
-        scooterCommand.setCreateTime(now);
-        scooterCommand.setUpdateTime(now);
-        return scooterCommand;
-    }
-
-    private void savePendingCommand(ScooterCommand scooterCommand) {
-        try {
-            scooterCommandMapper.insert(scooterCommand);
-        } catch (Exception ex) {
-            log.warn("Failed to save scooter command, commandId={}, scooterCode={}, command={}",
-                    scooterCommand.getCommandId(), scooterCommand.getScooterCode(), scooterCommand.getCommandType(), ex);
-        }
     }
 
     private void markSent(String commandId) {

@@ -23,21 +23,9 @@ public class MqttProperties {
 
     private String telemetryTopic = "panda/scooter/+/telemetry";
 
-    private String ackTopic = "panda/scooter/+/ack";
-
     private String commandTopicPrefix = "panda/scooter";
 
     private Integer connectionTimeout = 10;
 
     private Integer keepAliveInterval = 30;
-
-    private Integer commandAckTimeoutSeconds = 10;
-
-    private Integer commandRetryScanDelaySeconds = 100;
-
-    private Integer commandRetryBatchSize = 50;
-
-    private Integer commandMaxRetryCount = 3;
-
-    private Integer scooterOnlineTtlSeconds = 60;
 }
