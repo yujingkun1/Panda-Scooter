@@ -225,6 +225,18 @@ export default {
     this.restoreRide(cachedRide)
     await this.bootstrapRide()
   },
+  onShow() {
+    const cachedRide = uni.getStorageSync(CURRENT_RIDE_STORAGE_KEY)
+    const hasCachedActiveRide = Boolean(cachedRide && cachedRide.orderId && cachedRide.active)
+
+    if (hasCachedActiveRide && !this.clockTimer && !this.locationTimer) {
+      this.restoreRide(cachedRide)
+      this.bootstrapRide()
+    }
+  },
+  onHide() {
+    this.clearTimers()
+  },
   onUnload() {
     this.clearTimers()
   },
@@ -403,6 +415,7 @@ export default {
         return
       }
 
+      this.clearTimers()
       uni.navigateTo({
         url: `/pages/reportFault/reportFault?rideMode=1&code=${encodeURIComponent(this.ride.scooterCode || '')}`
       })

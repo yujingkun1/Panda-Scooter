@@ -1,0 +1,75 @@
+
+.page {
+  min-height: 100vh;
+  background-color: #fafaf8;
+}
+.map-container {
+  width: 100%;
+  height: 520rpx;
+  background-color: #ffffff;
+  border-bottom: 1rpx solid #e5e5e2;
+}
+.map {
+  width: 100%;
+  height: 100%;
+}
+.result-panel {
+  padding: 32rpx;
+}
+.result-meta {
+  margin-bottom: 20rpx;
+}
+.result-text {
+  font-size: 24rpx;
+  color: #737373;
+}
+.result-list {
+  height: calc(100vh - 620rpx);
+}
+.result-item {
+  margin-bottom: 16rpx;
+  padding: 28rpx 24rpx;
+  background-color: #ffffff;
+  border: 1rpx solid #e5e5e2;
+}
+.result-item.active {
+  border-color: #0b0e0d;
+}
+.result-header,
+.result-subline,
+.result-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.result-header {
+  margin-bottom: 12rpx;
+}
+.result-subline {
+  margin-bottom: 12rpx;
+}
+.result-name {
+  font-size: 28rpx;
+  color: #0b0e0d;
+}
+.result-distance,
+.result-area,
+.detail-text {
+  font-size: 22rpx;
+  color: #737373;
+}
+.result-area {
+  color: #a67c00;
+}
+.fault-text {
+  color: #c62828;
+}
+.empty-state {
+  padding: 96rpx 0;
+  text-align: center;
+}
+.empty-text {
+  font-size: 24rpx;
+  color: #737373;
+}
